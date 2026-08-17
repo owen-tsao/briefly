@@ -21,7 +21,7 @@ Return ONLY valid JSON (no markdown fences, no commentary) with this exact shape
   ],
   "removedIds": string[],         // ids of existing tasks that are clearly completed or no longer relevant per the notes
   "today": {
-    "priorities": string[],       // 3-5 short strings: the most urgent/high-leverage things today
+    "priorities": string[],       // 3-5 TASK REFERENCES: each entry must be either the id of an existing task or the exact "text" of a task in your tasks array above. These mark which tasks deserve focus today — never freeform prose.
     "changes": string[]           // 0-5 short strings: what changed since last time (new tasks, deadlines approaching, stale items). Empty array if first run.
   }
 }
@@ -40,6 +40,7 @@ Rules:
 - Deduplicate: the same underlying task across multiple notes is one task.
 - NEVER output a task matching the suppressed list, even reworded.
 - Resolve relative dates ("Friday", "tmrw", "next week") against today's date.
+- today.priorities picks the tasks that matter most today: explicit deadlines today/tomorrow, high priority, or clearly time-sensitive. Reference existing tasks by id and new ones by their exact text.
 - Keep the total task list realistic: prefer 10-25 well-chosen current tasks over 60 stale ones. When in doubt, leave it out.`
 
 export const ASK_SYSTEM = `You are "briefly", a personal assistant with context from the user's Apple Notes and their current task list (provided below). The context starts with notes specifically retrieved because they look relevant to the question — read those carefully before concluding anything is missing. Answer directly and concisely using the context. If the answer genuinely is not in the notes, say so briefly rather than guessing. Plain text for a small popover window: short paragraphs or dash lists, no headings.`

@@ -38,7 +38,16 @@ function load(): StoreFile {
   const path = storePath()
   if (!existsSync(path)) return { tasks: [], today: null, lastRefreshed: null }
   try {
-    return JSON.parse(readFileSync(path, 'utf8')) as StoreFile
+    const store = JSON.parse(readFileSync(path, 'utf8')) as StoreFile
+    // Migrate pre-task-linked strips (freeform "priorities" prose): keep changes, regenerate on next scan.
+    if (store.today && !Array.isArray(store.today.priorityIds)) {
+      store.today = {
+        priorityIds: [],
+        changes: Array.isArray(store.today.changes) ? store.today.changes : [],
+        generatedAt: store.today.generatedAt ?? new Date().toISOString()
+      }
+    }
+    return store
   } catch {
     return { tasks: [], today: null, lastRefreshed: null }
   }
@@ -121,18 +130,18 @@ export function updateTaskText(id: string, text: string): void {
 }
 
 /** Remove one item from the Today strip and keep it suppressed for the rest of the day. */
-export function dismissTodayItem(section: 'priorities' | 'changes', text: string): void {
+export function dismissTodayItem(section: 'priorities' | 'changes', value: string): void {
   const store = load()
   if (!store.today) return
-  const items = store.today[section]
-  const idx = items.indexOf(text)
+  const items = section === 'priorities' ? store.today.priorityIds : store.today.changes
+  const idx = items.indexOf(value)
   if (idx === -1) return
   items.splice(idx, 1)
   const today = new Date().toISOString().slice(0, 10)
   if (!store.dismissedToday || store.dismissedToday.date !== today) {
     store.dismissedToday = { date: today, texts: [] }
   }
-  store.dismissedToday.texts.push(text)
+  store.dismissedToday.texts.push(value)
   save(store)
 }
 
@@ -209,8 +218,27 @@ export function applyMerge(response: MergeResponse, options: { updateToday?: boo
   }
 
   if (updateToday) {
+    // Resolve the LLM's task references (existing id or exact text of a new task) to real ids.
+    const idsNow = new Map(store.tasks.map((t) => [t.id, t]))
+    const byText = new Map(
+      store.tasks
+        .filter((t) => t.state === 'open' || t.state === 'snoozed')
+        .map((t) => [t.text.toLowerCase(), t])
+    )
+    const priorityIds: string[] = []
+    for (const entry of response.today?.priorities ?? []) {
+      if (typeof entry !== 'string') continue
+      const task = idsNow.get(entry) ?? byText.get(entry.toLowerCase().trim())
+      if (
+        task &&
+        (task.state === 'open' || task.state === 'snoozed') &&
+        !priorityIds.includes(task.id)
+      ) {
+        priorityIds.push(task.id)
+      }
+    }
     store.today = {
-      priorities: filterDismissedToday((response.today?.priorities ?? []).slice(0, 5), store),
+      priorityIds: filterDismissedToday(priorityIds, store).slice(0, 5),
       changes: filterDismissedToday((response.today?.changes ?? []).slice(0, 5), store),
       generatedAt: now
     }

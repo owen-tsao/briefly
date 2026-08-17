@@ -95,34 +95,48 @@ export function TasksView({
 
   return (
     <div className="space-y-5">
-      {state.today && (state.today.priorities.length > 0 || state.today.changes.length > 0) && (
-        <section className="overflow-hidden rounded-xl border border-slate-200/80 bg-white/90 shadow-[0_1px_3px_rgba(0,0,0,0.04)] backdrop-blur dark:border-white/[0.08] dark:bg-ink-900/90">
-          {state.today.priorities.length > 0 && (
-            <div className="border-l-2 border-l-indigo-500 px-3.5 py-3">
-              <h4 className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-indigo-600 dark:text-indigo-400">
-                Today
-              </h4>
-              <ul className="space-y-1">
-                {state.today.priorities.map((p, i) => (
-                  <TodayItem key={i} text={p} onDismiss={() => onTodayDismiss('priorities', p)} />
-                ))}
-              </ul>
-            </div>
-          )}
-          {state.today.changes.length > 0 && (
-            <div className="border-t border-slate-100 border-l-2 border-l-amber-500 px-3.5 py-3 dark:border-t-white/[0.06]">
-              <h4 className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-amber-600 dark:text-amber-400">
-                What changed
-              </h4>
-              <ul className="space-y-1">
-                {state.today.changes.map((c, i) => (
-                  <TodayItem key={i} text={c} onDismiss={() => onTodayDismiss('changes', c)} />
-                ))}
-              </ul>
-            </div>
-          )}
-        </section>
-      )}
+      {state.today &&
+        (() => {
+          const priorityTasks = state.today.priorityIds
+            .map((id) => state.tasks.find((t) => t.id === id))
+            .filter((t): t is Task => Boolean(t) && t!.state !== 'dismissed' && t!.state !== 'archived')
+          if (priorityTasks.length === 0 && state.today.changes.length === 0) return null
+          return (
+            <section className="overflow-hidden rounded-xl border border-slate-200/80 bg-white/90 shadow-[0_1px_3px_rgba(0,0,0,0.04)] backdrop-blur dark:border-white/[0.08] dark:bg-ink-900/90">
+              {priorityTasks.length > 0 && (
+                <div className="border-l-2 border-l-indigo-500 px-3.5 py-3">
+                  <h4 className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-indigo-600 dark:text-indigo-400">
+                    Today
+                  </h4>
+                  <ul className="space-y-1">
+                    {priorityTasks.map((task) => (
+                      <TodayTaskItem
+                        key={task.id}
+                        task={task}
+                        onToggle={() =>
+                          onTaskState(task.id, task.state === 'done' ? 'open' : 'done')
+                        }
+                        onDismiss={() => onTodayDismiss('priorities', task.id)}
+                      />
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {state.today.changes.length > 0 && (
+                <div className="border-t border-slate-100 border-l-2 border-l-amber-500 px-3.5 py-3 dark:border-t-white/[0.06]">
+                  <h4 className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-amber-600 dark:text-amber-400">
+                    What changed
+                  </h4>
+                  <ul className="space-y-1">
+                    {state.today.changes.map((c, i) => (
+                      <TodayItem key={i} text={c} onDismiss={() => onTodayDismiss('changes', c)} />
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </section>
+          )
+        })()}
 
       {visible.length === 0 ? (
         <EmptyState title="Nothing here" sub="No open tasks. On top of everything — or time to rescan." />
@@ -163,6 +177,64 @@ function TodayItem({ text, onDismiss }: { text: string; onDismiss: () => void })
       <span className="min-w-0 flex-1">{text}</span>
       <button
         title="Dismiss for today"
+        onClick={onDismiss}
+        className="pointer-events-none mt-0.5 shrink-0 rounded p-0.5 text-gray-400 opacity-0 transition-all hover:text-gray-700 active:scale-90 group-hover/today:pointer-events-auto group-hover/today:opacity-100 dark:text-zinc-500 dark:hover:text-zinc-200"
+      >
+        <X size={12} />
+      </button>
+    </li>
+  )
+}
+
+/** Live task reference in the Today strip: checkbox + current text, synced with the board. */
+function TodayTaskItem({
+  task,
+  onToggle,
+  onDismiss
+}: {
+  task: Task
+  onToggle: () => void
+  onDismiss: () => void
+}): React.JSX.Element {
+  const done = task.state === 'done'
+  return (
+    <li className="group/today flex items-start gap-2 text-[13px] leading-relaxed">
+      <label className="relative mt-1 inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center">
+        <input
+          type="checkbox"
+          checked={done}
+          onChange={onToggle}
+          className="peer absolute inset-0 h-full w-full cursor-pointer appearance-none opacity-0"
+        />
+        <span
+          className={cn(
+            'flex h-3.5 w-3.5 items-center justify-center rounded border transition-all duration-200',
+            done
+              ? 'border-gray-900 bg-gray-900 dark:border-accent dark:bg-accent'
+              : 'border-gray-300 bg-white peer-hover:border-gray-400 dark:border-white/20 dark:bg-ink-800 dark:peer-hover:border-white/40'
+          )}
+        >
+          <svg
+            className={cn('h-2 w-2 text-white transition-opacity', done ? 'opacity-100' : 'opacity-0')}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            viewBox="0 0 12 9"
+          >
+            <path d="M1 4.2L4 7L11 1" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+      </label>
+      <span
+        className={cn(
+          'min-w-0 flex-1 text-gray-800 transition-all duration-200 dark:text-zinc-200',
+          done && 'text-gray-400 line-through dark:text-zinc-500'
+        )}
+      >
+        {task.text}
+      </span>
+      <button
+        title="Remove from today"
         onClick={onDismiss}
         className="pointer-events-none mt-0.5 shrink-0 rounded p-0.5 text-gray-400 opacity-0 transition-all hover:text-gray-700 active:scale-90 group-hover/today:pointer-events-auto group-hover/today:opacity-100 dark:text-zinc-500 dark:hover:text-zinc-200"
       >
