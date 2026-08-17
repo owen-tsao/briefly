@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { cn } from '@/lib/utils'
 import { DEFAULT_BASE_URL, DEFAULT_MODEL } from '../../../shared/types'
 
 export function SettingsView({ onSaved }: { onSaved: () => void }): React.JSX.Element {
@@ -9,6 +10,7 @@ export function SettingsView({ onSaved }: { onSaved: () => void }): React.JSX.El
   const [saved, setSaved] = useState(false)
   const [models, setModels] = useState<string[]>([])
   const [modelsError, setModelsError] = useState<string | null>(null)
+  const [launchAtLogin, setLaunchAtLogin] = useState(false)
 
   useEffect(() => {
     window.briefly.getSettings().then((s) => {
@@ -17,7 +19,12 @@ export function SettingsView({ onSaved }: { onSaved: () => void }): React.JSX.El
       setHasApiKey(s.hasApiKey)
       if (s.hasApiKey) loadModels()
     })
+    window.briefly.getLaunchAtLogin().then(setLaunchAtLogin)
   }, [])
+
+  const toggleLaunchAtLogin = async (): Promise<void> => {
+    setLaunchAtLogin(await window.briefly.setLaunchAtLogin(!launchAtLogin))
+  }
 
   const loadModels = async (): Promise<void> => {
     setModelsError(null)
@@ -112,6 +119,29 @@ export function SettingsView({ onSaved }: { onSaved: () => void }): React.JSX.El
               : 'Save an API key to load the live model list from your provider.'}
         </span>
       </label>
+
+      <button
+        onClick={toggleLaunchAtLogin}
+        className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-left shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition hover:border-slate-300 dark:border-white/[0.08] dark:bg-ink-900 dark:hover:border-white/20"
+      >
+        <span>
+          <span className="block text-[13px] font-medium">Launch at login</span>
+          <span className={hintCls}>Start briefly automatically when you log in.</span>
+        </span>
+        <span
+          className={cn(
+            'relative h-5 w-9 shrink-0 rounded-full transition-colors',
+            launchAtLogin ? 'bg-gray-900 dark:bg-accent' : 'bg-slate-200 dark:bg-ink-700'
+          )}
+        >
+          <span
+            className={cn(
+              'absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all',
+              launchAtLogin ? 'left-[18px]' : 'left-0.5'
+            )}
+          />
+        </span>
+      </button>
 
       <button
         onClick={save}

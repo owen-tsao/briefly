@@ -18,6 +18,8 @@ export interface BrieflyApi {
   getSettings: () => Promise<SettingsView>
   saveSettings: (update: { baseUrl?: string; model?: string; apiKey?: string }) => Promise<SettingsView>
   listModels: () => Promise<{ ok: boolean; models?: string[]; error?: string }>
+  getLaunchAtLogin: () => Promise<boolean>
+  setLaunchAtLogin: (enabled: boolean) => Promise<boolean>
   listNotes: () => Promise<{ ok: boolean; notes?: NoteSummary[]; error?: string }>
   extractNote: (title: string, modified: string | null) => Promise<RefreshResult>
   quit: () => Promise<void>
@@ -33,6 +35,8 @@ const api: BrieflyApi = {
   getSettings: () => ipcRenderer.invoke('settings:get'),
   saveSettings: (update) => ipcRenderer.invoke('settings:save', update),
   listModels: () => ipcRenderer.invoke('models:list'),
+  getLaunchAtLogin: () => ipcRenderer.invoke('login:get'),
+  setLaunchAtLogin: (enabled) => ipcRenderer.invoke('login:set', enabled),
   listNotes: () => ipcRenderer.invoke('notes:list'),
   extractNote: (title, modified) => ipcRenderer.invoke('notes:extract', title, modified),
   quit: () => ipcRenderer.invoke('app:quit')

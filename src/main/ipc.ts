@@ -45,10 +45,16 @@ export function registerIpc(): void {
     }
   })
 
-  ipcMain.handle(
-    'settings:save',
+  ipcMain.handle('settings:save',
     (_event, update: { baseUrl?: string; model?: string; apiKey?: string }) => saveSettings(update)
   )
+
+  ipcMain.handle('login:get', () => app.getLoginItemSettings().openAtLogin)
+
+  ipcMain.handle('login:set', (_event, enabled: boolean) => {
+    if (typeof enabled === 'boolean') app.setLoginItemSettings({ openAtLogin: enabled })
+    return app.getLoginItemSettings().openAtLogin
+  })
 
   ipcMain.handle('app:quit', () => app.quit())
 }
