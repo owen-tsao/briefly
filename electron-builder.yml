@@ -1,0 +1,30 @@
+appId: com.owentsao.briefly
+productName: briefly
+directories:
+  output: dist
+files:
+  - out/**
+  - package.json
+
+mac:
+  target:
+    - target: dmg
+      arch: [arm64]
+    - target: zip
+      arch: [arm64]
+  category: public.app-category.productivity
+  icon: build/icon.icns
+  # Ad-hoc signature: runs fine locally; other Macs need right-click → Open.
+  identity: null
+  extendInfo:
+    # Menu bar agent app: no Dock icon, no App Switcher entry.
+    LSUIElement: true
+    NSAppleEventsUsageDescription: >-
+      briefly reads your Apple Notes (read-only) to build your task board.
+
+dmg:
+  title: briefly
+
+extraResources:
+  - from: resources
+    to: resources

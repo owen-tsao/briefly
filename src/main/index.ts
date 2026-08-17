@@ -71,14 +71,21 @@ function toggleWindow(): void {
   }
 }
 
+function trayIcon(): Electron.NativeImage {
+  const base = app.isPackaged ? process.resourcesPath : app.getAppPath()
+  const image = nativeImage.createFromPath(join(base, 'resources', 'trayTemplate.png'))
+  image.setTemplateImage(true)
+  return image
+}
+
 app.whenReady().then(() => {
   // Menu bar app: no dock icon.
   app.dock?.hide()
 
   registerIpc()
 
-  tray = new Tray(nativeImage.createEmpty())
-  tray.setTitle('✓ briefly')
+  tray = new Tray(trayIcon())
+  tray.setTitle(' briefly')
   tray.setToolTip('briefly — your notes, organized')
   tray.on('click', toggleWindow)
 
