@@ -10,7 +10,7 @@ interface Props {
   allDone: boolean
   refreshing: boolean
   onRefresh: () => void
-  onTaskState: (id: string, taskState: TaskState) => void
+  onTaskState: (id: string, taskState: TaskState, snoozedUntil?: string) => void
   onTaskEdit: (id: string, text: string) => void
   onTodayDismiss: (section: 'priorities' | 'changes', text: string) => void
   onOpenSettings: () => void
@@ -260,17 +260,34 @@ const PRIORITY_DOT = {
   low: 'bg-slate-300 dark:bg-zinc-600'
 }
 
+function snoozeOptions(): { label: string; until: string }[] {
+  const now = new Date()
+  const later = new Date(now.getTime() + 3 * 3_600_000)
+  const tomorrow = new Date(now)
+  tomorrow.setDate(now.getDate() + 1)
+  tomorrow.setHours(9, 0, 0, 0)
+  const nextWeek = new Date(now)
+  nextWeek.setDate(now.getDate() + (((8 - now.getDay()) % 7) || 7))
+  nextWeek.setHours(9, 0, 0, 0)
+  return [
+    { label: 'Later today', until: later.toISOString() },
+    { label: 'Tomorrow', until: tomorrow.toISOString() },
+    { label: 'Next week', until: nextWeek.toISOString() }
+  ]
+}
+
 function TaskRow({
   task,
   onTaskState,
   onTaskEdit
 }: {
   task: Task
-  onTaskState: (id: string, taskState: TaskState) => void
+  onTaskState: (id: string, taskState: TaskState, snoozedUntil?: string) => void
   onTaskEdit: (id: string, text: string) => void
 }): React.JSX.Element {
   const done = task.state === 'done'
   const deadline = task.deadline ? formatDeadline(task.deadline) : null
+  const [snoozeOpen, setSnoozeOpen] = useState(false)
 
   return (
     <li
@@ -377,13 +394,39 @@ function TaskRow({
         the row never shifts on hover.
       */}
       {!done && (
-        <span className="pointer-events-none flex w-[46px] shrink-0 justify-end gap-1 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100">
-          <ActionButton title="Snooze until tomorrow" onClick={() => onTaskState(task.id, 'snoozed')}>
+        <span
+          className={cn(
+            'relative flex w-[46px] shrink-0 justify-end gap-1 transition-opacity duration-150',
+            snoozeOpen
+              ? 'pointer-events-auto opacity-100'
+              : 'pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100'
+          )}
+        >
+          <ActionButton title="Snooze…" onClick={() => setSnoozeOpen((v) => !v)}>
             <AlarmClock size={12} />
           </ActionButton>
           <ActionButton title="Dismiss forever" onClick={() => onTaskState(task.id, 'dismissed')}>
             <X size={12} />
           </ActionButton>
+          {snoozeOpen && (
+            <>
+              <span className="fixed inset-0 z-10" onClick={() => setSnoozeOpen(false)} />
+              <span className="absolute right-0 top-full z-20 mt-1 flex w-32 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-white/[0.1] dark:bg-ink-800">
+                {snoozeOptions().map((opt) => (
+                  <button
+                    key={opt.label}
+                    onClick={() => {
+                      setSnoozeOpen(false)
+                      onTaskState(task.id, 'snoozed', opt.until)
+                    }}
+                    className="px-3 py-1.5 text-left text-xs font-medium text-gray-700 transition-colors hover:bg-slate-50 hover:text-gray-900 dark:text-zinc-300 dark:hover:bg-white/[0.06] dark:hover:text-zinc-100"
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </span>
+            </>
+          )}
         </span>
       )}
     </li>

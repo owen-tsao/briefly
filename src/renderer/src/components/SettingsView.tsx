@@ -11,12 +11,14 @@ export function SettingsView({ onSaved }: { onSaved: () => void }): React.JSX.El
   const [models, setModels] = useState<string[]>([])
   const [modelsError, setModelsError] = useState<string | null>(null)
   const [launchAtLogin, setLaunchAtLogin] = useState(false)
+  const [autoRescan, setAutoRescan] = useState(0)
 
   useEffect(() => {
     window.briefly.getSettings().then((s) => {
       setBaseUrl(s.baseUrl)
       setModel(s.model)
       setHasApiKey(s.hasApiKey)
+      setAutoRescan(s.autoRescanMinutes)
       if (s.hasApiKey) loadModels()
     })
     window.briefly.getLaunchAtLogin().then(setLaunchAtLogin)
@@ -34,7 +36,11 @@ export function SettingsView({ onSaved }: { onSaved: () => void }): React.JSX.El
   }
 
   const save = async (): Promise<void> => {
-    const update: { baseUrl: string; model: string; apiKey?: string } = { baseUrl, model }
+    const update: { baseUrl: string; model: string; apiKey?: string; autoRescanMinutes: number } = {
+      baseUrl,
+      model,
+      autoRescanMinutes: autoRescan
+    }
     if (apiKey.trim()) update.apiKey = apiKey.trim()
     const result = await window.briefly.saveSettings(update)
     setHasApiKey(result.hasApiKey)
@@ -120,6 +126,25 @@ export function SettingsView({ onSaved }: { onSaved: () => void }): React.JSX.El
         </span>
       </label>
 
+      <label className="block space-y-1.5">
+        <span className={labelCls}>Auto rescan</span>
+        <select
+          value={autoRescan}
+          onChange={(e) => setAutoRescan(Number(e.target.value))}
+          className={inputCls}
+        >
+          <option value={0}>Off</option>
+          <option value={30}>Every 30 minutes</option>
+          <option value={60}>Every hour</option>
+          <option value={180}>Every 3 hours</option>
+          <option value={360}>Every 6 hours</option>
+        </select>
+        <span className={hintCls}>
+          Scans in the background while the popover is closed, so the board is fresh when you open
+          it.
+        </span>
+      </label>
+
       <button
         onClick={toggleLaunchAtLogin}
         className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-left shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition hover:border-slate-300 dark:border-white/[0.08] dark:bg-ink-900 dark:hover:border-white/20"
@@ -152,7 +177,8 @@ export function SettingsView({ onSaved }: { onSaved: () => void }): React.JSX.El
 
       <p className="border-t border-slate-200 pt-3 text-[11px] leading-relaxed text-gray-400 dark:border-white/[0.08] dark:text-zinc-500">
         briefly reads your Apple Notes read-only. Locked notes are never read. Task state lives only
-        in this app.
+        in this app. Tip: press <kbd className="rounded bg-slate-100 px-1 font-sans dark:bg-ink-700">⌥B</kbd> anywhere
+        to open briefly.
       </p>
     </div>
   )

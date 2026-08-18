@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Moon, Sun, RefreshCw, Power } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Moon, Sun, RefreshCw, Power, Undo2 } from 'lucide-react'
 import type { AppState, TaskState } from '../../shared/types'
 import { cn } from '@/lib/utils'
 import { useTheme } from '@/lib/theme'
@@ -24,6 +24,8 @@ export function App(): React.JSX.Element {
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [dateInfo, setDateInfo] = useState({ date: '', time: '' })
+  const [undo, setUndo] = useState<{ id: string; label: string } | null>(null)
+  const undoTimer = useRef<number | undefined>(undefined)
 
   useEffect(() => {
     const updateTime = (): void => {
@@ -50,6 +52,9 @@ export function App(): React.JSX.Element {
     loadState()
   }, [loadState])
 
+  // Pick up auto-rescan results from the main process.
+  useEffect(() => window.briefly.onStateChanged(setState), [])
+
   const handleRefresh = useCallback(async () => {
     setRefreshing(true)
     setError(null)
@@ -59,9 +64,24 @@ export function App(): React.JSX.Element {
     setRefreshing(false)
   }, [])
 
-  const handleTaskState = useCallback(async (id: string, taskState: TaskState) => {
-    setState(await window.briefly.setTaskState(id, taskState))
-  }, [])
+  const handleTaskState = useCallback(
+    async (id: string, taskState: TaskState, snoozedUntil?: string) => {
+      setState(await window.briefly.setTaskState(id, taskState, snoozedUntil))
+      if (taskState === 'dismissed' || taskState === 'snoozed') {
+        setUndo({ id, label: taskState === 'dismissed' ? 'Task dismissed' : 'Task snoozed' })
+        window.clearTimeout(undoTimer.current)
+        undoTimer.current = window.setTimeout(() => setUndo(null), 5000)
+      }
+    },
+    []
+  )
+
+  const handleUndo = useCallback(async () => {
+    if (!undo) return
+    window.clearTimeout(undoTimer.current)
+    setState(await window.briefly.setTaskState(undo.id, 'open'))
+    setUndo(null)
+  }, [undo])
 
   const handleTaskEdit = useCallback(async (id: string, text: string) => {
     setState(await window.briefly.updateTaskText(id, text))
@@ -81,7 +101,7 @@ export function App(): React.JSX.Element {
   }, [state])
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-slate-50 text-slate-900 transition-colors dark:bg-ink-950 dark:text-zinc-100">
+    <div className="relative flex h-screen flex-col overflow-hidden bg-slate-50 text-slate-900 transition-colors dark:bg-ink-950 dark:text-zinc-100">
       {/*
         Header — TodoCard yellow identity in light mode;
         layered ink surface with hairline border in dark mode.
@@ -183,6 +203,20 @@ export function App(): React.JSX.Element {
         {tab === 'ask' && <AskView hasApiKey={state?.hasApiKey ?? false} />}
         {tab === 'settings' && <SettingsView onSaved={loadState} />}
       </main>
+
+      {undo && (
+        <div className="pointer-events-none absolute bottom-3 left-0 right-0 z-40 flex justify-center">
+          <div className="pointer-events-auto flex items-center gap-3 rounded-full border border-slate-200 bg-white py-1.5 pl-4 pr-1.5 text-xs font-medium shadow-lg dark:border-white/[0.1] dark:bg-ink-800 dark:text-zinc-200">
+            {undo.label}
+            <button
+              onClick={handleUndo}
+              className="flex items-center gap-1 rounded-full bg-gray-900 px-2.5 py-1 font-semibold text-white transition hover:bg-gray-700 active:scale-95 dark:bg-accent dark:hover:bg-accent-hover"
+            >
+              <Undo2 size={11} /> Undo
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
