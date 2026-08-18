@@ -48,6 +48,8 @@ export interface SettingsView {
   baseUrl: string
   model: string
   hasApiKey: boolean
+  /** Auto-rescan interval in minutes; 0 = off. */
+  autoRescanMinutes: number
 }
 
 export interface RefreshResult {

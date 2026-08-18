@@ -1,6 +1,8 @@
-import { app, BrowserWindow, Tray, nativeImage, screen, shell } from 'electron'
+import { app, BrowserWindow, Tray, globalShortcut, nativeImage, screen, shell } from 'electron'
 import { join } from 'node:path'
 import { registerIpc } from './ipc'
+import { setTray, updateTrayCount } from './tray'
+import { initScheduler, scheduleAutoRescan } from './scheduler'
 
 const WINDOW_WIDTH = 400
 const WINDOW_HEIGHT = 580
@@ -85,11 +87,19 @@ app.whenReady().then(() => {
   registerIpc()
 
   tray = new Tray(trayIcon())
-  tray.setTitle(' briefly')
   tray.setToolTip('briefly — your notes, organized')
   tray.on('click', toggleWindow)
+  setTray(tray)
+  updateTrayCount()
+
+  // ⌥B toggles the popover from anywhere. Non-fatal if another app owns it.
+  if (!globalShortcut.register('Alt+B', toggleWindow)) {
+    console.warn('briefly: could not register Alt+B global shortcut')
+  }
 
   window = createWindow()
+  initScheduler(() => window)
+  scheduleAutoRescan()
 
   // Open the popover once on launch so the app is easy to locate.
   window.webContents.once('did-finish-load', () => {
@@ -103,3 +113,5 @@ app.whenReady().then(() => {
 
 // Menu bar apps keep running with no windows open.
 app.on('window-all-closed', () => {})
+
+app.on('will-quit', () => globalShortcut.unregisterAll())

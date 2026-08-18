@@ -87,10 +87,18 @@ export function getState(hasApiKey: boolean): AppState {
   return { tasks: store.tasks, today: store.today, lastRefreshed: store.lastRefreshed, hasApiKey }
 }
 
+export function getLastRefreshed(): string | null {
+  return load().lastRefreshed
+}
+
 export function getOpenTasks(): Task[] {
   const store = load()
   wakeSnoozed(store)
   return store.tasks.filter((t) => t.state === 'open' || t.state === 'snoozed')
+}
+
+export function getOpenCount(): number {
+  return load().tasks.filter((t) => t.state === 'open').length
 }
 
 /** Texts the LLM must not recreate: dismissed = forever, done = recent window. */

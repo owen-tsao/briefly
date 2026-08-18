@@ -8,7 +8,11 @@ interface StoredSettings {
   model: string
   /** base64 of safeStorage-encrypted key, or plain key prefixed "plain:" if encryption unavailable */
   apiKeyEnc: string | null
+  /** Auto-rescan interval in minutes; 0 = off. */
+  autoRescanMinutes: number
 }
+
+const RESCAN_CHOICES = [0, 30, 60, 180, 360]
 
 function settingsPath(): string {
   const dir = app.getPath('userData')
@@ -19,17 +23,20 @@ function settingsPath(): string {
 function load(): StoredSettings {
   const path = settingsPath()
   if (!existsSync(path)) {
-    return { baseUrl: DEFAULT_BASE_URL, model: DEFAULT_MODEL, apiKeyEnc: null }
+    return { baseUrl: DEFAULT_BASE_URL, model: DEFAULT_MODEL, apiKeyEnc: null, autoRescanMinutes: 0 }
   }
   try {
     const raw = JSON.parse(readFileSync(path, 'utf8')) as Partial<StoredSettings>
     return {
       baseUrl: raw.baseUrl || DEFAULT_BASE_URL,
       model: raw.model || DEFAULT_MODEL,
-      apiKeyEnc: raw.apiKeyEnc ?? null
+      apiKeyEnc: raw.apiKeyEnc ?? null,
+      autoRescanMinutes: RESCAN_CHOICES.includes(raw.autoRescanMinutes ?? -1)
+        ? (raw.autoRescanMinutes as number)
+        : 0
     }
   } catch {
-    return { baseUrl: DEFAULT_BASE_URL, model: DEFAULT_MODEL, apiKeyEnc: null }
+    return { baseUrl: DEFAULT_BASE_URL, model: DEFAULT_MODEL, apiKeyEnc: null, autoRescanMinutes: 0 }
   }
 }
 
@@ -42,13 +49,30 @@ function save(settings: StoredSettings): void {
 
 export function getSettingsView(): SettingsView {
   const s = load()
-  return { baseUrl: s.baseUrl, model: s.model, hasApiKey: Boolean(s.apiKeyEnc) || Boolean(process.env.BRIEFLY_API_KEY) }
+  return {
+    baseUrl: s.baseUrl,
+    model: s.model,
+    hasApiKey: Boolean(s.apiKeyEnc) || Boolean(process.env.BRIEFLY_API_KEY),
+    autoRescanMinutes: s.autoRescanMinutes
+  }
 }
 
-export function saveSettings(update: { baseUrl?: string; model?: string; apiKey?: string }): SettingsView {
+export function getAutoRescanMinutes(): number {
+  return load().autoRescanMinutes
+}
+
+export function saveSettings(update: {
+  baseUrl?: string
+  model?: string
+  apiKey?: string
+  autoRescanMinutes?: number
+}): SettingsView {
   const s = load()
   if (update.baseUrl !== undefined) s.baseUrl = update.baseUrl.trim() || DEFAULT_BASE_URL
   if (update.model !== undefined) s.model = update.model.trim() || DEFAULT_MODEL
+  if (update.autoRescanMinutes !== undefined && RESCAN_CHOICES.includes(update.autoRescanMinutes)) {
+    s.autoRescanMinutes = update.autoRescanMinutes
+  }
   if (update.apiKey !== undefined) {
     const key = update.apiKey.trim()
     if (!key) {
