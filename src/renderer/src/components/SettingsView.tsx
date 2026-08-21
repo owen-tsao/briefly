@@ -28,6 +28,12 @@ export function SettingsView({ onSaved }: { onSaved: () => void }): React.JSX.El
     setLaunchAtLogin(await window.briefly.setLaunchAtLogin(!launchAtLogin))
   }
 
+  // Applies immediately — no Save needed.
+  const changeAutoRescan = async (minutes: number): Promise<void> => {
+    setAutoRescan(minutes)
+    await window.briefly.saveSettings({ autoRescanMinutes: minutes })
+  }
+
   const loadModels = async (): Promise<void> => {
     setModelsError(null)
     const result = await window.briefly.listModels()
@@ -130,7 +136,7 @@ export function SettingsView({ onSaved }: { onSaved: () => void }): React.JSX.El
         <span className={labelCls}>Auto rescan</span>
         <select
           value={autoRescan}
-          onChange={(e) => setAutoRescan(Number(e.target.value))}
+          onChange={(e) => changeAutoRescan(Number(e.target.value))}
           className={inputCls}
         >
           <option value={0}>Off</option>
