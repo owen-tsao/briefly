@@ -112,7 +112,29 @@ export function getSuppressedTexts(doneDays = 30): string[] {
     )
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
     .slice(0, 150) // Cap prompt size — ancient dismissals are stale enough to age out.
-    .map((t) => t.text)
+    .map((t) => `${t.text} [source note: ${t.sourceNote}]`)
+}
+
+const STOPWORDS = new Set([
+  'the', 'and', 'for', 'with', 'from', 'into', 'this', 'that', 'all', 'his', 'her',
+  'out', 'get', 'new', 'your', 'our', 'their'
+])
+
+function tokenize(text: string): Set<string> {
+  return new Set(
+    text
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter((w) => w.length >= 3 && !STOPWORDS.has(w))
+  )
+}
+
+/** True when the smaller text shares at least half its meaningful words with the other. */
+function similarText(a: Set<string>, b: Set<string>): boolean {
+  if (a.size === 0 || b.size === 0) return false
+  let common = 0
+  for (const w of a) if (b.has(w)) common++
+  return common / Math.min(a.size, b.size) >= 0.5
 }
 
 export function setTaskState(id: string, state: TaskState, snoozedUntil?: string): void {
@@ -183,6 +205,12 @@ export function applyMerge(response: MergeResponse, options: { updateToday?: boo
   wakeSnoozed(store)
   const now = new Date().toISOString()
   const byId = new Map(store.tasks.map((t) => [t.id, t]))
+  // Fuzzy backstop for the prompt's suppression rule: the LLM sometimes re-mines
+  // a dismissed task's note line into a reworded variant. Block anything whose
+  // wording substantially overlaps a dismissed task.
+  const dismissedTokens = store.tasks
+    .filter((t) => t.state === 'dismissed')
+    .map((t) => tokenize(t.text))
 
   for (const item of response.tasks ?? []) {
     if (!item?.text?.trim()) continue
@@ -205,6 +233,8 @@ export function applyMerge(response: MergeResponse, options: { updateToday?: boo
         (t) => t.text.toLowerCase() === normalized.text.toLowerCase() && t.state !== 'archived'
       )
       if (duplicate) continue
+      const tokens = tokenize(normalized.text)
+      if (dismissedTokens.some((d) => similarText(d, tokens))) continue
       store.tasks.push({
         id: randomUUID(),
         ...normalized,

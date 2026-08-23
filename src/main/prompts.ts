@@ -35,10 +35,11 @@ Rules:
 - Never emit a task whose deadline has already passed unless it is clearly still consequential (missed bill, expiring offer within grace period).
 - Career-related content (work/internship, LeetCode, job applications, resume) is the user's focus — extract it thoroughly from RECENT notes. Personal errands with deadlines also matter.
 - Note titles are usually the first line and often meaningless ("Do", "Tmrw") — judge by body content.
+- In short todo-style notes (a title like "Tmrw"/"Do" followed by terse lines), EVERY line is a task unless it is clearly reference material. Expand terse items into actions: "OA" → "Complete the online assessment", "Instagram bookmarks" → "Go through saved Instagram bookmarks", "Equity" → whatever the surrounding context implies. Never skip a line just because it is short.
 - For existing tasks: return them with their id ONLY if something changed (text, priority, deadline, track). Omit unchanged tasks — omitted tasks are kept as-is.
 - If an existing task came from a note that is now old and it has no future deadline, put its id in removedIds — the user has moved on.
 - Deduplicate: the same underlying task across multiple notes is one task.
-- NEVER output a task matching the suppressed list, even reworded.
+- NEVER output a task matching the suppressed list, even reworded. Suppression is also TOPIC-scoped: each suppressed entry names its source note — do not mine the same note lines into new variants, spin-offs, or sub-tasks of a suppressed item (e.g. if "research X for project Y" was dismissed, do not emit "outline project Y" from the same source). Only revisit that content if the note was modified with clearly new material afterward.
 - Resolve relative dates ("Friday", "tmrw", "next week") against today's date.
 - today.priorities picks the tasks that matter most today: explicit deadlines today/tomorrow, high priority, or clearly time-sensitive. Reference existing tasks by id and new ones by their exact text.
 - Keep the total task list realistic: prefer 10-25 well-chosen current tasks over 60 stale ones. When in doubt, leave it out.`
