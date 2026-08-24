@@ -10,6 +10,8 @@ let dailyTimer: NodeJS.Timeout | null = null
 export function initNotifications(popoverOpener: () => void): void {
   openPopover = popoverOpener
   scheduleDailyCheck()
+  // Booting after 9am would otherwise wait until tomorrow — check once shortly after launch.
+  setTimeout(notifyDueTasks, 30_000)
   // Timers freeze during sleep — re-check on wake (per-day dedup makes this spam-safe).
   powerMonitor.on('resume', () => setTimeout(notifyDueTasks, 10_000))
 }

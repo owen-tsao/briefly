@@ -137,7 +137,10 @@ export function getOpenTasks(): Task[] {
 }
 
 export function getOpenCount(): number {
-  return load().tasks.filter((t) => t.state === 'open').length
+  // Sweep first so the tray badge reflects overnight recurrence resets and expired snoozes.
+  const store = load()
+  sweep(store)
+  return store.tasks.filter((t) => t.state === 'open').length
 }
 
 /** Texts the LLM must not recreate: dismissed = forever, done = recent window. */

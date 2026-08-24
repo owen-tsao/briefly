@@ -36,12 +36,11 @@ type Zone = 'today' | 'soon' | 'someday'
 
 const ZONE_LABELS: Record<Zone, string> = { today: 'Today', soon: 'Soon', someday: 'Someday' }
 
-/** Where a task renders. Deadlines due by tomorrow promote into Today without mutating anything. */
+/**
+ * Where a task renders. Deadlines due by tomorrow promote into Today without mutating
+ * anything. Done tasks use the same rules so checking one never jumps it between zones.
+ */
 function zoneOf(task: Task): Zone {
-  if (task.state === 'done') {
-    const h = task.horizon ?? 'soon'
-    return h === 'now' ? 'today' : h
-  }
   if (task.deadline && task.deadline <= localDayOffset(1)) return 'today'
   if (task.recurrence === 'daily') return 'today'
   const h = task.horizon ?? 'soon'

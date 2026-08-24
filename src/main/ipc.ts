@@ -16,7 +16,6 @@ import { openNote } from './notes'
 import { listModels } from './llm'
 import { updateTrayCount } from './tray'
 import { scheduleAutoRescan } from './scheduler'
-import { notifyDueTasks } from './notifications'
 import type { Horizon, Priority, TaskState, Track } from '../shared/types'
 import { HORIZONS, TRACKS } from '../shared/types'
 
@@ -29,7 +28,6 @@ export function registerIpc(): void {
   ipcMain.handle('state:refresh', async () => {
     const result = await refresh()
     updateTrayCount()
-    if (result.ok) notifyDueTasks()
     return result
   })
 
