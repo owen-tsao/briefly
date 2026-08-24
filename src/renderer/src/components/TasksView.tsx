@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { AlarmClock, ChevronRight, Plus, Repeat, X } from 'lucide-react'
-import type { AppState, Horizon, Task, TaskState, Track } from '../../../shared/types'
+import type { AppState, Horizon, Priority, Task, TaskState, Track } from '../../../shared/types'
 import { TRACKS, TRACK_LABELS } from '../../../shared/types'
 import { localDay, localDayOffset } from '../../../shared/dates'
 import { cn } from '@/lib/utils'
@@ -16,6 +16,8 @@ interface Props {
   onTaskAdd: (text: string) => void
   onTaskRecurrence: (id: string, recurrence: 'daily' | null) => void
   onTaskHorizon: (id: string, horizon: Horizon) => void
+  onTaskTrack: (id: string, track: Track) => void
+  onTaskPriority: (id: string, priority: Priority) => void
   onOpenNote: (title: string) => void
   onTodayDismiss: (section: 'priorities' | 'changes', text: string) => void
   onOpenSettings: () => void
@@ -56,6 +58,8 @@ export function TasksView({
   onTaskAdd,
   onTaskRecurrence,
   onTaskHorizon,
+  onTaskTrack,
+  onTaskPriority,
   onOpenNote,
   onTodayDismiss,
   onOpenSettings
@@ -181,6 +185,8 @@ export function TasksView({
             onTaskEdit={onTaskEdit}
             onTaskRecurrence={onTaskRecurrence}
             onTaskHorizon={onTaskHorizon}
+            onTaskTrack={onTaskTrack}
+            onTaskPriority={onTaskPriority}
             onOpenNote={onOpenNote}
           />
         ))
@@ -208,6 +214,8 @@ function ZoneSection({
   onTaskEdit,
   onTaskRecurrence,
   onTaskHorizon,
+  onTaskTrack,
+  onTaskPriority,
   onOpenNote
 }: {
   zone: Zone
@@ -216,6 +224,8 @@ function ZoneSection({
   onTaskEdit: (id: string, text: string) => void
   onTaskRecurrence: (id: string, recurrence: 'daily' | null) => void
   onTaskHorizon: (id: string, horizon: Horizon) => void
+  onTaskTrack: (id: string, track: Track) => void
+  onTaskPriority: (id: string, priority: Priority) => void
   onOpenNote: (title: string) => void
 }): React.JSX.Element | null {
   // Someday is a parking lot — start collapsed, remember the user's preference.
@@ -262,6 +272,8 @@ function ZoneSection({
               onTaskEdit={onTaskEdit}
               onTaskRecurrence={onTaskRecurrence}
               onTaskHorizon={onTaskHorizon}
+              onTaskTrack={onTaskTrack}
+              onTaskPriority={onTaskPriority}
               onOpenNote={onOpenNote}
             />
           ))}
@@ -469,6 +481,8 @@ function TaskRow({
   onTaskEdit,
   onTaskRecurrence,
   onTaskHorizon,
+  onTaskTrack,
+  onTaskPriority,
   onOpenNote
 }: {
   task: Task
@@ -476,6 +490,8 @@ function TaskRow({
   onTaskEdit: (id: string, text: string) => void
   onTaskRecurrence: (id: string, recurrence: 'daily' | null) => void
   onTaskHorizon: (id: string, horizon: Horizon) => void
+  onTaskTrack: (id: string, track: Track) => void
+  onTaskPriority: (id: string, priority: Priority) => void
   onOpenNote: (title: string) => void
 }): React.JSX.Element {
   const done = task.state === 'done'
@@ -483,7 +499,6 @@ function TaskRow({
   const [snoozeOpen, setSnoozeOpen] = useState(false)
   const recurring = task.recurrence === 'daily'
   const horizon = task.horizon ?? 'soon'
-  const nextHorizon: Horizon = horizon === 'now' ? 'soon' : horizon === 'soon' ? 'someday' : 'now'
   const hasSourceNote = Boolean(task.sourceNote) && !['quick add', 'unknown'].includes(task.sourceNote)
 
   return (
@@ -565,25 +580,46 @@ function TaskRow({
           {task.text}
         </span>
         {!done && (
-          <span className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-0.5">
-            <span
-              className="flex items-center gap-1 text-[11px] font-medium text-gray-500 dark:text-zinc-400"
-              title={TRACK_LABELS[task.track]}
-            >
-              <span className={cn('h-1.5 w-1.5 rounded-full', TRACK_DOT[task.track])} />
-              {TRACK_LABELS[task.track].split(' ')[0]}
-            </span>
-            <span className="flex items-center gap-1 text-[11px] font-medium capitalize text-gray-500 dark:text-zinc-400">
-              <span className={cn('h-1.5 w-1.5 rounded-full', PRIORITY_DOT[task.priority])} />
-              {task.priority}
-            </span>
-            <button
-              title="Cycle horizon (Now → Soon → Someday)"
-              onClick={() => onTaskHorizon(task.id, nextHorizon)}
-              className="rounded bg-slate-200/70 px-1 py-px text-[10px] font-semibold capitalize text-gray-500 transition-colors hover:bg-slate-300/70 hover:text-gray-700 active:scale-95 dark:bg-white/[0.07] dark:text-zinc-400 dark:hover:bg-white/[0.12] dark:hover:text-zinc-200"
-            >
-              {horizon === 'now' ? 'today' : horizon}
-            </button>
+          <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <MetaMenu
+              title="Change track"
+              display={
+                <>
+                  <span className={cn('h-1.5 w-1.5 rounded-full', TRACK_DOT[task.track])} />
+                  {TRACK_LABELS[task.track].split(' ')[0]}
+                </>
+              }
+              options={TRACKS.map((tr) => ({ id: tr, label: TRACK_LABELS[tr], dot: TRACK_DOT[tr] }))}
+              selected={task.track}
+              onSelect={(id) => onTaskTrack(task.id, id as Track)}
+            />
+            <MetaMenu
+              title="Change urgency"
+              display={
+                <>
+                  <span className={cn('h-1.5 w-1.5 rounded-full', PRIORITY_DOT[task.priority])} />
+                  <span className="capitalize">{task.priority}</span>
+                </>
+              }
+              options={(['high', 'medium', 'low'] as Priority[]).map((p) => ({
+                id: p,
+                label: p[0].toUpperCase() + p.slice(1),
+                dot: PRIORITY_DOT[p]
+              }))}
+              selected={task.priority}
+              onSelect={(id) => onTaskPriority(task.id, id as Priority)}
+            />
+            <MetaMenu
+              title="Move to zone"
+              display={<>{horizon === 'now' ? 'Today' : horizon === 'soon' ? 'Soon' : 'Someday'}</>}
+              options={[
+                { id: 'now', label: 'Today' },
+                { id: 'soon', label: 'Soon' },
+                { id: 'someday', label: 'Someday' }
+              ]}
+              selected={horizon}
+              onSelect={(id) => onTaskHorizon(task.id, id as Horizon)}
+            />
             {recurring && (
               <span
                 title="Repeats daily"
@@ -665,6 +701,65 @@ function TaskRow({
         </span>
       )}
     </li>
+  )
+}
+
+/** Clickable metadata label that opens a one-click picker — no cycling, no hidden state. */
+function MetaMenu({
+  title,
+  display,
+  options,
+  selected,
+  onSelect
+}: {
+  title: string
+  display: React.ReactNode
+  options: { id: string; label: string; dot?: string }[]
+  selected: string
+  onSelect: (id: string) => void
+}): React.JSX.Element {
+  const [open, setOpen] = useState(false)
+  return (
+    <span className="relative">
+      <button
+        title={title}
+        onClick={() => setOpen((v) => !v)}
+        className={cn(
+          'flex items-center gap-1 rounded px-1 py-px text-[11px] font-medium transition-colors active:scale-95',
+          open
+            ? 'bg-slate-200/80 text-gray-700 dark:bg-white/[0.1] dark:text-zinc-200'
+            : 'text-gray-500 hover:bg-slate-200/60 hover:text-gray-700 dark:text-zinc-400 dark:hover:bg-white/[0.08] dark:hover:text-zinc-200'
+        )}
+      >
+        {display}
+      </button>
+      {open && (
+        <>
+          <span className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <span className="absolute left-0 top-full z-20 mt-1 flex w-36 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-white/[0.1] dark:bg-ink-800">
+            {options.map((opt) => (
+              <button
+                key={opt.id}
+                onClick={() => {
+                  setOpen(false)
+                  if (opt.id !== selected) onSelect(opt.id)
+                }}
+                className={cn(
+                  'flex items-center gap-2 px-3 py-1.5 text-left text-xs font-medium transition-colors',
+                  opt.id === selected
+                    ? 'bg-slate-50 text-gray-900 dark:bg-white/[0.06] dark:text-zinc-100'
+                    : 'text-gray-700 hover:bg-slate-50 hover:text-gray-900 dark:text-zinc-300 dark:hover:bg-white/[0.06] dark:hover:text-zinc-100'
+                )}
+              >
+                {opt.dot && <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', opt.dot)} />}
+                <span className="min-w-0 flex-1 truncate">{opt.label}</span>
+                {opt.id === selected && <span className="text-[10px]">✓</span>}
+              </button>
+            ))}
+          </span>
+        </>
+      )}
+    </span>
   )
 }
 

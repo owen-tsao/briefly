@@ -6,7 +6,9 @@ import {
   dismissTodayItem,
   addTask,
   setTaskRecurrence,
-  setTaskHorizon
+  setTaskHorizon,
+  setTaskTrack,
+  setTaskPriority
 } from './taskStore'
 import { getSettingsView, saveSettings, getApiKey } from './settings'
 import { refresh, ask, listNotes, extractFromNote } from './agent'
@@ -15,10 +17,11 @@ import { listModels } from './llm'
 import { updateTrayCount } from './tray'
 import { scheduleAutoRescan } from './scheduler'
 import { notifyDueTasks } from './notifications'
-import type { Horizon, TaskState } from '../shared/types'
-import { HORIZONS } from '../shared/types'
+import type { Horizon, Priority, TaskState, Track } from '../shared/types'
+import { HORIZONS, TRACKS } from '../shared/types'
 
 const TASK_STATES: TaskState[] = ['open', 'done', 'snoozed', 'dismissed', 'archived']
+const PRIORITIES: Priority[] = ['high', 'medium', 'low']
 
 export function registerIpc(): void {
   ipcMain.handle('state:get', () => getState(Boolean(getApiKey())))
@@ -67,6 +70,16 @@ export function registerIpc(): void {
 
   ipcMain.handle('task:setHorizon', (_event, id: string, horizon: Horizon) => {
     if (typeof id === 'string' && HORIZONS.includes(horizon)) setTaskHorizon(id, horizon)
+    return getState(Boolean(getApiKey()))
+  })
+
+  ipcMain.handle('task:setTrack', (_event, id: string, track: Track) => {
+    if (typeof id === 'string' && TRACKS.includes(track)) setTaskTrack(id, track)
+    return getState(Boolean(getApiKey()))
+  })
+
+  ipcMain.handle('task:setPriority', (_event, id: string, priority: Priority) => {
+    if (typeof id === 'string' && PRIORITIES.includes(priority)) setTaskPriority(id, priority)
     return getState(Boolean(getApiKey()))
   })
 

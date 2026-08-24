@@ -218,6 +218,26 @@ export function setTaskHorizon(id: string, horizon: Horizon): void {
   save(store)
 }
 
+export function setTaskTrack(id: string, track: Track): void {
+  const store = load()
+  const task = store.tasks.find((t) => t.id === id)
+  if (!task) return
+  task.track = track
+  task.trackPinned = true
+  task.updatedAt = new Date().toISOString()
+  save(store)
+}
+
+export function setTaskPriority(id: string, priority: Priority): void {
+  const store = load()
+  const task = store.tasks.find((t) => t.id === id)
+  if (!task) return
+  task.priority = priority
+  task.priorityPinned = true
+  task.updatedAt = new Date().toISOString()
+  save(store)
+}
+
 /** Instant local task creation (quick-add) — no LLM involved, text is sticky. */
 export function addTask(text: string): void {
   const trimmed = text.trim().slice(0, 500)
@@ -333,11 +353,14 @@ export function applyMerge(response: MergeResponse, options: { updateToday?: boo
     const existing = item.id ? byId.get(item.id) : undefined
     if (existing) {
       if (existing.state === 'done' || existing.state === 'dismissed') continue
-      // Sticky manual edits: the user's wording always wins over the LLM's.
-      const { text: _text, ...withoutText } = normalized
-      Object.assign(existing, existing.editedByUser ? withoutText : normalized, { updatedAt: now })
-      // Horizon follows the notes unless the user pinned it. Recurrence is user-owned after creation.
+      // Anything the user set by hand is pinned — the LLM never overrides it.
+      if (!existing.editedByUser) existing.text = normalized.text
+      if (!existing.trackPinned) existing.track = normalized.track
+      if (!existing.priorityPinned) existing.priority = normalized.priority
       if (!existing.horizonPinned && item.horizon) existing.horizon = normalizeHorizon(item.horizon)
+      existing.deadline = normalized.deadline
+      existing.sourceNote = normalized.sourceNote
+      existing.updatedAt = now
     } else {
       // Guard against the model "recreating" something it was told about.
       const duplicate = store.tasks.some(

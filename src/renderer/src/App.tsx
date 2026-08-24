@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Moon, Sun, RefreshCw, Power, Undo2 } from 'lucide-react'
-import type { AppState, Horizon, TaskState } from '../../shared/types'
+import type { AppState, Horizon, Priority, TaskState, Track } from '../../shared/types'
 import { localDay } from '../../shared/dates'
 import { cn } from '@/lib/utils'
 import { useTheme } from '@/lib/theme'
@@ -98,6 +98,14 @@ export function App(): React.JSX.Element {
 
   const handleTaskHorizon = useCallback(async (id: string, horizon: Horizon) => {
     setState(await window.briefly.setTaskHorizon(id, horizon))
+  }, [])
+
+  const handleTaskTrack = useCallback(async (id: string, track: Track) => {
+    setState(await window.briefly.setTaskTrack(id, track))
+  }, [])
+
+  const handleTaskPriority = useCallback(async (id: string, priority: Priority) => {
+    setState(await window.briefly.setTaskPriority(id, priority))
   }, [])
 
   const handleOpenNote = useCallback((title: string) => {
@@ -215,6 +223,8 @@ export function App(): React.JSX.Element {
             onTaskAdd={handleTaskAdd}
             onTaskRecurrence={handleTaskRecurrence}
             onTaskHorizon={handleTaskHorizon}
+            onTaskTrack={handleTaskTrack}
+            onTaskPriority={handleTaskPriority}
             onOpenNote={handleOpenNote}
             onTodayDismiss={handleTodayDismiss}
             onOpenSettings={() => setTab('settings')}

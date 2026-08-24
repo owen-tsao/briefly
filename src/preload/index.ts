@@ -4,9 +4,11 @@ import type {
   AskResult,
   Horizon,
   NoteSummary,
+  Priority,
   RefreshResult,
   SettingsView,
-  TaskState
+  TaskState,
+  Track
 } from '../shared/types'
 
 export interface BrieflyApi {
@@ -17,6 +19,8 @@ export interface BrieflyApi {
   addTask: (text: string) => Promise<AppState>
   setTaskRecurrence: (id: string, recurrence: 'daily' | null) => Promise<AppState>
   setTaskHorizon: (id: string, horizon: Horizon) => Promise<AppState>
+  setTaskTrack: (id: string, track: Track) => Promise<AppState>
+  setTaskPriority: (id: string, priority: Priority) => Promise<AppState>
   dismissTodayItem: (section: 'priorities' | 'changes', text: string) => Promise<AppState>
   ask: (question: string) => Promise<AskResult>
   openNote: (title: string) => Promise<void>
@@ -47,6 +51,8 @@ const api: BrieflyApi = {
   addTask: (text) => ipcRenderer.invoke('task:add', text),
   setTaskRecurrence: (id, recurrence) => ipcRenderer.invoke('task:setRecurrence', id, recurrence),
   setTaskHorizon: (id, horizon) => ipcRenderer.invoke('task:setHorizon', id, horizon),
+  setTaskTrack: (id, track) => ipcRenderer.invoke('task:setTrack', id, track),
+  setTaskPriority: (id, priority) => ipcRenderer.invoke('task:setPriority', id, priority),
   dismissTodayItem: (section, text) => ipcRenderer.invoke('today:dismiss', section, text),
   ask: (question) => ipcRenderer.invoke('ask', question),
   openNote: (title) => ipcRenderer.invoke('notes:open', title),

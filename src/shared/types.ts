@@ -36,6 +36,10 @@ export interface Task {
   horizon?: Horizon
   /** Set when the user changes horizon manually — scans won't move it. */
   horizonPinned?: boolean
+  /** Set when the user picks a track manually — scans won't reclassify it. */
+  trackPinned?: boolean
+  /** Set when the user picks a priority manually — scans won't reclassify it. */
+  priorityPinned?: boolean
   createdAt: string
   updatedAt: string
 }
