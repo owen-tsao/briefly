@@ -109,9 +109,28 @@ export function TasksView({
     (t) => t.state === 'open' || (t.state === 'done' && localDay(t.updatedAt) === today)
   )
 
+  const strip = (visible.length > 0 || (state.today?.changes.length ?? 0) > 0) && (
+    <section className="overflow-hidden rounded-xl border border-slate-200/80 bg-white/90 shadow-[0_1px_3px_rgba(0,0,0,0.04)] backdrop-blur dark:border-white/[0.08] dark:bg-ink-900/90">
+      <DayPulse tasks={state.tasks} />
+      {state.today && state.today.changes.length > 0 && (
+        <div className="border-t border-slate-100 border-l-2 border-l-amber-500 px-3.5 py-3 dark:border-t-white/[0.06]">
+          <h4 className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-amber-600 dark:text-amber-400">
+            What changed
+          </h4>
+          <ul className="space-y-1">
+            {state.today.changes.map((c, i) => (
+              <TodayItem key={i} text={c} onDismiss={() => onTodayDismiss(c)} />
+            ))}
+          </ul>
+        </div>
+      )}
+    </section>
+  )
+
   if (allDone) {
     return (
       <div className="space-y-5">
+        {strip}
         <div className="relative flex flex-col items-center justify-center gap-2 py-14 text-center">
           <h3 className="text-lg font-bold tracking-tight">You crushed it today</h3>
           <p className="text-sm font-medium text-gray-600 dark:text-zinc-400">
@@ -127,23 +146,7 @@ export function TasksView({
 
   return (
     <div className="space-y-5">
-      {(visible.length > 0 || (state.today?.changes.length ?? 0) > 0) && (
-        <section className="overflow-hidden rounded-xl border border-slate-200/80 bg-white/90 shadow-[0_1px_3px_rgba(0,0,0,0.04)] backdrop-blur dark:border-white/[0.08] dark:bg-ink-900/90">
-          <DayPulse tasks={state.tasks} />
-        {state.today && state.today.changes.length > 0 && (
-          <div className="border-t border-slate-100 border-l-2 border-l-amber-500 px-3.5 py-3 dark:border-t-white/[0.06]">
-            <h4 className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-amber-600 dark:text-amber-400">
-              What changed
-            </h4>
-            <ul className="space-y-1">
-              {state.today.changes.map((c, i) => (
-                <TodayItem key={i} text={c} onDismiss={() => onTodayDismiss(c)} />
-              ))}
-            </ul>
-          </div>
-        )}
-        </section>
-      )}
+      {strip}
 
       <QuickAdd onAdd={onTaskAdd} />
 
@@ -358,15 +361,15 @@ function TodayItem({ text, onDismiss }: { text: string; onDismiss: () => void })
   )
 }
 
-/** Renderer-only day summary: progress plus due/overdue counts. No LLM involved. */
+/** Renderer-only day summary scoped to today's workload (Today zone + today's completions). */
 function DayPulse({ tasks }: { tasks: Task[] }): React.JSX.Element | null {
   const today = localDay()
-  const open = tasks.filter((t) => t.state === 'open')
+  const todayOpen = tasks.filter((t) => t.state === 'open' && zoneOf(t) === 'today')
   const doneToday = tasks.filter((t) => t.state === 'done' && localDay(t.updatedAt) === today)
-  const total = open.length + doneToday.length
+  const total = todayOpen.length + doneToday.length
   if (total === 0) return null
-  const dueToday = open.filter((t) => t.deadline === today).length
-  const overdue = open.filter((t) => t.deadline && t.deadline < today).length
+  const dueToday = todayOpen.filter((t) => t.deadline === today).length
+  const overdue = todayOpen.filter((t) => t.deadline && t.deadline < today).length
   const pct = Math.round((doneToday.length / total) * 100)
 
   return (
