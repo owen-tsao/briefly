@@ -59,6 +59,27 @@ function run() {
 }
 `
 
+/** Static script; the title travels as an argv value, never interpolated into code. */
+const OPEN_NOTE_SCRIPT = `
+function run(argv) {
+  const app = Application("Notes");
+  app.activate();
+  const title = argv[0];
+  try {
+    const matches = app.notes.whose({ name: title })();
+    if (matches.length > 0) app.show(matches[0]);
+  } catch (e) {}
+  return "";
+}
+`
+
+/** Open Apple Notes with the named note selected (first match); falls back to just opening Notes. */
+export async function openNote(title: string): Promise<void> {
+  await execFileAsync('osascript', ['-l', 'JavaScript', '-e', OPEN_NOTE_SCRIPT, title], {
+    timeout: 15_000
+  })
+}
+
 export async function readNotes(recentDays = 45): Promise<NotesSnapshot> {
   let stdout: string
   try {
