@@ -30,7 +30,8 @@ export interface LlmTask {
 export interface MergeResponse {
   tasks: LlmTask[]
   removedIds: string[]
-  today: { priorities: string[]; changes: string[] }
+  /** priorities is legacy — older prompts/models may still emit it; ignored. */
+  today: { changes: string[]; priorities?: string[] }
 }
 
 function storePath(): string {
@@ -44,10 +45,10 @@ function load(): StoreFile {
   if (!existsSync(path)) return { tasks: [], today: null, lastRefreshed: null }
   try {
     const store = JSON.parse(readFileSync(path, 'utf8')) as StoreFile
-    // Migrate pre-task-linked strips (freeform "priorities" prose): keep changes, regenerate on next scan.
-    if (store.today && !Array.isArray(store.today.priorityIds)) {
+    // Migrate older strip shapes (freeform priorities, then task-linked priorityIds):
+    // only the changes list survives — the pulse line replaced curated priorities.
+    if (store.today) {
       store.today = {
-        priorityIds: [],
         changes: Array.isArray(store.today.changes) ? store.today.changes : [],
         generatedAt: store.today.generatedAt ?? new Date().toISOString()
       }
@@ -291,14 +292,13 @@ export function takeDueForNotification(): Task[] {
   return due
 }
 
-/** Remove one item from the Today strip and keep it suppressed for the rest of the day. */
-export function dismissTodayItem(section: 'priorities' | 'changes', value: string): void {
+/** Remove one item from the What-changed list and keep it suppressed for the rest of the day. */
+export function dismissTodayItem(value: string): void {
   const store = load()
   if (!store.today) return
-  const items = section === 'priorities' ? store.today.priorityIds : store.today.changes
-  const idx = items.indexOf(value)
+  const idx = store.today.changes.indexOf(value)
   if (idx === -1) return
-  items.splice(idx, 1)
+  store.today.changes.splice(idx, 1)
   const today = localDay()
   if (!store.dismissedToday || store.dismissedToday.date !== today) {
     store.dismissedToday = { date: today, texts: [] }
@@ -401,27 +401,7 @@ export function applyMerge(response: MergeResponse, options: { updateToday?: boo
   }
 
   if (updateToday) {
-    // Resolve the LLM's task references (existing id or exact text of a new task) to real ids.
-    const idsNow = new Map(store.tasks.map((t) => [t.id, t]))
-    const byText = new Map(
-      store.tasks
-        .filter((t) => t.state === 'open' || t.state === 'snoozed')
-        .map((t) => [t.text.toLowerCase(), t])
-    )
-    const priorityIds: string[] = []
-    for (const entry of response.today?.priorities ?? []) {
-      if (typeof entry !== 'string') continue
-      const task = idsNow.get(entry) ?? byText.get(entry.toLowerCase().trim())
-      if (
-        task &&
-        (task.state === 'open' || task.state === 'snoozed') &&
-        !priorityIds.includes(task.id)
-      ) {
-        priorityIds.push(task.id)
-      }
-    }
     store.today = {
-      priorityIds: filterDismissedToday(priorityIds, store).slice(0, 5),
       changes: filterDismissedToday((response.today?.changes ?? []).slice(0, 5), store),
       generatedAt: now
     }

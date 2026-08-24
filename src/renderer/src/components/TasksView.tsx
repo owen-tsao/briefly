@@ -19,7 +19,7 @@ interface Props {
   onTaskTrack: (id: string, track: Track) => void
   onTaskPriority: (id: string, priority: Priority) => void
   onOpenNote: (title: string) => void
-  onTodayDismiss: (section: 'priorities' | 'changes', text: string) => void
+  onTodayDismiss: (text: string) => void
   onOpenSettings: () => void
 }
 
@@ -127,48 +127,23 @@ export function TasksView({
 
   return (
     <div className="space-y-5">
-      {state.today &&
-        (() => {
-          const priorityTasks = state.today.priorityIds
-            .map((id) => state.tasks.find((t) => t.id === id))
-            .filter((t): t is Task => Boolean(t) && t!.state !== 'dismissed' && t!.state !== 'archived')
-          if (priorityTasks.length === 0 && state.today.changes.length === 0) return null
-          return (
-            <section className="overflow-hidden rounded-xl border border-slate-200/80 bg-white/90 shadow-[0_1px_3px_rgba(0,0,0,0.04)] backdrop-blur dark:border-white/[0.08] dark:bg-ink-900/90">
-              {priorityTasks.length > 0 && (
-                <div className="border-l-2 border-l-indigo-500 px-3.5 py-3">
-                  <h4 className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-indigo-600 dark:text-indigo-400">
-                    Today
-                  </h4>
-                  <ul className="space-y-1">
-                    {priorityTasks.map((task) => (
-                      <TodayTaskItem
-                        key={task.id}
-                        task={task}
-                        onToggle={() =>
-                          onTaskState(task.id, task.state === 'done' ? 'open' : 'done')
-                        }
-                        onDismiss={() => onTodayDismiss('priorities', task.id)}
-                      />
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {state.today.changes.length > 0 && (
-                <div className="border-t border-slate-100 border-l-2 border-l-amber-500 px-3.5 py-3 dark:border-t-white/[0.06]">
-                  <h4 className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-amber-600 dark:text-amber-400">
-                    What changed
-                  </h4>
-                  <ul className="space-y-1">
-                    {state.today.changes.map((c, i) => (
-                      <TodayItem key={i} text={c} onDismiss={() => onTodayDismiss('changes', c)} />
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </section>
-          )
-        })()}
+      {(visible.length > 0 || (state.today?.changes.length ?? 0) > 0) && (
+        <section className="overflow-hidden rounded-xl border border-slate-200/80 bg-white/90 shadow-[0_1px_3px_rgba(0,0,0,0.04)] backdrop-blur dark:border-white/[0.08] dark:bg-ink-900/90">
+          <DayPulse tasks={state.tasks} />
+        {state.today && state.today.changes.length > 0 && (
+          <div className="border-t border-slate-100 border-l-2 border-l-amber-500 px-3.5 py-3 dark:border-t-white/[0.06]">
+            <h4 className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-amber-600 dark:text-amber-400">
+              What changed
+            </h4>
+            <ul className="space-y-1">
+              {state.today.changes.map((c, i) => (
+                <TodayItem key={i} text={c} onDismiss={() => onTodayDismiss(c)} />
+              ))}
+            </ul>
+          </div>
+        )}
+        </section>
+      )}
 
       <QuickAdd onAdd={onTaskAdd} />
 
@@ -383,61 +358,49 @@ function TodayItem({ text, onDismiss }: { text: string; onDismiss: () => void })
   )
 }
 
-/** Live task reference in the Today strip: checkbox + current text, synced with the board. */
-function TodayTaskItem({
-  task,
-  onToggle,
-  onDismiss
-}: {
-  task: Task
-  onToggle: () => void
-  onDismiss: () => void
-}): React.JSX.Element {
-  const done = task.state === 'done'
+/** Renderer-only day summary: progress plus due/overdue counts. No LLM involved. */
+function DayPulse({ tasks }: { tasks: Task[] }): React.JSX.Element | null {
+  const today = localDay()
+  const open = tasks.filter((t) => t.state === 'open')
+  const doneToday = tasks.filter((t) => t.state === 'done' && localDay(t.updatedAt) === today)
+  const total = open.length + doneToday.length
+  if (total === 0) return null
+  const dueToday = open.filter((t) => t.deadline === today).length
+  const overdue = open.filter((t) => t.deadline && t.deadline < today).length
+  const pct = Math.round((doneToday.length / total) * 100)
+
   return (
-    <li className="group/today flex items-start gap-2 text-[13px] leading-relaxed">
-      <label className="relative mt-1 inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center">
-        <input
-          type="checkbox"
-          checked={done}
-          onChange={onToggle}
-          className="peer absolute inset-0 h-full w-full cursor-pointer appearance-none opacity-0"
-        />
-        <span
-          className={cn(
-            'flex h-3.5 w-3.5 items-center justify-center rounded border transition-all duration-200',
-            done
-              ? 'border-gray-900 bg-gray-900 dark:border-accent dark:bg-accent'
-              : 'border-gray-300 bg-white peer-hover:border-gray-400 dark:border-white/20 dark:bg-ink-800 dark:peer-hover:border-white/40'
+    <div className="border-l-2 border-l-indigo-500 px-3.5 py-3">
+      <div className="flex items-baseline justify-between">
+        <h4 className="text-[10px] font-bold uppercase tracking-[0.08em] text-indigo-600 dark:text-indigo-400">
+          Today
+        </h4>
+        <span className="flex items-center gap-2.5 text-[11px] font-medium">
+          {overdue > 0 && (
+            <span className="text-red-600 dark:text-red-400">
+              {overdue} overdue
+            </span>
           )}
-        >
-          <svg
-            className={cn('h-2 w-2 text-white transition-opacity', done ? 'opacity-100' : 'opacity-0')}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            viewBox="0 0 12 9"
-          >
-            <path d="M1 4.2L4 7L11 1" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          {dueToday > 0 && (
+            <span className="text-amber-600 dark:text-amber-400">
+              {dueToday} due today
+            </span>
+          )}
+          <span className="tabular-nums text-gray-500 dark:text-zinc-400">
+            {doneToday.length} of {total} done
+          </span>
         </span>
-      </label>
-      <span
-        className={cn(
-          'min-w-0 flex-1 text-gray-800 transition-all duration-200 dark:text-zinc-200',
-          done && 'text-gray-400 line-through dark:text-zinc-500'
-        )}
-      >
-        {task.text}
-      </span>
-      <button
-        title="Remove from today"
-        onClick={onDismiss}
-        className="pointer-events-none mt-0.5 shrink-0 rounded p-0.5 text-gray-400 opacity-0 transition-all hover:text-gray-700 active:scale-90 group-hover/today:pointer-events-auto group-hover/today:opacity-100 dark:text-zinc-500 dark:hover:text-zinc-200"
-      >
-        <X size={12} />
-      </button>
-    </li>
+      </div>
+      <div className="mt-2 h-1 overflow-hidden rounded-full bg-slate-100 dark:bg-white/[0.07]">
+        <div
+          className={cn(
+            'h-full rounded-full transition-all duration-500',
+            pct === 100 ? 'bg-emerald-500' : 'bg-indigo-500 dark:bg-accent'
+          )}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
   )
 }
 

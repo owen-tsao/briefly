@@ -91,10 +91,8 @@ export function registerIpc(): void {
     }
   })
 
-  ipcMain.handle('today:dismiss', (_event, section: 'priorities' | 'changes', text: string) => {
-    if ((section === 'priorities' || section === 'changes') && typeof text === 'string') {
-      dismissTodayItem(section, text)
-    }
+  ipcMain.handle('today:dismiss', (_event, text: string) => {
+    if (typeof text === 'string') dismissTodayItem(text)
     return getState(Boolean(getApiKey()))
   })
 

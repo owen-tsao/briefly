@@ -45,8 +45,7 @@ export interface Task {
 }
 
 export interface TodayStrip {
-  /** Ids of the tasks the LLM scoped to today — rendered live from the board. */
-  priorityIds: string[]
+  /** Scan diff: what changed since the previous scan. */
   changes: string[]
   generatedAt: string
 }

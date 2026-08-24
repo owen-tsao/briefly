@@ -112,8 +112,8 @@ export function App(): React.JSX.Element {
     void window.briefly.openNote(title)
   }, [])
 
-  const handleTodayDismiss = useCallback(async (section: 'priorities' | 'changes', text: string) => {
-    setState(await window.briefly.dismissTodayItem(section, text))
+  const handleTodayDismiss = useCallback(async (text: string) => {
+    setState(await window.briefly.dismissTodayItem(text))
   }, [])
 
   const allDone = useMemo(() => {

@@ -21,7 +21,7 @@ export interface BrieflyApi {
   setTaskHorizon: (id: string, horizon: Horizon) => Promise<AppState>
   setTaskTrack: (id: string, track: Track) => Promise<AppState>
   setTaskPriority: (id: string, priority: Priority) => Promise<AppState>
-  dismissTodayItem: (section: 'priorities' | 'changes', text: string) => Promise<AppState>
+  dismissTodayItem: (text: string) => Promise<AppState>
   ask: (question: string) => Promise<AskResult>
   openNote: (title: string) => Promise<void>
   getSettings: () => Promise<SettingsView>
@@ -53,7 +53,7 @@ const api: BrieflyApi = {
   setTaskHorizon: (id, horizon) => ipcRenderer.invoke('task:setHorizon', id, horizon),
   setTaskTrack: (id, track) => ipcRenderer.invoke('task:setTrack', id, track),
   setTaskPriority: (id, priority) => ipcRenderer.invoke('task:setPriority', id, priority),
-  dismissTodayItem: (section, text) => ipcRenderer.invoke('today:dismiss', section, text),
+  dismissTodayItem: (text) => ipcRenderer.invoke('today:dismiss', text),
   ask: (question) => ipcRenderer.invoke('ask', question),
   openNote: (title) => ipcRenderer.invoke('notes:open', title),
   getSettings: () => ipcRenderer.invoke('settings:get'),
