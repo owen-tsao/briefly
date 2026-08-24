@@ -4,6 +4,7 @@ import { refresh } from './agent'
 import { getApiKey, getAutoRescanMinutes } from './settings'
 import { getLastRefreshed } from './taskStore'
 import { updateTrayCount } from './tray'
+import { notifyDueTasks } from './notifications'
 
 let getWindow: () => BrowserWindow | null = () => null
 let timer: NodeJS.Timeout | null = null
@@ -48,6 +49,7 @@ async function autoRescan(): Promise<void> {
   const result = await refresh()
   if (result.ok && result.state) {
     updateTrayCount()
+    notifyDueTasks()
     if (win && !win.isDestroyed()) win.webContents.send('state:changed', result.state)
   }
 }

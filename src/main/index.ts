@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { registerIpc } from './ipc'
 import { setTray, updateTrayCount } from './tray'
 import { initScheduler, scheduleAutoRescan } from './scheduler'
+import { initNotifications } from './notifications'
 
 const WINDOW_WIDTH = 400
 const WINDOW_HEIGHT = 580
@@ -100,6 +101,14 @@ app.whenReady().then(() => {
   window = createWindow()
   initScheduler(() => window)
   scheduleAutoRescan()
+  initNotifications(() => {
+    if (!window || window.isDestroyed()) window = createWindow()
+    if (!window.isVisible()) {
+      positionWindow(window)
+      window.show()
+      window.focus()
+    }
+  })
 
   // Open the popover once on launch so the app is easy to locate.
   window.webContents.once('did-finish-load', () => {

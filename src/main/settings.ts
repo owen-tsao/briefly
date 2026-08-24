@@ -10,6 +10,8 @@ interface StoredSettings {
   apiKeyEnc: string | null
   /** Auto-rescan interval in minutes; 0 = off. */
   autoRescanMinutes: number
+  /** Native deadline notifications. */
+  notificationsEnabled: boolean
 }
 
 const RESCAN_CHOICES = [0, 30, 60, 180, 360]
@@ -22,9 +24,14 @@ function settingsPath(): string {
 
 function load(): StoredSettings {
   const path = settingsPath()
-  if (!existsSync(path)) {
-    return { baseUrl: DEFAULT_BASE_URL, model: DEFAULT_MODEL, apiKeyEnc: null, autoRescanMinutes: 0 }
+  const defaults: StoredSettings = {
+    baseUrl: DEFAULT_BASE_URL,
+    model: DEFAULT_MODEL,
+    apiKeyEnc: null,
+    autoRescanMinutes: 0,
+    notificationsEnabled: true
   }
+  if (!existsSync(path)) return defaults
   try {
     const raw = JSON.parse(readFileSync(path, 'utf8')) as Partial<StoredSettings>
     return {
@@ -33,10 +40,11 @@ function load(): StoredSettings {
       apiKeyEnc: raw.apiKeyEnc ?? null,
       autoRescanMinutes: RESCAN_CHOICES.includes(raw.autoRescanMinutes ?? -1)
         ? (raw.autoRescanMinutes as number)
-        : 0
+        : 0,
+      notificationsEnabled: raw.notificationsEnabled !== false
     }
   } catch {
-    return { baseUrl: DEFAULT_BASE_URL, model: DEFAULT_MODEL, apiKeyEnc: null, autoRescanMinutes: 0 }
+    return defaults
   }
 }
 
@@ -53,7 +61,8 @@ export function getSettingsView(): SettingsView {
     baseUrl: s.baseUrl,
     model: s.model,
     hasApiKey: Boolean(s.apiKeyEnc) || Boolean(process.env.BRIEFLY_API_KEY),
-    autoRescanMinutes: s.autoRescanMinutes
+    autoRescanMinutes: s.autoRescanMinutes,
+    notificationsEnabled: s.notificationsEnabled
   }
 }
 
@@ -61,17 +70,25 @@ export function getAutoRescanMinutes(): number {
   return load().autoRescanMinutes
 }
 
+export function getNotificationsEnabled(): boolean {
+  return load().notificationsEnabled
+}
+
 export function saveSettings(update: {
   baseUrl?: string
   model?: string
   apiKey?: string
   autoRescanMinutes?: number
+  notificationsEnabled?: boolean
 }): SettingsView {
   const s = load()
   if (update.baseUrl !== undefined) s.baseUrl = update.baseUrl.trim() || DEFAULT_BASE_URL
   if (update.model !== undefined) s.model = update.model.trim() || DEFAULT_MODEL
   if (update.autoRescanMinutes !== undefined && RESCAN_CHOICES.includes(update.autoRescanMinutes)) {
     s.autoRescanMinutes = update.autoRescanMinutes
+  }
+  if (update.notificationsEnabled !== undefined) {
+    s.notificationsEnabled = Boolean(update.notificationsEnabled)
   }
   if (update.apiKey !== undefined) {
     const key = update.apiKey.trim()
