@@ -15,6 +15,10 @@ export type Priority = 'high' | 'medium' | 'low'
 
 export type TaskState = 'open' | 'done' | 'snoozed' | 'dismissed' | 'archived'
 
+export type Horizon = 'now' | 'soon' | 'someday'
+
+export const HORIZONS: Horizon[] = ['now', 'soon', 'someday']
+
 export interface Task {
   id: string
   text: string
@@ -26,6 +30,12 @@ export interface Task {
   snoozedUntil: string | null
   /** Set when the user renames a task — scans will never overwrite or archive it. */
   editedByUser?: boolean
+  /** Daily-recurring tasks reopen each morning after being completed. */
+  recurrence?: 'daily' | null
+  /** Time bucket: now = today, soon = this week-ish, someday = goals/ideas. */
+  horizon?: Horizon
+  /** Set when the user changes horizon manually — scans won't move it. */
+  horizonPinned?: boolean
   createdAt: string
   updatedAt: string
 }
@@ -50,6 +60,8 @@ export interface SettingsView {
   hasApiKey: boolean
   /** Auto-rescan interval in minutes; 0 = off. */
   autoRescanMinutes: number
+  /** Native deadline notifications. */
+  notificationsEnabled: boolean
 }
 
 export interface RefreshResult {

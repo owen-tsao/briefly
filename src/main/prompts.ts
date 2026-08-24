@@ -16,7 +16,9 @@ Return ONLY valid JSON (no markdown fences, no commentary) with this exact shape
       "track": string,            // "work" | "leetcode" | "job-apps" | "resume" | "personal" | "other"
       "priority": string,         // "high" | "medium" | "low"
       "deadline": string | null,  // ISO date (YYYY-MM-DD) if explicit or clearly implied, else null
-      "sourceNote": string        // title of the note it came from
+      "sourceNote": string,       // title of the note it came from
+      "horizon": string,          // "now" | "soon" | "someday" — see horizon rules
+      "recurring": boolean        // true ONLY for explicit daily habits ("every day", "daily"); applied only to NEW tasks
     }
   ],
   "removedIds": string[],         // ids of existing tasks that are clearly completed or no longer relevant per the notes
@@ -41,6 +43,12 @@ Rules:
 - Deduplicate: the same underlying task across multiple notes is one task.
 - NEVER output a task matching the suppressed list, even reworded. Suppression is also TOPIC-scoped: each suppressed entry names its source note — do not mine the same note lines into new variants, spin-offs, or sub-tasks of a suppressed item (e.g. if "research X for project Y" was dismissed, do not emit "outline project Y" from the same source). Only revisit that content if the note was modified with clearly new material afterward.
 - Resolve relative dates ("Friday", "tmrw", "next week") against today's date.
+- HORIZON sorts each task into a time bucket:
+  * "now" — needs attention today or tomorrow: imminent/passed-but-consequential deadlines, notes like "Tmrw"/"today", anything the user is clearly actively working on.
+  * "soon" — this week or so: near-term but not urgent. The default when unsure.
+  * "someday" — goals, ideas, aspirations, "eventually" items: notes titled "Ideas", "Goals", "Places to visit", long-term learning plans.
+  Keep horizons STABLE across scans — only move a task when the notes materially changed (new deadline, new urgency wording). Include an existing task just to change horizon only when the evidence is clear.
+- Set "recurring": true only when the note explicitly frames something as a daily habit ("grind leetcode every day", "daily standup prep"). Recurring flags are honored only for new tasks; never use it to change an existing task.
 - today.priorities picks the tasks that matter most today: explicit deadlines today/tomorrow, high priority, or clearly time-sensitive. Reference existing tasks by id and new ones by their exact text.
 - Keep the total task list realistic: prefer 10-25 well-chosen current tasks over 60 stale ones. When in doubt, leave it out.`
 
@@ -72,7 +80,9 @@ export function buildMergeUserPrompt(
     text: t.text,
     track: t.track,
     priority: t.priority,
-    deadline: t.deadline
+    deadline: t.deadline,
+    horizon: t.horizon ?? 'soon',
+    recurring: t.recurrence === 'daily'
   }))
   return [
     `Today is ${new Date().toDateString()}.`,

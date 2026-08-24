@@ -2,8 +2,9 @@ import { app } from 'electron'
 import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { AppState, Priority, Task, TaskState, TodayStrip, Track } from '../shared/types'
-import { TRACKS } from '../shared/types'
+import type { AppState, Horizon, Priority, Task, TaskState, TodayStrip, Track } from '../shared/types'
+import { HORIZONS, TRACKS } from '../shared/types'
+import { localDay, localDayOffset } from '../shared/dates'
 
 interface StoreFile {
   tasks: Task[]
@@ -11,6 +12,8 @@ interface StoreFile {
   lastRefreshed: string | null
   /** Today-strip items the user dismissed; suppressed from regenerated strips on the same day. */
   dismissedToday?: { date: string; texts: string[] }
+  /** taskId → local day it was last included in a deadline notification. */
+  notified?: Record<string, string>
 }
 
 export interface LlmTask {
@@ -20,6 +23,8 @@ export interface LlmTask {
   priority: string
   deadline: string | null
   sourceNote: string
+  horizon?: string
+  recurring?: boolean
 }
 
 export interface MergeResponse {
@@ -47,6 +52,9 @@ function load(): StoreFile {
         generatedAt: store.today.generatedAt ?? new Date().toISOString()
       }
     }
+    for (const t of store.tasks) {
+      if (!t.horizon || !HORIZONS.includes(t.horizon)) t.horizon = 'soon'
+    }
     return store
   } catch {
     return { tasks: [], today: null, lastRefreshed: null }
@@ -72,6 +80,33 @@ function wakeSnoozed(store: StoreFile): void {
   }
 }
 
+/** Reopen daily-recurring tasks completed on a previous (local) day. */
+function resetRecurring(store: StoreFile): void {
+  const today = localDay()
+  for (const task of store.tasks) {
+    if (task.recurrence === 'daily' && task.state === 'done' && localDay(task.updatedAt) < today) {
+      task.state = 'open'
+      task.updatedAt = new Date().toISOString()
+    }
+  }
+}
+
+/** Cap store growth: done/archived tasks older than 90 days age out. Dismissed are kept (suppression). */
+function pruneOld(store: StoreFile): void {
+  const cutoff = Date.now() - 90 * 24 * 60 * 60 * 1000
+  store.tasks = store.tasks.filter(
+    (t) =>
+      !((t.state === 'done' || t.state === 'archived') && new Date(t.updatedAt).getTime() < cutoff)
+  )
+}
+
+/** All load-time maintenance in one place. */
+function sweep(store: StoreFile): void {
+  wakeSnoozed(store)
+  resetRecurring(store)
+  pruneOld(store)
+}
+
 function normalizeTrack(value: string): Track {
   return (TRACKS as string[]).includes(value) ? (value as Track) : 'other'
 }
@@ -80,9 +115,13 @@ function normalizePriority(value: string): Priority {
   return value === 'high' || value === 'low' ? value : 'medium'
 }
 
+function normalizeHorizon(value: string | undefined): Horizon {
+  return HORIZONS.includes(value as Horizon) ? (value as Horizon) : 'soon'
+}
+
 export function getState(hasApiKey: boolean): AppState {
   const store = load()
-  wakeSnoozed(store)
+  sweep(store)
   save(store)
   return { tasks: store.tasks, today: store.today, lastRefreshed: store.lastRefreshed, hasApiKey }
 }
@@ -93,7 +132,7 @@ export function getLastRefreshed(): string | null {
 
 export function getOpenTasks(): Task[] {
   const store = load()
-  wakeSnoozed(store)
+  sweep(store)
   return store.tasks.filter((t) => t.state === 'open' || t.state === 'snoozed')
 }
 
@@ -108,7 +147,8 @@ export function getSuppressedTexts(doneDays = 30): string[] {
     .tasks.filter(
       (t) =>
         t.state === 'dismissed' ||
-        (t.state === 'done' && new Date(t.updatedAt).getTime() >= cutoff)
+        // Recurring tasks reopen daily by design — completing one must not suppress it.
+        (t.state === 'done' && !t.recurrence && new Date(t.updatedAt).getTime() >= cutoff)
     )
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
     .slice(0, 150) // Cap prompt size — ancient dismissals are stale enough to age out.
@@ -159,6 +199,75 @@ export function updateTaskText(id: string, text: string): void {
   save(store)
 }
 
+export function setTaskRecurrence(id: string, recurrence: 'daily' | null): void {
+  const store = load()
+  const task = store.tasks.find((t) => t.id === id)
+  if (!task) return
+  task.recurrence = recurrence
+  task.updatedAt = new Date().toISOString()
+  save(store)
+}
+
+export function setTaskHorizon(id: string, horizon: Horizon): void {
+  const store = load()
+  const task = store.tasks.find((t) => t.id === id)
+  if (!task) return
+  task.horizon = horizon
+  task.horizonPinned = true
+  task.updatedAt = new Date().toISOString()
+  save(store)
+}
+
+/** Instant local task creation (quick-add) — no LLM involved, text is sticky. */
+export function addTask(text: string): void {
+  const trimmed = text.trim().slice(0, 500)
+  if (!trimmed) return
+  const store = load()
+  const now = new Date().toISOString()
+  store.tasks.push({
+    id: randomUUID(),
+    text: trimmed,
+    track: 'other',
+    priority: 'medium',
+    deadline: null,
+    sourceNote: 'quick add',
+    state: 'open',
+    snoozedUntil: null,
+    editedByUser: true,
+    horizon: 'now',
+    createdAt: now,
+    updatedAt: now
+  })
+  save(store)
+}
+
+/**
+ * Open tasks due by tomorrow (incl. overdue) not yet notified today.
+ * Marks them notified as a side effect — callers should notify or drop the result.
+ */
+export function takeDueForNotification(): Task[] {
+  const store = load()
+  sweep(store)
+  const today = localDay()
+  const tomorrow = localDayOffset(1)
+  const due = store.tasks.filter(
+    (t) =>
+      t.state === 'open' && t.deadline && t.deadline <= tomorrow && store.notified?.[t.id] !== today
+  )
+  if (due.length > 0) {
+    const alive = new Set(store.tasks.map((t) => t.id))
+    const next: Record<string, string> = {}
+    // Rebuild the map so entries for deleted tasks don't accumulate.
+    for (const [id, day] of Object.entries(store.notified ?? {})) {
+      if (alive.has(id)) next[id] = day
+    }
+    for (const t of due) next[t.id] = today
+    store.notified = next
+    save(store)
+  }
+  return due
+}
+
 /** Remove one item from the Today strip and keep it suppressed for the rest of the day. */
 export function dismissTodayItem(section: 'priorities' | 'changes', value: string): void {
   const store = load()
@@ -167,7 +276,7 @@ export function dismissTodayItem(section: 'priorities' | 'changes', value: strin
   const idx = items.indexOf(value)
   if (idx === -1) return
   items.splice(idx, 1)
-  const today = new Date().toISOString().slice(0, 10)
+  const today = localDay()
   if (!store.dismissedToday || store.dismissedToday.date !== today) {
     store.dismissedToday = { date: today, texts: [] }
   }
@@ -177,7 +286,7 @@ export function dismissTodayItem(section: 'priorities' | 'changes', value: strin
 
 /** Case-insensitive filter of strip items against today's dismissals. */
 function filterDismissedToday(items: string[], store: StoreFile): string[] {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = localDay()
   if (!store.dismissedToday || store.dismissedToday.date !== today) return items
   const dismissed = new Set(store.dismissedToday.texts.map((t) => t.toLowerCase().trim()))
   return items.filter((item) => !dismissed.has(item.toLowerCase().trim()))
@@ -202,7 +311,7 @@ function defaultSnooze(): string {
 export function applyMerge(response: MergeResponse, options: { updateToday?: boolean } = {}): AppState {
   const { updateToday = true } = options
   const store = load()
-  wakeSnoozed(store)
+  sweep(store)
   const now = new Date().toISOString()
   const byId = new Map(store.tasks.map((t) => [t.id, t]))
   // Fuzzy backstop for the prompt's suppression rule: the LLM sometimes re-mines
@@ -227,6 +336,8 @@ export function applyMerge(response: MergeResponse, options: { updateToday?: boo
       // Sticky manual edits: the user's wording always wins over the LLM's.
       const { text: _text, ...withoutText } = normalized
       Object.assign(existing, existing.editedByUser ? withoutText : normalized, { updatedAt: now })
+      // Horizon follows the notes unless the user pinned it. Recurrence is user-owned after creation.
+      if (!existing.horizonPinned && item.horizon) existing.horizon = normalizeHorizon(item.horizon)
     } else {
       // Guard against the model "recreating" something it was told about.
       const duplicate = store.tasks.some(
@@ -240,6 +351,8 @@ export function applyMerge(response: MergeResponse, options: { updateToday?: boo
         ...normalized,
         state: 'open',
         snoozedUntil: null,
+        horizon: normalizeHorizon(item.horizon),
+        recurrence: item.recurring === true ? 'daily' : null,
         createdAt: now,
         updatedAt: now
       })
@@ -248,8 +361,14 @@ export function applyMerge(response: MergeResponse, options: { updateToday?: boo
 
   for (const id of response.removedIds ?? []) {
     const task = byId.get(id)
-    // Edited tasks no longer match the notes verbatim — never let the LLM archive them.
-    if (task && !task.editedByUser && (task.state === 'open' || task.state === 'snoozed')) {
+    // Edited tasks no longer match the notes verbatim, and recurring tasks are a
+    // standing commitment — never let the LLM archive either.
+    if (
+      task &&
+      !task.editedByUser &&
+      !task.recurrence &&
+      (task.state === 'open' || task.state === 'snoozed')
+    ) {
       task.state = 'archived'
       task.updatedAt = now
     }
