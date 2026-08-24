@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { AlarmClock, X } from 'lucide-react'
-import type { AppState, Task, TaskState, Track } from '../../../shared/types'
+import { AlarmClock, ChevronRight, Plus, Repeat, X } from 'lucide-react'
+import type { AppState, Horizon, Task, TaskState, Track } from '../../../shared/types'
 import { TRACKS, TRACK_LABELS } from '../../../shared/types'
+import { localDay, localDayOffset } from '../../../shared/dates'
 import { cn } from '@/lib/utils'
 import { ConfettiOverlay } from '@/components/ui/confetti'
 
@@ -12,6 +13,10 @@ interface Props {
   onRefresh: () => void
   onTaskState: (id: string, taskState: TaskState, snoozedUntil?: string) => void
   onTaskEdit: (id: string, text: string) => void
+  onTaskAdd: (text: string) => void
+  onTaskRecurrence: (id: string, recurrence: 'daily' | null) => void
+  onTaskHorizon: (id: string, horizon: Horizon) => void
+  onOpenNote: (title: string) => void
   onTodayDismiss: (section: 'priorities' | 'changes', text: string) => void
   onOpenSettings: () => void
 }
@@ -25,6 +30,22 @@ const TRACK_DOT: Record<Track, string> = {
   other: 'bg-gray-400 dark:bg-zinc-500'
 }
 
+type Zone = 'today' | 'soon' | 'someday'
+
+const ZONE_LABELS: Record<Zone, string> = { today: 'Today', soon: 'Soon', someday: 'Someday' }
+
+/** Where a task renders. Deadlines due by tomorrow promote into Today without mutating anything. */
+function zoneOf(task: Task): Zone {
+  if (task.state === 'done') {
+    const h = task.horizon ?? 'soon'
+    return h === 'now' ? 'today' : h
+  }
+  if (task.deadline && task.deadline <= localDayOffset(1)) return 'today'
+  if (task.recurrence === 'daily') return 'today'
+  const h = task.horizon ?? 'soon'
+  return h === 'now' ? 'today' : h
+}
+
 export function TasksView({
   state,
   allDone,
@@ -32,6 +53,10 @@ export function TasksView({
   onRefresh,
   onTaskState,
   onTaskEdit,
+  onTaskAdd,
+  onTaskRecurrence,
+  onTaskHorizon,
+  onOpenNote,
   onTodayDismiss,
   onOpenSettings
 }: Props): React.JSX.Element {
@@ -76,19 +101,23 @@ export function TasksView({
     )
   }
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = localDay()
   const visible = state.tasks.filter(
-    (t) => t.state === 'open' || (t.state === 'done' && t.updatedAt.slice(0, 10) === today)
+    (t) => t.state === 'open' || (t.state === 'done' && localDay(t.updatedAt) === today)
   )
 
   if (allDone) {
     return (
-      <div className="relative flex flex-col items-center justify-center gap-2 py-16 text-center">
-        <h3 className="text-lg font-bold tracking-tight">You crushed it today</h3>
-        <p className="text-sm font-medium text-gray-600 dark:text-zinc-400">
-          Take a breather and celebrate!
-        </p>
-        {celebrating && <ConfettiOverlay />}
+      <div className="space-y-5">
+        <div className="relative flex flex-col items-center justify-center gap-2 py-14 text-center">
+          <h3 className="text-lg font-bold tracking-tight">You crushed it today</h3>
+          <p className="text-sm font-medium text-gray-600 dark:text-zinc-400">
+            Take a breather and celebrate!
+          </p>
+          {celebrating && <ConfettiOverlay />}
+        </div>
+        <QuickAdd onAdd={onTaskAdd} />
+        <DoneThisWeek tasks={state.tasks} />
       </div>
     )
   }
@@ -138,34 +167,191 @@ export function TasksView({
           )
         })()}
 
+      <QuickAdd onAdd={onTaskAdd} />
+
       {visible.length === 0 ? (
         <EmptyState title="Nothing here" sub="No open tasks. On top of everything — or time to rescan." />
       ) : (
-        TRACKS.map((track) => {
-          const tasks = visible.filter((t) => t.track === track).sort(byOrder)
-          if (tasks.length === 0) return null
-          const openCount = tasks.filter((t) => t.state === 'open').length
-          return (
-            <section key={track}>
-              <h4 className="mb-1.5 flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-[0.08em] text-gray-500 dark:text-zinc-400">
-                <span className={cn('h-1.5 w-1.5 rounded-full', TRACK_DOT[track])} />
-                {TRACK_LABELS[track]}
-                <span className="font-semibold text-gray-400 dark:text-zinc-600">{openCount}</span>
-              </h4>
-              <ul className="space-y-0.5">
-                {tasks.map((task) => (
-                  <TaskRow key={task.id} task={task} onTaskState={onTaskState} onTaskEdit={onTaskEdit} />
-                ))}
-              </ul>
-            </section>
-          )
-        })
+        (['today', 'soon', 'someday'] as Zone[]).map((zone) => (
+          <ZoneSection
+            key={zone}
+            zone={zone}
+            tasks={visible.filter((t) => zoneOf(t) === zone).sort(byOrder)}
+            onTaskState={onTaskState}
+            onTaskEdit={onTaskEdit}
+            onTaskRecurrence={onTaskRecurrence}
+            onTaskHorizon={onTaskHorizon}
+            onOpenNote={onOpenNote}
+          />
+        ))
       )}
+
+      <DoneThisWeek tasks={state.tasks} />
+
       <p className="pt-1 text-center text-[11px] font-medium text-gray-400 dark:text-zinc-600">
         Keep up the great work today!
       </p>
     </div>
   )
+}
+
+const ZONE_ACCENT: Record<Zone, string> = {
+  today: 'text-indigo-600 dark:text-indigo-400',
+  soon: 'text-gray-500 dark:text-zinc-400',
+  someday: 'text-gray-400 dark:text-zinc-500'
+}
+
+function ZoneSection({
+  zone,
+  tasks,
+  onTaskState,
+  onTaskEdit,
+  onTaskRecurrence,
+  onTaskHorizon,
+  onOpenNote
+}: {
+  zone: Zone
+  tasks: Task[]
+  onTaskState: (id: string, taskState: TaskState, snoozedUntil?: string) => void
+  onTaskEdit: (id: string, text: string) => void
+  onTaskRecurrence: (id: string, recurrence: 'daily' | null) => void
+  onTaskHorizon: (id: string, horizon: Horizon) => void
+  onOpenNote: (title: string) => void
+}): React.JSX.Element | null {
+  // Someday is a parking lot — start collapsed, remember the user's preference.
+  const [open, setOpen] = useState(
+    () => zone !== 'someday' || localStorage.getItem('briefly-someday-open') === '1'
+  )
+  if (tasks.length === 0) return null
+  const openCount = tasks.filter((t) => t.state === 'open').length
+
+  const toggle = (): void => {
+    if (zone !== 'someday') return
+    setOpen((v) => {
+      localStorage.setItem('briefly-someday-open', v ? '0' : '1')
+      return !v
+    })
+  }
+
+  return (
+    <section>
+      <button
+        onClick={toggle}
+        className={cn(
+          'mb-1.5 flex w-full items-center gap-1.5 px-1 text-[10px] font-bold uppercase tracking-[0.08em]',
+          ZONE_ACCENT[zone],
+          zone === 'someday' ? 'cursor-pointer' : 'cursor-default'
+        )}
+      >
+        {zone === 'someday' && (
+          <ChevronRight
+            size={11}
+            className={cn('transition-transform duration-150', open && 'rotate-90')}
+          />
+        )}
+        {ZONE_LABELS[zone]}
+        <span className="font-semibold text-gray-400 dark:text-zinc-600">{openCount}</span>
+      </button>
+      {open && (
+        <ul className="space-y-0.5">
+          {tasks.map((task) => (
+            <TaskRow
+              key={task.id}
+              task={task}
+              onTaskState={onTaskState}
+              onTaskEdit={onTaskEdit}
+              onTaskRecurrence={onTaskRecurrence}
+              onTaskHorizon={onTaskHorizon}
+              onOpenNote={onOpenNote}
+            />
+          ))}
+        </ul>
+      )}
+    </section>
+  )
+}
+
+/** Instant local task entry — Enter adds and keeps focus for rapid capture. */
+function QuickAdd({ onAdd }: { onAdd: (text: string) => void }): React.JSX.Element {
+  const [text, setText] = useState('')
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-dashed border-slate-300 bg-white/60 px-2.5 py-1.5 transition-colors focus-within:border-slate-400 focus-within:bg-white dark:border-white/[0.12] dark:bg-ink-900/40 dark:focus-within:border-white/25 dark:focus-within:bg-ink-900">
+      <Plus size={13} className="shrink-0 text-gray-400 dark:text-zinc-500" />
+      <input
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && text.trim()) {
+            onAdd(text)
+            setText('')
+          }
+        }}
+        placeholder="Add a task…"
+        maxLength={500}
+        className="w-full bg-transparent text-[13px] outline-none placeholder:text-gray-400 dark:placeholder:text-zinc-600"
+      />
+    </div>
+  )
+}
+
+/** Collapsed weekly recap of completed tasks, grouped by day. */
+function DoneThisWeek({ tasks }: { tasks: Task[] }): React.JSX.Element | null {
+  const [open, setOpen] = useState(false)
+  const weekAgo = localDayOffset(-6)
+  const done = tasks
+    .filter((t) => t.state === 'done' && localDay(t.updatedAt) >= weekAgo)
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+  if (done.length === 0) return null
+
+  const byDay = new Map<string, Task[]>()
+  for (const t of done) {
+    const day = localDay(t.updatedAt)
+    byDay.set(day, [...(byDay.get(day) ?? []), t])
+  }
+
+  return (
+    <section className="pt-1">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-1.5 px-1 text-[10px] font-bold uppercase tracking-[0.08em] text-gray-400 dark:text-zinc-500"
+      >
+        <ChevronRight
+          size={11}
+          className={cn('transition-transform duration-150', open && 'rotate-90')}
+        />
+        Done this week
+        <span className="font-semibold text-gray-400 dark:text-zinc-600">{done.length}</span>
+      </button>
+      {open && (
+        <div className="mt-1.5 space-y-2.5 px-1">
+          {[...byDay.entries()].map(([day, dayTasks]) => (
+            <div key={day}>
+              <p className="mb-0.5 text-[10px] font-semibold text-gray-400 dark:text-zinc-500">
+                {formatDay(day)}
+              </p>
+              <ul className="space-y-0.5">
+                {dayTasks.map((t) => (
+                  <li
+                    key={t.id}
+                    className="flex items-center gap-1.5 text-[12px] text-gray-500 line-through dark:text-zinc-500"
+                  >
+                    <span className={cn('h-1 w-1 shrink-0 rounded-full', TRACK_DOT[t.track])} />
+                    <span className="min-w-0 truncate">{t.text}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function formatDay(day: string): string {
+  if (day === localDay()) return 'Today'
+  if (day === localDayOffset(-1)) return 'Yesterday'
+  return new Date(day + 'T12:00:00').toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })
 }
 
 const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 }
@@ -251,7 +437,8 @@ function byOrder(a: Task, b: Task): number {
   if (a.deadline && b.deadline) return a.deadline.localeCompare(b.deadline)
   if (a.deadline) return -1
   if (b.deadline) return 1
-  return 0
+  // Zones mix tracks — keep same-track tasks adjacent so the color dots read as clusters.
+  return TRACKS.indexOf(a.track) - TRACKS.indexOf(b.track)
 }
 
 const PRIORITY_DOT = {
@@ -279,15 +466,25 @@ function snoozeOptions(): { label: string; until: string }[] {
 function TaskRow({
   task,
   onTaskState,
-  onTaskEdit
+  onTaskEdit,
+  onTaskRecurrence,
+  onTaskHorizon,
+  onOpenNote
 }: {
   task: Task
   onTaskState: (id: string, taskState: TaskState, snoozedUntil?: string) => void
   onTaskEdit: (id: string, text: string) => void
+  onTaskRecurrence: (id: string, recurrence: 'daily' | null) => void
+  onTaskHorizon: (id: string, horizon: Horizon) => void
+  onOpenNote: (title: string) => void
 }): React.JSX.Element {
   const done = task.state === 'done'
   const deadline = task.deadline ? formatDeadline(task.deadline) : null
   const [snoozeOpen, setSnoozeOpen] = useState(false)
+  const recurring = task.recurrence === 'daily'
+  const horizon = task.horizon ?? 'soon'
+  const nextHorizon: Horizon = horizon === 'now' ? 'soon' : horizon === 'soon' ? 'someday' : 'now'
+  const hasSourceNote = Boolean(task.sourceNote) && !['quick add', 'unknown'].includes(task.sourceNote)
 
   return (
     <li
@@ -369,10 +566,32 @@ function TaskRow({
         </span>
         {!done && (
           <span className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-0.5">
+            <span
+              className="flex items-center gap-1 text-[11px] font-medium text-gray-500 dark:text-zinc-400"
+              title={TRACK_LABELS[task.track]}
+            >
+              <span className={cn('h-1.5 w-1.5 rounded-full', TRACK_DOT[task.track])} />
+              {TRACK_LABELS[task.track].split(' ')[0]}
+            </span>
             <span className="flex items-center gap-1 text-[11px] font-medium capitalize text-gray-500 dark:text-zinc-400">
               <span className={cn('h-1.5 w-1.5 rounded-full', PRIORITY_DOT[task.priority])} />
               {task.priority}
             </span>
+            <button
+              title="Cycle horizon (Now → Soon → Someday)"
+              onClick={() => onTaskHorizon(task.id, nextHorizon)}
+              className="rounded bg-slate-200/70 px-1 py-px text-[10px] font-semibold capitalize text-gray-500 transition-colors hover:bg-slate-300/70 hover:text-gray-700 active:scale-95 dark:bg-white/[0.07] dark:text-zinc-400 dark:hover:bg-white/[0.12] dark:hover:text-zinc-200"
+            >
+              {horizon === 'now' ? 'today' : horizon}
+            </button>
+            {recurring && (
+              <span
+                title="Repeats daily"
+                className="flex items-center gap-0.5 text-[11px] font-medium text-teal-600 dark:text-teal-400"
+              >
+                <Repeat size={10} /> daily
+              </span>
+            )}
             {deadline && (
               <span
                 className={cn(
@@ -385,6 +604,15 @@ function TaskRow({
                 {deadline.label}
               </span>
             )}
+            {hasSourceNote && (
+              <button
+                title={`Open "${task.sourceNote}" in Apple Notes`}
+                onClick={() => onOpenNote(task.sourceNote)}
+                className="max-w-[110px] truncate text-[11px] font-medium text-gray-400 underline decoration-dotted underline-offset-2 transition-colors hover:text-gray-700 dark:text-zinc-500 dark:hover:text-zinc-300"
+              >
+                {task.sourceNote}
+              </button>
+            )}
           </span>
         )}
       </div>
@@ -396,12 +624,19 @@ function TaskRow({
       {!done && (
         <span
           className={cn(
-            'relative flex w-[46px] shrink-0 justify-end gap-1 transition-opacity duration-150',
+            'relative flex w-[68px] shrink-0 justify-end gap-1 transition-opacity duration-150',
             snoozeOpen
               ? 'pointer-events-auto opacity-100'
               : 'pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100'
           )}
         >
+          <ActionButton
+            title={recurring ? 'Stop repeating daily' : 'Repeat daily'}
+            active={recurring}
+            onClick={() => onTaskRecurrence(task.id, recurring ? null : 'daily')}
+          >
+            <Repeat size={12} />
+          </ActionButton>
           <ActionButton title="Snooze…" onClick={() => setSnoozeOpen((v) => !v)}>
             <AlarmClock size={12} />
           </ActionButton>
@@ -436,17 +671,24 @@ function TaskRow({
 function ActionButton({
   title,
   onClick,
+  active,
   children
 }: {
   title: string
   onClick: () => void
+  active?: boolean
   children: React.ReactNode
 }): React.JSX.Element {
   return (
     <button
       title={title}
       onClick={onClick}
-      className="rounded-md border border-slate-200 bg-white p-1 text-gray-400 shadow-sm transition-all hover:border-slate-300 hover:text-gray-700 active:scale-90 dark:border-white/[0.1] dark:bg-ink-800 dark:text-zinc-500 dark:hover:border-white/20 dark:hover:text-zinc-300"
+      className={cn(
+        'rounded-md border p-1 shadow-sm transition-all active:scale-90',
+        active
+          ? 'border-teal-300 bg-teal-50 text-teal-600 hover:border-teal-400 dark:border-teal-500/40 dark:bg-teal-500/10 dark:text-teal-400 dark:hover:border-teal-500/60'
+          : 'border-slate-200 bg-white text-gray-400 hover:border-slate-300 hover:text-gray-700 dark:border-white/[0.1] dark:bg-ink-800 dark:text-zinc-500 dark:hover:border-white/20 dark:hover:text-zinc-300'
+      )}
     >
       {children}
     </button>

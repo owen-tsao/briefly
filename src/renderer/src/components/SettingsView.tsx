@@ -12,6 +12,7 @@ export function SettingsView({ onSaved }: { onSaved: () => void }): React.JSX.El
   const [modelsError, setModelsError] = useState<string | null>(null)
   const [launchAtLogin, setLaunchAtLogin] = useState(false)
   const [autoRescan, setAutoRescan] = useState(0)
+  const [notifications, setNotifications] = useState(true)
 
   useEffect(() => {
     window.briefly.getSettings().then((s) => {
@@ -19,6 +20,7 @@ export function SettingsView({ onSaved }: { onSaved: () => void }): React.JSX.El
       setModel(s.model)
       setHasApiKey(s.hasApiKey)
       setAutoRescan(s.autoRescanMinutes)
+      setNotifications(s.notificationsEnabled)
       if (s.hasApiKey) loadModels()
     })
     window.briefly.getLaunchAtLogin().then(setLaunchAtLogin)
@@ -26,6 +28,13 @@ export function SettingsView({ onSaved }: { onSaved: () => void }): React.JSX.El
 
   const toggleLaunchAtLogin = async (): Promise<void> => {
     setLaunchAtLogin(await window.briefly.setLaunchAtLogin(!launchAtLogin))
+  }
+
+  // Applies immediately — no Save needed.
+  const toggleNotifications = async (): Promise<void> => {
+    const next = !notifications
+    setNotifications(next)
+    await window.briefly.saveSettings({ notificationsEnabled: next })
   }
 
   // Applies immediately — no Save needed.
@@ -151,28 +160,21 @@ export function SettingsView({ onSaved }: { onSaved: () => void }): React.JSX.El
         </span>
       </label>
 
-      <button
-        onClick={toggleLaunchAtLogin}
-        className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-left shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition hover:border-slate-300 dark:border-white/[0.08] dark:bg-ink-900 dark:hover:border-white/20"
-      >
-        <span>
-          <span className="block text-[13px] font-medium">Launch at login</span>
-          <span className={hintCls}>Start briefly automatically when you log in.</span>
-        </span>
-        <span
-          className={cn(
-            'relative h-5 w-9 shrink-0 rounded-full transition-colors',
-            launchAtLogin ? 'bg-gray-900 dark:bg-accent' : 'bg-slate-200 dark:bg-ink-700'
-          )}
-        >
-          <span
-            className={cn(
-              'absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all',
-              launchAtLogin ? 'left-[18px]' : 'left-0.5'
-            )}
-          />
-        </span>
-      </button>
+      <ToggleRow
+        title="Deadline notifications"
+        hint="One notification a day for tasks overdue or due by tomorrow. If nothing appears, allow briefly under System Settings → Notifications."
+        on={notifications}
+        onToggle={toggleNotifications}
+        hintCls={hintCls}
+      />
+
+      <ToggleRow
+        title="Launch at login"
+        hint="Start briefly automatically when you log in."
+        on={launchAtLogin}
+        onToggle={toggleLaunchAtLogin}
+        hintCls={hintCls}
+      />
 
       <button
         onClick={save}
@@ -187,5 +189,44 @@ export function SettingsView({ onSaved }: { onSaved: () => void }): React.JSX.El
         to open briefly.
       </p>
     </div>
+  )
+}
+
+function ToggleRow({
+  title,
+  hint,
+  on,
+  onToggle,
+  hintCls
+}: {
+  title: string
+  hint: string
+  on: boolean
+  onToggle: () => void
+  hintCls: string
+}): React.JSX.Element {
+  return (
+    <button
+      onClick={onToggle}
+      className="flex w-full items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-left shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition hover:border-slate-300 dark:border-white/[0.08] dark:bg-ink-900 dark:hover:border-white/20"
+    >
+      <span>
+        <span className="block text-[13px] font-medium">{title}</span>
+        <span className={hintCls}>{hint}</span>
+      </span>
+      <span
+        className={cn(
+          'relative h-5 w-9 shrink-0 rounded-full transition-colors',
+          on ? 'bg-gray-900 dark:bg-accent' : 'bg-slate-200 dark:bg-ink-700'
+        )}
+      >
+        <span
+          className={cn(
+            'absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all',
+            on ? 'left-[18px]' : 'left-0.5'
+          )}
+        />
+      </span>
+    </button>
   )
 }

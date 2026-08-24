@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type {
   AppState,
   AskResult,
+  Horizon,
   NoteSummary,
   RefreshResult,
   SettingsView,
@@ -13,14 +14,19 @@ export interface BrieflyApi {
   refresh: () => Promise<RefreshResult>
   setTaskState: (id: string, state: TaskState, snoozedUntil?: string) => Promise<AppState>
   updateTaskText: (id: string, text: string) => Promise<AppState>
+  addTask: (text: string) => Promise<AppState>
+  setTaskRecurrence: (id: string, recurrence: 'daily' | null) => Promise<AppState>
+  setTaskHorizon: (id: string, horizon: Horizon) => Promise<AppState>
   dismissTodayItem: (section: 'priorities' | 'changes', text: string) => Promise<AppState>
   ask: (question: string) => Promise<AskResult>
+  openNote: (title: string) => Promise<void>
   getSettings: () => Promise<SettingsView>
   saveSettings: (update: {
     baseUrl?: string
     model?: string
     apiKey?: string
     autoRescanMinutes?: number
+    notificationsEnabled?: boolean
   }) => Promise<SettingsView>
   listModels: () => Promise<{ ok: boolean; models?: string[]; error?: string }>
   getLaunchAtLogin: () => Promise<boolean>
@@ -38,8 +44,12 @@ const api: BrieflyApi = {
   setTaskState: (id, state, snoozedUntil) =>
     ipcRenderer.invoke('task:setState', id, state, snoozedUntil),
   updateTaskText: (id, text) => ipcRenderer.invoke('task:updateText', id, text),
+  addTask: (text) => ipcRenderer.invoke('task:add', text),
+  setTaskRecurrence: (id, recurrence) => ipcRenderer.invoke('task:setRecurrence', id, recurrence),
+  setTaskHorizon: (id, horizon) => ipcRenderer.invoke('task:setHorizon', id, horizon),
   dismissTodayItem: (section, text) => ipcRenderer.invoke('today:dismiss', section, text),
   ask: (question) => ipcRenderer.invoke('ask', question),
+  openNote: (title) => ipcRenderer.invoke('notes:open', title),
   getSettings: () => ipcRenderer.invoke('settings:get'),
   saveSettings: (update) => ipcRenderer.invoke('settings:save', update),
   listModels: () => ipcRenderer.invoke('models:list'),

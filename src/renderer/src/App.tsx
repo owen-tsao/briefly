@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Moon, Sun, RefreshCw, Power, Undo2 } from 'lucide-react'
-import type { AppState, TaskState } from '../../shared/types'
+import type { AppState, Horizon, TaskState } from '../../shared/types'
+import { localDay } from '../../shared/dates'
 import { cn } from '@/lib/utils'
 import { useTheme } from '@/lib/theme'
 import { TasksView } from '@/components/TasksView'
@@ -87,6 +88,22 @@ export function App(): React.JSX.Element {
     setState(await window.briefly.updateTaskText(id, text))
   }, [])
 
+  const handleTaskAdd = useCallback(async (text: string) => {
+    setState(await window.briefly.addTask(text))
+  }, [])
+
+  const handleTaskRecurrence = useCallback(async (id: string, recurrence: 'daily' | null) => {
+    setState(await window.briefly.setTaskRecurrence(id, recurrence))
+  }, [])
+
+  const handleTaskHorizon = useCallback(async (id: string, horizon: Horizon) => {
+    setState(await window.briefly.setTaskHorizon(id, horizon))
+  }, [])
+
+  const handleOpenNote = useCallback((title: string) => {
+    void window.briefly.openNote(title)
+  }, [])
+
   const handleTodayDismiss = useCallback(async (section: 'priorities' | 'changes', text: string) => {
     setState(await window.briefly.dismissTodayItem(section, text))
   }, [])
@@ -95,7 +112,7 @@ export function App(): React.JSX.Element {
     if (!state || !state.lastRefreshed) return false
     const open = state.tasks.filter((t) => t.state === 'open')
     const doneToday = state.tasks.filter(
-      (t) => t.state === 'done' && t.updatedAt.slice(0, 10) === new Date().toISOString().slice(0, 10)
+      (t) => t.state === 'done' && localDay(t.updatedAt) === localDay()
     )
     return open.length === 0 && doneToday.length > 0
   }, [state])
@@ -195,6 +212,10 @@ export function App(): React.JSX.Element {
             onRefresh={handleRefresh}
             onTaskState={handleTaskState}
             onTaskEdit={handleTaskEdit}
+            onTaskAdd={handleTaskAdd}
+            onTaskRecurrence={handleTaskRecurrence}
+            onTaskHorizon={handleTaskHorizon}
+            onOpenNote={handleOpenNote}
             onTodayDismiss={handleTodayDismiss}
             onOpenSettings={() => setTab('settings')}
           />

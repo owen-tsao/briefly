@@ -1,11 +1,22 @@
 import { ipcMain, app } from 'electron'
-import { getState, setTaskState, updateTaskText, dismissTodayItem } from './taskStore'
+import {
+  getState,
+  setTaskState,
+  updateTaskText,
+  dismissTodayItem,
+  addTask,
+  setTaskRecurrence,
+  setTaskHorizon
+} from './taskStore'
 import { getSettingsView, saveSettings, getApiKey } from './settings'
 import { refresh, ask, listNotes, extractFromNote } from './agent'
+import { openNote } from './notes'
 import { listModels } from './llm'
 import { updateTrayCount } from './tray'
 import { scheduleAutoRescan } from './scheduler'
-import type { TaskState } from '../shared/types'
+import { notifyDueTasks } from './notifications'
+import type { Horizon, TaskState } from '../shared/types'
+import { HORIZONS } from '../shared/types'
 
 const TASK_STATES: TaskState[] = ['open', 'done', 'snoozed', 'dismissed', 'archived']
 
@@ -15,6 +26,7 @@ export function registerIpc(): void {
   ipcMain.handle('state:refresh', async () => {
     const result = await refresh()
     updateTrayCount()
+    if (result.ok) notifyDueTasks()
     return result
   })
 
@@ -36,6 +48,36 @@ export function registerIpc(): void {
   ipcMain.handle('task:updateText', (_event, id: string, text: string) => {
     if (typeof id === 'string' && typeof text === 'string') updateTaskText(id, text)
     return getState(Boolean(getApiKey()))
+  })
+
+  ipcMain.handle('task:add', (_event, text: string) => {
+    if (typeof text === 'string' && text.trim()) {
+      addTask(text)
+      updateTrayCount()
+    }
+    return getState(Boolean(getApiKey()))
+  })
+
+  ipcMain.handle('task:setRecurrence', (_event, id: string, recurrence: 'daily' | null) => {
+    if (typeof id === 'string' && (recurrence === 'daily' || recurrence === null)) {
+      setTaskRecurrence(id, recurrence)
+    }
+    return getState(Boolean(getApiKey()))
+  })
+
+  ipcMain.handle('task:setHorizon', (_event, id: string, horizon: Horizon) => {
+    if (typeof id === 'string' && HORIZONS.includes(horizon)) setTaskHorizon(id, horizon)
+    return getState(Boolean(getApiKey()))
+  })
+
+  ipcMain.handle('notes:open', async (_event, title: string) => {
+    if (typeof title === 'string' && title.length <= 300) {
+      try {
+        await openNote(title)
+      } catch {
+        // Best effort — Notes may be blocked by Automation permissions.
+      }
+    }
   })
 
   ipcMain.handle('today:dismiss', (_event, section: 'priorities' | 'changes', text: string) => {
@@ -66,7 +108,13 @@ export function registerIpc(): void {
   })
 
   ipcMain.handle('settings:save',
-    (_event, update: { baseUrl?: string; model?: string; apiKey?: string; autoRescanMinutes?: number }) => {
+    (_event, update: {
+      baseUrl?: string
+      model?: string
+      apiKey?: string
+      autoRescanMinutes?: number
+      notificationsEnabled?: boolean
+    }) => {
       const view = saveSettings(update)
       scheduleAutoRescan()
       return view
