@@ -408,7 +408,7 @@ function DayPulse({ tasks }: { tasks: Task[] }): React.JSX.Element | null {
 }
 
 function byOrder(a: Task, b: Task): number {
-  if (a.state !== b.state) return a.state === 'open' ? -1 : 1
+  // Done tasks keep their slot — checking one must not make it jump within the zone.
   const p = PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]
   if (p !== 0) return p
   if (a.deadline && b.deadline) return a.deadline.localeCompare(b.deadline)
@@ -536,17 +536,25 @@ function TaskRow({
             else e.currentTarget.innerText = task.text
           }}
           className={cn(
-            'block select-text text-[13px] leading-snug outline-none transition-colors duration-200',
+            'block select-text text-[13px] leading-snug outline-none',
+            // Always line-through with an animated decoration color: the strike fades
+            // in smoothly and renders correctly even when the text wraps.
+            'line-through decoration-[1.3px] transition-[color,text-decoration-color] duration-300 ease-out',
             done
-              ? 'translate-x-[2px] text-gray-400 line-through dark:text-zinc-500'
-              : 'cursor-text'
+              ? 'text-gray-400 decoration-gray-400/90 dark:text-zinc-500 dark:decoration-zinc-500/90'
+              : 'cursor-text decoration-transparent'
           )}
         >
           {task.text}
         </span>
-        {!done && (
-          <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-            <MetaMenu
+        {/* Stays mounted when done (dimmed, inert) so the row height never jumps. */}
+        <span
+          className={cn(
+            'mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 transition-opacity duration-300',
+            done && 'pointer-events-none opacity-40'
+          )}
+        >
+          <MetaMenu
               title="Change track"
               display={
                 <>
@@ -614,23 +622,20 @@ function TaskRow({
                 {task.sourceNote}
               </button>
             )}
-          </span>
-        )}
+        </span>
       </div>
 
       {/*
         Actions reserve their width permanently and fade in —
-        the row never shifts on hover.
+        the row never shifts on hover or completion.
       */}
-      {!done && (
-        <span
-          className={cn(
-            'relative flex w-[68px] shrink-0 justify-end gap-1 transition-opacity duration-150',
-            snoozeOpen
-              ? 'pointer-events-auto opacity-100'
-              : 'pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100'
-          )}
-        >
+      <span
+        className={cn(
+          'relative flex w-[68px] shrink-0 justify-end gap-1 transition-opacity duration-150',
+          done || !snoozeOpen ? 'pointer-events-none opacity-0' : 'pointer-events-auto opacity-100',
+          !done && !snoozeOpen && 'group-hover:pointer-events-auto group-hover:opacity-100'
+        )}
+      >
           <ActionButton
             title={recurring ? 'Stop repeating daily' : 'Repeat daily'}
             active={recurring}
@@ -664,7 +669,6 @@ function TaskRow({
             </>
           )}
         </span>
-      )}
     </li>
   )
 }
