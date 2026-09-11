@@ -9,6 +9,7 @@ import { notifyDueTasks } from './notifications'
 let getWindow: () => BrowserWindow | null = () => null
 let timer: NodeJS.Timeout | null = null
 let catchUp: NodeJS.Timeout | null = null
+let pendingOnHide = false
 
 export function initScheduler(windowGetter: () => BrowserWindow | null): void {
   getWindow = windowGetter
@@ -44,8 +45,17 @@ export function scheduleAutoRescan(): void {
 async function autoRescan(): Promise<void> {
   if (!getApiKey()) return
   const win = getWindow()
-  // Never yank state out from under the user mid-edit; they can refresh manually.
-  if (win && !win.isDestroyed() && win.isVisible()) return
+  // Never yank state out from under the user mid-edit — defer until the popover closes.
+  if (win && !win.isDestroyed() && win.isVisible()) {
+    if (!pendingOnHide) {
+      pendingOnHide = true
+      win.once('hide', () => {
+        pendingOnHide = false
+        setTimeout(() => void autoRescan(), 2_000)
+      })
+    }
+    return
+  }
   const result = await refresh()
   if (result.ok && result.state) {
     updateTrayCount()
