@@ -1,3 +1,5 @@
+import type { DayConfig } from './dates'
+
 export type Track = 'work' | 'leetcode' | 'job-apps' | 'resume' | 'personal' | 'other'
 
 export const TRACKS: Track[] = ['work', 'leetcode', 'job-apps', 'resume', 'personal', 'other']
@@ -61,6 +63,8 @@ export interface AppState {
   today: TodayStrip | null
   lastRefreshed: string | null
   hasApiKey: boolean
+  /** Work-day clock config so the renderer computes "today" exactly like the main process. */
+  day: DayConfig
 }
 
 export interface SettingsView {
@@ -71,6 +75,8 @@ export interface SettingsView {
   autoRescanMinutes: number
   /** Native deadline notifications. */
   notificationsEnabled: boolean
+  /** Hour (0–8) at which a new work day starts. */
+  dayStartHour: number
 }
 
 export interface RefreshResult {

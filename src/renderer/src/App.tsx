@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Moon, Sun, RefreshCw, Power, Undo2 } from 'lucide-react'
 import type { AppState, Horizon, Priority, TaskState, Track } from '../../shared/types'
-import { localDay } from '../../shared/dates'
+import { currentWorkDay, workDayOf } from '../../shared/dates'
 import { cn } from '@/lib/utils'
 import { useTheme } from '@/lib/theme'
 import { TasksView } from '@/components/TasksView'
@@ -25,8 +25,14 @@ export function App(): React.JSX.Element {
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [dateInfo, setDateInfo] = useState({ date: '', time: '' })
-  const [undo, setUndo] = useState<{ id: string; label: string } | null>(null)
+  const [undo, setUndo] = useState<{ label: string; run: () => Promise<AppState> } | null>(null)
   const undoTimer = useRef<number | undefined>(undefined)
+
+  const offerUndo = useCallback((label: string, run: () => Promise<AppState>) => {
+    setUndo({ label, run })
+    window.clearTimeout(undoTimer.current)
+    undoTimer.current = window.setTimeout(() => setUndo(null), 5000)
+  }, [])
 
   useEffect(() => {
     const updateTime = (): void => {
@@ -69,18 +75,23 @@ export function App(): React.JSX.Element {
     async (id: string, taskState: TaskState, snoozedUntil?: string) => {
       setState(await window.briefly.setTaskState(id, taskState, snoozedUntil))
       if (taskState === 'dismissed' || taskState === 'snoozed') {
-        setUndo({ id, label: taskState === 'dismissed' ? 'Task dismissed' : 'Task snoozed' })
-        window.clearTimeout(undoTimer.current)
-        undoTimer.current = window.setTimeout(() => setUndo(null), 5000)
+        offerUndo(taskState === 'dismissed' ? 'Task dismissed' : 'Task snoozed', () =>
+          window.briefly.setTaskState(id, 'open')
+        )
       }
     },
-    []
+    [offerUndo]
   )
+
+  const handleEndDay = useCallback(async () => {
+    setState(await window.briefly.endDay())
+    offerUndo('Day ended', () => window.briefly.reopenDay())
+  }, [offerUndo])
 
   const handleUndo = useCallback(async () => {
     if (!undo) return
     window.clearTimeout(undoTimer.current)
-    setState(await window.briefly.setTaskState(undo.id, 'open'))
+    setState(await undo.run())
     setUndo(null)
   }, [undo])
 
@@ -118,9 +129,10 @@ export function App(): React.JSX.Element {
 
   const allDone = useMemo(() => {
     if (!state || !state.lastRefreshed) return false
+    const today = currentWorkDay(state.day)
     const open = state.tasks.filter((t) => t.state === 'open')
     const doneToday = state.tasks.filter(
-      (t) => t.state === 'done' && localDay(t.updatedAt) === localDay()
+      (t) => t.state === 'done' && workDayOf(t.updatedAt, state.day) === today
     )
     return open.length === 0 && doneToday.length > 0
   }, [state])
@@ -227,6 +239,7 @@ export function App(): React.JSX.Element {
             onTaskPriority={handleTaskPriority}
             onOpenNote={handleOpenNote}
             onTodayDismiss={handleTodayDismiss}
+            onEndDay={handleEndDay}
             onOpenSettings={() => setTab('settings')}
           />
         )}

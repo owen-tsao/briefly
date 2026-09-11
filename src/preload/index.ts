@@ -22,6 +22,8 @@ export interface BrieflyApi {
   setTaskTrack: (id: string, track: Track) => Promise<AppState>
   setTaskPriority: (id: string, priority: Priority) => Promise<AppState>
   dismissTodayItem: (text: string) => Promise<AppState>
+  endDay: () => Promise<AppState>
+  reopenDay: () => Promise<AppState>
   ask: (question: string) => Promise<AskResult>
   openNote: (title: string) => Promise<void>
   getSettings: () => Promise<SettingsView>
@@ -31,6 +33,7 @@ export interface BrieflyApi {
     apiKey?: string
     autoRescanMinutes?: number
     notificationsEnabled?: boolean
+    dayStartHour?: number
   }) => Promise<SettingsView>
   listModels: () => Promise<{ ok: boolean; models?: string[]; error?: string }>
   getLaunchAtLogin: () => Promise<boolean>
@@ -54,6 +57,8 @@ const api: BrieflyApi = {
   setTaskTrack: (id, track) => ipcRenderer.invoke('task:setTrack', id, track),
   setTaskPriority: (id, priority) => ipcRenderer.invoke('task:setPriority', id, priority),
   dismissTodayItem: (text) => ipcRenderer.invoke('today:dismiss', text),
+  endDay: () => ipcRenderer.invoke('day:end'),
+  reopenDay: () => ipcRenderer.invoke('day:reopen'),
   ask: (question) => ipcRenderer.invoke('ask', question),
   openNote: (title) => ipcRenderer.invoke('notes:open', title),
   getSettings: () => ipcRenderer.invoke('settings:get'),

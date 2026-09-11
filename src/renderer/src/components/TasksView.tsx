@@ -1,8 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
-import { AlarmClock, ChevronRight, Plus, Repeat, X } from 'lucide-react'
+import { AlarmClock, ChevronRight, Plus, Repeat, Sunset, X } from 'lucide-react'
 import type { AppState, Horizon, Priority, Task, TaskState, Track } from '../../../shared/types'
 import { TRACKS, TRACK_LABELS } from '../../../shared/types'
-import { localDay, localDayOffset } from '../../../shared/dates'
+import {
+  addDays,
+  currentWorkDay,
+  localDay,
+  localDayOffset,
+  workDayOf,
+  type DayConfig
+} from '../../../shared/dates'
 import { cn } from '@/lib/utils'
 import { ConfettiOverlay } from '@/components/ui/confetti'
 
@@ -20,6 +27,7 @@ interface Props {
   onTaskPriority: (id: string, priority: Priority) => void
   onOpenNote: (title: string) => void
   onTodayDismiss: (text: string) => void
+  onEndDay: () => void
   onOpenSettings: () => void
 }
 
@@ -61,6 +69,7 @@ export function TasksView({
   onTaskPriority,
   onOpenNote,
   onTodayDismiss,
+  onEndDay,
   onOpenSettings
 }: Props): React.JSX.Element {
   const [celebrating, setCelebrating] = useState(false)
@@ -104,14 +113,14 @@ export function TasksView({
     )
   }
 
-  const today = localDay()
+  const today = currentWorkDay(state.day)
   const visible = state.tasks.filter(
-    (t) => t.state === 'open' || (t.state === 'done' && localDay(t.updatedAt) === today)
+    (t) => t.state === 'open' || (t.state === 'done' && workDayOf(t.updatedAt, state.day) === today)
   )
 
   const strip = (visible.length > 0 || (state.today?.changes.length ?? 0) > 0) && (
     <section className="overflow-hidden rounded-xl border border-slate-200/80 bg-white/90 shadow-[0_1px_3px_rgba(0,0,0,0.04)] backdrop-blur dark:border-white/[0.08] dark:bg-ink-900/90">
-      <DayPulse tasks={state.tasks} />
+      <DayPulse tasks={state.tasks} day={state.day} onEndDay={onEndDay} />
       {state.today && state.today.changes.length > 0 && (
         <div className="border-t border-slate-100 border-l-2 border-l-amber-500 px-3.5 py-3 dark:border-t-white/[0.06]">
           <h4 className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-amber-600 dark:text-amber-400">
@@ -139,7 +148,7 @@ export function TasksView({
           {celebrating && <ConfettiOverlay />}
         </div>
         <QuickAdd onAdd={onTaskAdd} />
-        <DoneThisWeek tasks={state.tasks} />
+        <DoneThisWeek tasks={state.tasks} day={state.day} />
       </div>
     )
   }
@@ -169,7 +178,7 @@ export function TasksView({
         ))
       )}
 
-      <DoneThisWeek tasks={state.tasks} />
+      <DoneThisWeek tasks={state.tasks} day={state.day} />
 
       <p className="pt-1 text-center text-[11px] font-medium text-gray-400 dark:text-zinc-600">
         Keep up the great work today!
@@ -283,19 +292,20 @@ function QuickAdd({ onAdd }: { onAdd: (text: string) => void }): React.JSX.Eleme
   )
 }
 
-/** Collapsed weekly recap of completed tasks, grouped by day. */
-function DoneThisWeek({ tasks }: { tasks: Task[] }): React.JSX.Element | null {
+/** Collapsed weekly recap of completed tasks, grouped by work day. */
+function DoneThisWeek({ tasks, day }: { tasks: Task[]; day: DayConfig }): React.JSX.Element | null {
   const [open, setOpen] = useState(false)
-  const weekAgo = localDayOffset(-6)
+  const today = currentWorkDay(day)
+  const weekAgo = addDays(today, -6)
   const done = tasks
-    .filter((t) => t.state === 'done' && localDay(t.updatedAt) >= weekAgo)
+    .filter((t) => t.state === 'done' && workDayOf(t.updatedAt, day) >= weekAgo)
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
   if (done.length === 0) return null
 
   const byDay = new Map<string, Task[]>()
   for (const t of done) {
-    const day = localDay(t.updatedAt)
-    byDay.set(day, [...(byDay.get(day) ?? []), t])
+    const d = workDayOf(t.updatedAt, day)
+    byDay.set(d, [...(byDay.get(d) ?? []), t])
   }
 
   return (
@@ -313,10 +323,10 @@ function DoneThisWeek({ tasks }: { tasks: Task[] }): React.JSX.Element | null {
       </button>
       {open && (
         <div className="mt-1.5 space-y-2.5 px-1">
-          {[...byDay.entries()].map(([day, dayTasks]) => (
-            <div key={day}>
+          {[...byDay.entries()].map(([d, dayTasks]) => (
+            <div key={d}>
               <p className="mb-0.5 text-[10px] font-semibold text-gray-400 dark:text-zinc-500">
-                {formatDay(day)}
+                {formatDay(d, today)}
               </p>
               <ul className="space-y-0.5">
                 {dayTasks.map((t) => (
@@ -337,9 +347,9 @@ function DoneThisWeek({ tasks }: { tasks: Task[] }): React.JSX.Element | null {
   )
 }
 
-function formatDay(day: string): string {
-  if (day === localDay()) return 'Today'
-  if (day === localDayOffset(-1)) return 'Yesterday'
+function formatDay(day: string, today: string): string {
+  if (day === today) return 'Today'
+  if (day === addDays(today, -1)) return 'Yesterday'
   return new Date(day + 'T12:00:00').toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })
 }
 
@@ -361,15 +371,29 @@ function TodayItem({ text, onDismiss }: { text: string; onDismiss: () => void })
   )
 }
 
-/** Renderer-only day summary scoped to today's workload (Today zone + today's completions). */
-function DayPulse({ tasks }: { tasks: Task[] }): React.JSX.Element | null {
-  const today = localDay()
+/**
+ * Renderer-only day summary scoped to today's workload (Today zone + this work day's
+ * completions). Due/overdue stay on the calendar clock — a deadline is a date.
+ */
+function DayPulse({
+  tasks,
+  day,
+  onEndDay
+}: {
+  tasks: Task[]
+  day: DayConfig
+  onEndDay: () => void
+}): React.JSX.Element | null {
+  const workToday = currentWorkDay(day)
+  const calToday = localDay()
   const todayOpen = tasks.filter((t) => t.state === 'open' && zoneOf(t) === 'today')
-  const doneToday = tasks.filter((t) => t.state === 'done' && localDay(t.updatedAt) === today)
+  const doneToday = tasks.filter(
+    (t) => t.state === 'done' && workDayOf(t.updatedAt, day) === workToday
+  )
   const total = todayOpen.length + doneToday.length
   if (total === 0) return null
-  const dueToday = todayOpen.filter((t) => t.deadline === today).length
-  const overdue = todayOpen.filter((t) => t.deadline && t.deadline < today).length
+  const dueToday = todayOpen.filter((t) => t.deadline === calToday).length
+  const overdue = todayOpen.filter((t) => t.deadline && t.deadline < calToday).length
   const pct = Math.round((doneToday.length / total) * 100)
 
   return (
@@ -392,6 +416,14 @@ function DayPulse({ tasks }: { tasks: Task[] }): React.JSX.Element | null {
           <span className="tabular-nums text-gray-500 dark:text-zinc-400">
             {doneToday.length} of {total} done
           </span>
+          <button
+            title="End my day — clears today's done tasks and resets daily repeats"
+            onClick={onEndDay}
+            className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold text-gray-400 transition-all hover:bg-slate-100 hover:text-gray-800 active:scale-95 dark:text-zinc-500 dark:hover:bg-white/[0.06] dark:hover:text-zinc-200"
+          >
+            <Sunset size={11} />
+            End day
+          </button>
         </span>
       </div>
       <div className="mt-2 h-1 overflow-hidden rounded-full bg-slate-100 dark:bg-white/[0.07]">

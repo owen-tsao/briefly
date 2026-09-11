@@ -8,7 +8,9 @@ import {
   setTaskRecurrence,
   setTaskHorizon,
   setTaskTrack,
-  setTaskPriority
+  setTaskPriority,
+  endDay,
+  reopenDay
 } from './taskStore'
 import { getSettingsView, saveSettings, getApiKey } from './settings'
 import { refresh, ask, listNotes, extractFromNote } from './agent'
@@ -96,6 +98,18 @@ export function registerIpc(): void {
     return getState(Boolean(getApiKey()))
   })
 
+  ipcMain.handle('day:end', () => {
+    endDay()
+    updateTrayCount()
+    return getState(Boolean(getApiKey()))
+  })
+
+  ipcMain.handle('day:reopen', () => {
+    reopenDay()
+    updateTrayCount()
+    return getState(Boolean(getApiKey()))
+  })
+
   ipcMain.handle('ask', (_event, question: string) => ask(question))
 
   ipcMain.handle('notes:list', () => listNotes())
@@ -123,6 +137,7 @@ export function registerIpc(): void {
       apiKey?: string
       autoRescanMinutes?: number
       notificationsEnabled?: boolean
+      dayStartHour?: number
     }) => {
       const view = saveSettings(update)
       scheduleAutoRescan()

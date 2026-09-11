@@ -12,9 +12,12 @@ interface StoredSettings {
   autoRescanMinutes: number
   /** Native deadline notifications. */
   notificationsEnabled: boolean
+  /** Hour (0–8) at which a new work day starts. */
+  dayStartHour: number
 }
 
 const RESCAN_CHOICES = [0, 30, 60, 180, 360]
+const MAX_DAY_START_HOUR = 8
 
 function settingsPath(): string {
   const dir = app.getPath('userData')
@@ -29,7 +32,8 @@ function load(): StoredSettings {
     model: DEFAULT_MODEL,
     apiKeyEnc: null,
     autoRescanMinutes: 0,
-    notificationsEnabled: true
+    notificationsEnabled: true,
+    dayStartHour: 4
   }
   if (!existsSync(path)) return defaults
   try {
@@ -41,11 +45,16 @@ function load(): StoredSettings {
       autoRescanMinutes: RESCAN_CHOICES.includes(raw.autoRescanMinutes ?? -1)
         ? (raw.autoRescanMinutes as number)
         : 0,
-      notificationsEnabled: raw.notificationsEnabled !== false
+      notificationsEnabled: raw.notificationsEnabled !== false,
+      dayStartHour: validDayStartHour(raw.dayStartHour) ? raw.dayStartHour : 4
     }
   } catch {
     return defaults
   }
+}
+
+function validDayStartHour(value: unknown): value is number {
+  return Number.isInteger(value) && (value as number) >= 0 && (value as number) <= MAX_DAY_START_HOUR
 }
 
 function save(settings: StoredSettings): void {
@@ -62,7 +71,8 @@ export function getSettingsView(): SettingsView {
     model: s.model,
     hasApiKey: Boolean(s.apiKeyEnc) || Boolean(process.env.BRIEFLY_API_KEY),
     autoRescanMinutes: s.autoRescanMinutes,
-    notificationsEnabled: s.notificationsEnabled
+    notificationsEnabled: s.notificationsEnabled,
+    dayStartHour: s.dayStartHour
   }
 }
 
@@ -74,12 +84,17 @@ export function getNotificationsEnabled(): boolean {
   return load().notificationsEnabled
 }
 
+export function getDayStartHour(): number {
+  return load().dayStartHour
+}
+
 export function saveSettings(update: {
   baseUrl?: string
   model?: string
   apiKey?: string
   autoRescanMinutes?: number
   notificationsEnabled?: boolean
+  dayStartHour?: number
 }): SettingsView {
   const s = load()
   if (update.baseUrl !== undefined) s.baseUrl = update.baseUrl.trim() || DEFAULT_BASE_URL
@@ -90,6 +105,7 @@ export function saveSettings(update: {
   if (update.notificationsEnabled !== undefined) {
     s.notificationsEnabled = Boolean(update.notificationsEnabled)
   }
+  if (validDayStartHour(update.dayStartHour)) s.dayStartHour = update.dayStartHour
   if (update.apiKey !== undefined) {
     const key = update.apiKey.trim()
     if (!key) {

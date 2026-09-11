@@ -4,17 +4,33 @@ import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import type { AppState, Horizon, Priority, Task, TaskState, TodayStrip, Track } from '../shared/types'
 import { HORIZONS, TRACKS } from '../shared/types'
-import { localDay, localDayOffset } from '../shared/dates'
+import {
+  addDays,
+  currentWorkDay,
+  localDay,
+  localDayOffset,
+  naturalWorkDay,
+  workDayOf,
+  type DayConfig
+} from '../shared/dates'
+import { getDayStartHour } from './settings'
 import type { Note } from './notes'
 
 interface StoreFile {
   tasks: Task[]
   today: TodayStrip | null
   lastRefreshed: string | null
-  /** Today-strip items the user dismissed; suppressed from regenerated strips on the same day. */
+  /** What-changed items the user dismissed; suppressed from regenerated strips on the same work day. */
   dismissedToday?: { date: string; texts: string[] }
   /** taskId → local day it was last included in a deadline notification. */
   notified?: Record<string, string>
+  /** Manual End-day marker; expires once the natural work-day boundary passes. */
+  dayClosed?: {
+    day: string
+    at: string
+    /** Recurring tasks the close reopened, with their prior completion time — for exact undo. */
+    reopened: { id: string; updatedAt: string }[]
+  } | null
 }
 
 export interface LlmTask {
@@ -83,14 +99,41 @@ function wakeSnoozed(store: StoreFile): void {
   }
 }
 
-/** Reopen daily-recurring tasks completed on a previous (local) day. */
-function resetRecurring(store: StoreFile): void {
-  const today = localDay()
+/** Reopen daily-recurring tasks completed on a previous work day. Returns what it flipped. */
+function resetRecurring(store: StoreFile, now = new Date().toISOString()): { id: string; updatedAt: string }[] {
+  const cfg = dayConfig(store)
+  const today = currentWorkDay(cfg)
+  const flipped: { id: string; updatedAt: string }[] = []
   for (const task of store.tasks) {
-    if (task.recurrence === 'daily' && task.state === 'done' && localDay(task.updatedAt) < today) {
+    if (task.recurrence === 'daily' && task.state === 'done' && workDayOf(task.updatedAt, cfg) < today) {
+      flipped.push({ id: task.id, updatedAt: task.updatedAt })
       task.state = 'open'
-      task.updatedAt = new Date().toISOString()
+      task.updatedAt = now
     }
+  }
+  return flipped
+}
+
+/** Drop the End-day marker once the natural boundary has passed it. */
+function expireDayClose(store: StoreFile): void {
+  if (!store.dayClosed) return
+  if (naturalWorkDay(new Date().toISOString(), getDayStartHour()) > store.dayClosed.day) {
+    store.dayClosed = null
+  }
+}
+
+function dayConfig(store: StoreFile): DayConfig {
+  const c = store.dayClosed
+  return { startHour: getDayStartHour(), closed: c ? { day: c.day, at: c.at } : null }
+}
+
+function toState(store: StoreFile, hasApiKey: boolean): AppState {
+  return {
+    tasks: store.tasks,
+    today: store.today,
+    lastRefreshed: store.lastRefreshed,
+    hasApiKey,
+    day: dayConfig(store)
   }
 }
 
@@ -105,6 +148,7 @@ function pruneOld(store: StoreFile): void {
 
 /** All load-time maintenance in one place. */
 function sweep(store: StoreFile): void {
+  expireDayClose(store)
   wakeSnoozed(store)
   resetRecurring(store)
   pruneOld(store)
@@ -126,7 +170,7 @@ export function getState(hasApiKey: boolean): AppState {
   const store = load()
   sweep(store)
   save(store)
-  return { tasks: store.tasks, today: store.today, lastRefreshed: store.lastRefreshed, hasApiKey }
+  return toState(store, hasApiKey)
 }
 
 export function getLastRefreshed(): string | null {
@@ -294,14 +338,14 @@ export function takeDueForNotification(): Task[] {
   return due
 }
 
-/** Remove one item from the What-changed list and keep it suppressed for the rest of the day. */
+/** Remove one item from the What-changed list and keep it suppressed for the rest of the work day. */
 export function dismissTodayItem(value: string): void {
   const store = load()
   if (!store.today) return
   const idx = store.today.changes.indexOf(value)
   if (idx === -1) return
   store.today.changes.splice(idx, 1)
-  const today = localDay()
+  const today = currentWorkDay(dayConfig(store))
   if (!store.dismissedToday || store.dismissedToday.date !== today) {
     store.dismissedToday = { date: today, texts: [] }
   }
@@ -309,12 +353,39 @@ export function dismissTodayItem(value: string): void {
   save(store)
 }
 
-/** Case-insensitive filter of strip items against today's dismissals. */
+/** Case-insensitive filter of strip items against this work day's dismissals. */
 function filterDismissedToday(items: string[], store: StoreFile): string[] {
-  const today = localDay()
+  const today = currentWorkDay(dayConfig(store))
   if (!store.dismissedToday || store.dismissedToday.date !== today) return items
   const dismissed = new Set(store.dismissedToday.texts.map((t) => t.toLowerCase().trim()))
   return items.filter((item) => !dismissed.has(item.toLowerCase().trim()))
+}
+
+/** Close the current work day now: done tasks roll off, recurring tasks reopen, pulse resets. */
+export function endDay(): void {
+  const store = load()
+  sweep(store)
+  const now = new Date().toISOString()
+  store.dayClosed = { day: currentWorkDay(dayConfig(store)), at: now, reopened: [] }
+  store.dayClosed.reopened = resetRecurring(store, now)
+  save(store)
+}
+
+/** Undo End-day, restoring any recurring tasks the close had reopened. */
+export function reopenDay(): void {
+  const store = load()
+  const closed = store.dayClosed
+  if (!closed) return
+  for (const { id, updatedAt } of closed.reopened ?? []) {
+    const task = store.tasks.find((t) => t.id === id)
+    // Only revert if untouched since — the user may have legitimately re-done it.
+    if (task && task.state === 'open' && task.updatedAt === closed.at) {
+      task.state = 'done'
+      task.updatedAt = updatedAt
+    }
+  }
+  store.dayClosed = null
+  save(store)
 }
 
 function defaultSnooze(): string {
@@ -414,7 +485,7 @@ export function applyMerge(response: MergeResponse, options: { updateToday?: boo
     store.lastRefreshed = now
   }
   save(store)
-  return { tasks: store.tasks, today: store.today, lastRefreshed: store.lastRefreshed, hasApiKey: true }
+  return toState(store, true)
 }
 
 // ---------------------------------------------------------------------------
@@ -522,5 +593,5 @@ export function reconcileWithNotes(notes: Note[]): AppState {
   }
 
   save(store)
-  return { tasks: store.tasks, today: store.today, lastRefreshed: store.lastRefreshed, hasApiKey: true }
+  return toState(store, true)
 }

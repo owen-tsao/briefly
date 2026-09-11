@@ -2,6 +2,13 @@ import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { DEFAULT_BASE_URL, DEFAULT_MODEL } from '../../../shared/types'
 
+const DAY_START_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+
+function formatHour(h: number): string {
+  if (h === 0) return 'Midnight'
+  return `${h} am`
+}
+
 export function SettingsView({ onSaved }: { onSaved: () => void }): React.JSX.Element {
   const [baseUrl, setBaseUrl] = useState('')
   const [model, setModel] = useState('')
@@ -13,6 +20,7 @@ export function SettingsView({ onSaved }: { onSaved: () => void }): React.JSX.El
   const [launchAtLogin, setLaunchAtLogin] = useState(false)
   const [autoRescan, setAutoRescan] = useState(0)
   const [notifications, setNotifications] = useState(true)
+  const [dayStartHour, setDayStartHour] = useState(4)
 
   useEffect(() => {
     window.briefly.getSettings().then((s) => {
@@ -21,6 +29,7 @@ export function SettingsView({ onSaved }: { onSaved: () => void }): React.JSX.El
       setHasApiKey(s.hasApiKey)
       setAutoRescan(s.autoRescanMinutes)
       setNotifications(s.notificationsEnabled)
+      setDayStartHour(s.dayStartHour)
       if (s.hasApiKey) loadModels()
     })
     window.briefly.getLaunchAtLogin().then(setLaunchAtLogin)
@@ -41,6 +50,13 @@ export function SettingsView({ onSaved }: { onSaved: () => void }): React.JSX.El
   const changeAutoRescan = async (minutes: number): Promise<void> => {
     setAutoRescan(minutes)
     await window.briefly.saveSettings({ autoRescanMinutes: minutes })
+  }
+
+  // Applies immediately; the board re-reads state via onSaved so "today" shifts at once.
+  const changeDayStart = async (hour: number): Promise<void> => {
+    setDayStartHour(hour)
+    await window.briefly.saveSettings({ dayStartHour: hour })
+    onSaved()
   }
 
   const loadModels = async (): Promise<void> => {
@@ -157,6 +173,25 @@ export function SettingsView({ onSaved }: { onSaved: () => void }): React.JSX.El
         <span className={hintCls}>
           Scans in the background while the popover is closed, so the board is fresh when you open
           it.
+        </span>
+      </label>
+
+      <label className="block space-y-1.5">
+        <span className={labelCls}>New day starts at</span>
+        <select
+          value={dayStartHour}
+          onChange={(e) => changeDayStart(Number(e.target.value))}
+          className={inputCls}
+        >
+          {DAY_START_OPTIONS.map((h) => (
+            <option key={h} value={h}>
+              {formatHour(h)}
+            </option>
+          ))}
+        </select>
+        <span className={hintCls}>
+          Working past midnight still counts as today: done tasks stay visible and daily repeats
+          don&apos;t reset until this hour. Deadlines always use the calendar date.
         </span>
       </label>
 
