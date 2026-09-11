@@ -8,7 +8,7 @@ import {
   buildAskUserPrompt,
   buildRetrieveUserPrompt
 } from './prompts'
-import { applyMerge, getOpenTasks, getSuppressedTexts, type MergeResponse } from './taskStore'
+import { applyMerge, getOpenTasks, getSuppressedTexts, reconcileWithNotes, type MergeResponse } from './taskStore'
 import type { AskResult, NoteSummary, RefreshResult } from '../shared/types'
 
 let refreshing = false
@@ -25,7 +25,9 @@ export async function refresh(): Promise<RefreshResult> {
       MERGE_SYSTEM,
       buildMergeUserPrompt(openTasks, suppressed, context)
     )
-    const state = applyMerge(response)
+    applyMerge(response)
+    // Deterministic pass over the same snapshot: complete tasks whose note line is gone.
+    const state = reconcileWithNotes(snapshot.all)
     return { ok: true, state }
   } catch (err: unknown) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) }

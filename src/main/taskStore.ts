@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto'
 import type { AppState, Horizon, Priority, Task, TaskState, TodayStrip, Track } from '../shared/types'
 import { HORIZONS, TRACKS } from '../shared/types'
 import { localDay, localDayOffset } from '../shared/dates'
+import type { Note } from './notes'
 
 interface StoreFile {
   tasks: Task[]
@@ -23,6 +24,7 @@ export interface LlmTask {
   priority: string
   deadline: string | null
   sourceNote: string
+  sourceExcerpt?: string
   horizon?: string
   recurring?: boolean
 }
@@ -353,6 +355,8 @@ export function applyMerge(response: MergeResponse, options: { updateToday?: boo
       deadline: item.deadline || null,
       sourceNote: item.sourceNote || 'unknown'
     }
+    const excerpt =
+      typeof item.sourceExcerpt === 'string' ? item.sourceExcerpt.trim().slice(0, 500) : ''
     const existing = item.id ? byId.get(item.id) : undefined
     if (existing) {
       if (existing.state === 'done' || existing.state === 'dismissed') continue
@@ -363,6 +367,7 @@ export function applyMerge(response: MergeResponse, options: { updateToday?: boo
       if (!existing.horizonPinned && item.horizon) existing.horizon = normalizeHorizon(item.horizon)
       existing.deadline = normalized.deadline
       existing.sourceNote = normalized.sourceNote
+      if (excerpt) existing.sourceExcerpt = excerpt
       existing.updatedAt = now
     } else {
       // Guard against the model "recreating" something it was told about.
@@ -379,6 +384,7 @@ export function applyMerge(response: MergeResponse, options: { updateToday?: boo
         snoozedUntil: null,
         horizon: normalizeHorizon(item.horizon),
         recurrence: item.recurring === true ? 'daily' : null,
+        ...(excerpt ? { sourceExcerpt: excerpt } : {}),
         createdAt: now,
         updatedAt: now
       })
@@ -407,6 +413,114 @@ export function applyMerge(response: MergeResponse, options: { updateToday?: boo
     }
     store.lastRefreshed = now
   }
+  save(store)
+  return { tasks: store.tasks, today: store.today, lastRefreshed: store.lastRefreshed, hasApiKey: true }
+}
+
+// ---------------------------------------------------------------------------
+// Provenance reconcile: detect tasks whose source line (or whole note) the user
+// deleted in Apple Notes, and complete them. Pure code — the LLM is bad at
+// reasoning from absence, and deleted notes vanish from its view entirely.
+// ---------------------------------------------------------------------------
+
+const LINE_PREFIX = /^(?:[\s\-•*·▪◦☐☑✓✔]+|\[[ xX]\]\s*)+/
+
+function normalizeLine(s: string): string {
+  return s.replace(LINE_PREFIX, '').toLowerCase().replace(/\s+/g, ' ').trim()
+}
+
+interface PreparedLine {
+  raw: string
+  norm: string
+  tokens: Set<string>
+}
+
+const preparedCache = new WeakMap<Note, PreparedLine[]>()
+
+function prepare(note: Note): PreparedLine[] {
+  let lines = preparedCache.get(note)
+  if (!lines) {
+    lines = []
+    for (const raw of note.body.split('\n')) {
+      const norm = normalizeLine(raw)
+      if (norm) lines.push({ raw: raw.trim(), norm, tokens: tokenize(norm) })
+    }
+    preparedCache.set(note, lines)
+  }
+  return lines
+}
+
+/**
+ * Find the line a task came from: exact excerpt first, then ≥50% token overlap
+ * with the excerpt or the task text. Errs toward "present" — a false match only
+ * means we don't auto-complete, never that we wrongly do.
+ */
+function findLine(task: Task, note: Note): PreparedLine | null {
+  const lines = prepare(note)
+  const excerpt = task.sourceExcerpt ? normalizeLine(task.sourceExcerpt) : ''
+  if (excerpt) {
+    const exact = lines.find(
+      (l) => l.norm === excerpt || l.norm.includes(excerpt) || (l.norm.length >= 8 && excerpt.includes(l.norm))
+    )
+    if (exact) return exact
+  }
+  const targets = [excerpt, normalizeLine(task.text)]
+    .filter(Boolean)
+    .map(tokenize)
+    .filter((t) => t.size > 0)
+  if (targets.length === 0) return null
+  return lines.find((l) => targets.some((t) => similarText(t, l.tokens))) ?? null
+}
+
+function locate(task: Task, notes: Note[]): { note: Note; line: PreparedLine } | null {
+  for (const note of notes) {
+    const line = findLine(task, note)
+    if (line) return { note, line }
+  }
+  return null
+}
+
+/**
+ * After a scan: verify each open task's source line still exists; complete tasks
+ * whose line/note is gone. Only tasks that were verified at least once are
+ * eligible — a garbled title or excerpt can never cause a phantom completion.
+ * Renamed notes and moved lines re-point the task instead of completing it.
+ */
+export function reconcileWithNotes(notes: Note[]): AppState {
+  const store = load()
+  sweep(store)
+  const now = new Date().toISOString()
+  const byTitle = new Map<string, Note[]>()
+  for (const n of notes) byTitle.set(n.title, [...(byTitle.get(n.title) ?? []), n])
+  const completed: Task[] = []
+
+  for (const task of store.tasks) {
+    if (task.state !== 'open' && task.state !== 'snoozed') continue
+    if (task.recurrence === 'daily') continue
+    if (!task.sourceNote || task.sourceNote === 'quick add' || task.sourceNote === 'unknown') continue
+
+    const sources = byTitle.get(task.sourceNote) ?? []
+    const found =
+      locate(task, sources) ?? locate(task, notes.filter((n) => !sources.includes(n)))
+
+    if (found) {
+      task.sourceNote = found.note.title
+      task.sourceExcerpt = found.line.raw.slice(0, 500)
+      task.sourceVerifiedAt = now
+    } else if (task.sourceVerifiedAt) {
+      task.state = 'done'
+      task.completedVia = 'notes'
+      task.updatedAt = now
+      completed.push(task)
+    }
+    // Never verified and not found: inert. Nothing to conclude from.
+  }
+
+  if (completed.length > 0 && store.today) {
+    const entries = completed.map((t) => `Done via Notes: ${t.text}`)
+    store.today.changes = [...entries, ...store.today.changes].slice(0, 5)
+  }
+
   save(store)
   return { tasks: store.tasks, today: store.today, lastRefreshed: store.lastRefreshed, hasApiKey: true }
 }

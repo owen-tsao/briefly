@@ -17,6 +17,7 @@ Return ONLY valid JSON (no markdown fences, no commentary) with this exact shape
       "priority": string,         // "high" | "medium" | "low"
       "deadline": string | null,  // ISO date (YYYY-MM-DD) if explicit or clearly implied, else null
       "sourceNote": string,       // title of the note it came from
+      "sourceExcerpt": string,    // the EXACT line(s) of the note this task came from, copied verbatim — no rewording
       "horizon": string,          // "now" | "soon" | "someday" — see horizon rules
       "recurring": boolean        // true ONLY for explicit daily habits ("every day", "daily"); applied only to NEW tasks
     }
@@ -36,6 +37,7 @@ Rules:
 - Never emit a task whose deadline has already passed unless it is clearly still consequential (missed bill, expiring offer within grace period).
 - Career-related content (work/internship, LeetCode, job applications, resume) is the user's focus — extract it thoroughly from RECENT notes. Personal errands with deadlines also matter.
 - Note titles are usually the first line and often meaningless ("Do", "Tmrw") — judge by body content.
+- sourceExcerpt must be a verbatim copy of the note line the task came from (keep its original wording, even if terse like "OA"). briefly uses it to detect when you delete the line from the note. Include it on every task you return, new or updated.
 - In short todo-style notes (a title like "Tmrw"/"Do" followed by terse lines), EVERY line is a task unless it is clearly reference material. Expand terse items into actions: "OA" → "Complete the online assessment", "Instagram bookmarks" → "Go through saved Instagram bookmarks", "Equity" → whatever the surrounding context implies. Never skip a line just because it is short.
 - For existing tasks: return them with their id ONLY if something changed (text, priority, deadline, track). Omit unchanged tasks — omitted tasks are kept as-is.
 - If an existing task came from a note that is now old and it has no future deadline, put its id in removedIds — the user has moved on.

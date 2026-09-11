@@ -40,6 +40,12 @@ export interface Task {
   trackPinned?: boolean
   /** Set when the user picks a priority manually — scans won't reclassify it. */
   priorityPinned?: boolean
+  /** Verbatim note line this task was extracted from — provenance for reconcile. */
+  sourceExcerpt?: string
+  /** Last time code confirmed the source line still exists in Notes. Gate for auto-complete. */
+  sourceVerifiedAt?: string
+  /** Set when the task was completed because its source line/note disappeared. */
+  completedVia?: 'notes'
   createdAt: string
   updatedAt: string
 }
