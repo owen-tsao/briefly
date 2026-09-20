@@ -4,6 +4,7 @@ import { registerIpc } from './ipc'
 import { setTray, updateTrayCount } from './tray'
 import { initScheduler, scheduleAutoRescan } from './scheduler'
 import { initNotifications } from './notifications'
+import { initJobsScheduler } from './jobs/pipeline'
 
 const WINDOW_WIDTH = 400
 const WINDOW_HEIGHT = 580
@@ -101,14 +102,16 @@ app.whenReady().then(() => {
   window = createWindow()
   initScheduler(() => window)
   scheduleAutoRescan()
-  initNotifications(() => {
+  const openPopover = (): void => {
     if (!window || window.isDestroyed()) window = createWindow()
     if (!window.isVisible()) {
       positionWindow(window)
       window.show()
       window.focus()
     }
-  })
+  }
+  initNotifications(openPopover)
+  initJobsScheduler(() => window, openPopover)
 
   // Open the popover once on launch so the app is easy to locate.
   window.webContents.once('did-finish-load', () => {
