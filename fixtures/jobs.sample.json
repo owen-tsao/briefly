@@ -1,0 +1,58 @@
+[
+  {
+    "id": "fx-stripe-swe", "source": "ats", "alsoSeenIn": ["applyguy", "simplify"], "sourceRef": "greenhouse:stripe:7011",
+    "company": "Stripe", "title": "Software Engineer Intern, Summer 2027", "url": "https://stripe.com/jobs/listing/7011",
+    "dcLink": false, "referralNote": null, "postedAt": "2026-09-19T14:00:00Z", "deadline": null, "location": "Seattle, WA",
+    "pay": "$62/hr", "term": "summer-2027", "descriptionAvailable": true,
+    "verdict": { "decision": "apply", "blockers": [], "flags": [], "matched": ["Go/Ruby backend", "distributed systems coursework"], "missing": ["Kafka"], "summary": "Backend infra internship on the payments core team. Strong fit for your systems background; pay is top-of-market." },
+    "seenAt": "2026-09-19T14:05:00Z", "active": true, "scoredWithProfileVersion": "abc123"
+  },
+  {
+    "id": "fx-openai-ml", "source": "ats", "alsoSeenIn": [], "sourceRef": "ashby:openai:1f2e",
+    "company": "OpenAI", "title": "Research Engineer Intern", "url": "https://jobs.ashbyhq.com/openai/1f2e",
+    "dcLink": false, "referralNote": null, "postedAt": "2026-09-20T02:00:00Z", "deadline": "2026-10-15", "location": "San Francisco, CA",
+    "pay": null, "term": "summer-2027", "descriptionAvailable": true,
+    "verdict": { "decision": "flagged", "blockers": [], "flags": ["Prefers PhD candidates", "Off your infra lane (pure research)"], "matched": ["PyTorch", "ML coursework"], "missing": ["Publications"], "summary": "Research-heavy role that leans PhD, but the posting says strong undergrads are considered. Worth a shot given the brand." },
+    "seenAt": "2026-09-20T02:10:00Z", "active": true, "scoredWithProfileVersion": "abc123"
+  },
+  {
+    "id": "fx-z2s-citadel", "source": "instagram", "alsoSeenIn": [], "sourceRef": "story:3341",
+    "company": "Citadel", "title": "Software Engineering Intern (Quant Dev)", "url": "https://www.citadel.com/careers/details/software-engineer-intern-2027/",
+    "dcLink": true, "referralNote": "DM for referral — 'z2s' in subject", "postedAt": "2026-09-20T05:00:00Z", "deadline": "2026-09-27", "location": "Chicago, IL",
+    "pay": "$120/hr", "term": "summer-2027", "descriptionAvailable": false,
+    "verdict": null,
+    "seenAt": "2026-09-20T05:30:00Z", "active": true, "scoredWithProfileVersion": null
+  },
+  {
+    "id": "fx-workday-nvidia", "source": "applyguy", "alsoSeenIn": [], "sourceRef": "applyguy:9912",
+    "company": "NVIDIA", "title": "Systems Software Intern - Fall 2026", "url": "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite/job/x",
+    "dcLink": false, "referralNote": null, "postedAt": "2026-09-18T18:00:00Z", "deadline": null, "location": "Santa Clara, CA",
+    "pay": null, "term": "fall-2026", "descriptionAvailable": true,
+    "verdict": { "decision": "skip", "blockers": ["Fall 2026 co-op requires taking autumn quarter off"], "flags": [], "matched": ["CUDA basics"], "missing": [], "summary": "Great team, wrong term." },
+    "seenAt": "2026-09-18T18:20:00Z", "active": true, "scoredWithProfileVersion": "abc123"
+  },
+  {
+    "id": "fx-unreadable", "source": "simplify", "alsoSeenIn": [], "sourceRef": "simplify:77a",
+    "company": "Northrop Grumman", "title": "Software Engineer Intern", "url": "https://ngc.wd1.myworkdayjobs.com/x/job/y",
+    "dcLink": false, "referralNote": null, "postedAt": "2026-09-17T12:00:00Z", "deadline": null, "location": "Redondo Beach, CA",
+    "pay": null, "term": "summer-2027", "descriptionAvailable": false,
+    "verdict": { "decision": "flagged", "blockers": [], "flags": ["Posting text unreadable — triage only", "Likely requires US citizenship (defense)"], "matched": [], "missing": [], "summary": "Defense contractor; could not read the posting. Open it to check clearance requirements." },
+    "seenAt": "2026-09-17T12:30:00Z", "active": true, "scoredWithProfileVersion": "abc123"
+  },
+  {
+    "id": "fx-saved-figma", "source": "ats", "alsoSeenIn": ["applyguy"], "sourceRef": "greenhouse:figma:5521",
+    "company": "Figma", "title": "Software Engineer Intern (Platform)", "url": "https://boards.greenhouse.io/figma/jobs/5521",
+    "dcLink": false, "referralNote": null, "postedAt": "2026-09-12T16:00:00Z", "deadline": null, "location": "New York, NY",
+    "pay": "$58/hr", "term": "summer-2027", "descriptionAvailable": true,
+    "verdict": { "decision": "apply", "blockers": [], "flags": [], "matched": ["TypeScript", "React"], "missing": ["Rust"], "summary": "Platform team building the multiplayer engine." },
+    "seenAt": "2026-09-12T16:30:00Z", "active": true, "scoredWithProfileVersion": "abc123"
+  },
+  {
+    "id": "fx-applied-databricks", "source": "ats", "alsoSeenIn": [], "sourceRef": "greenhouse:databricks:8812",
+    "company": "Databricks", "title": "Software Engineering Intern", "url": "https://boards.greenhouse.io/databricks/jobs/8812",
+    "dcLink": false, "referralNote": null, "postedAt": "2026-09-05T16:00:00Z", "deadline": null, "location": "Mountain View, CA",
+    "pay": null, "term": "summer-2027", "descriptionAvailable": true,
+    "verdict": { "decision": "apply", "blockers": [], "flags": [], "matched": ["Spark coursework"], "missing": [], "summary": "Data platform internship." },
+    "seenAt": "2026-09-05T16:30:00Z", "active": false, "scoredWithProfileVersion": "abc123"
+  }
+]

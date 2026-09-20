@@ -8,11 +8,13 @@ import { TasksView } from '@/components/TasksView'
 import { AskView } from '@/components/AskView'
 import { NotesView } from '@/components/NotesView'
 import { SettingsView } from '@/components/SettingsView'
+import { JobsView } from '@/components/JobsView'
 
-type Tab = 'tasks' | 'notes' | 'ask' | 'settings'
+type Tab = 'tasks' | 'jobs' | 'notes' | 'ask' | 'settings'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'tasks', label: 'Tasks' },
+  { id: 'jobs', label: 'Jobs' },
   { id: 'notes', label: 'Notes' },
   { id: 'ask', label: 'Ask' },
   { id: 'settings', label: 'Settings' }
@@ -58,6 +60,20 @@ export function App(): React.JSX.Element {
   useEffect(() => {
     loadState()
   }, [loadState])
+
+  // ⌘1–⌘5 switch tabs, matching the segmented control order.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if (!e.metaKey || e.altKey || e.ctrlKey) return
+      const n = Number(e.key)
+      if (n >= 1 && n <= TABS.length) {
+        e.preventDefault()
+        setTab(TABS[n - 1].id)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   // Pick up auto-rescan results from the main process.
   useEffect(() => window.briefly.onStateChanged(setState), [])
@@ -241,6 +257,13 @@ export function App(): React.JSX.Element {
             onTodayDismiss={handleTodayDismiss}
             onEndDay={handleEndDay}
             onOpenSettings={() => setTab('settings')}
+          />
+        )}
+        {tab === 'jobs' && (
+          <JobsView
+            hasApiKey={state?.hasApiKey ?? false}
+            onOpenSettings={() => setTab('settings')}
+            onTasksChanged={loadState}
           />
         )}
         {tab === 'notes' && <NotesView onTasksChanged={loadState} />}

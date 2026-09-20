@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { cn } from '@/lib/utils'
+import { cn, relativeTime } from '@/lib/utils'
 import { DEFAULT_BASE_URL, DEFAULT_MODEL } from '../../../shared/types'
+import type { ProfileFile } from '../../../shared/jobs'
 
 const DAY_START_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8]
 
@@ -21,6 +22,10 @@ export function SettingsView({ onSaved }: { onSaved: () => void }): React.JSX.El
   const [autoRescan, setAutoRescan] = useState(0)
   const [notifications, setNotifications] = useState(true)
   const [dayStartHour, setDayStartHour] = useState(4)
+  const [jobsScan, setJobsScan] = useState(15)
+  const [jobsInBadge, setJobsInBadge] = useState(false)
+  const [profile, setProfile] = useState<ProfileFile[]>([])
+  const [profileDir, setProfileDir] = useState('')
 
   useEffect(() => {
     window.briefly.getSettings().then((s) => {
@@ -30,10 +35,33 @@ export function SettingsView({ onSaved }: { onSaved: () => void }): React.JSX.El
       setAutoRescan(s.autoRescanMinutes)
       setNotifications(s.notificationsEnabled)
       setDayStartHour(s.dayStartHour)
+      setJobsScan(s.jobsScanMinutes)
+      setJobsInBadge(s.jobsInBadge)
       if (s.hasApiKey) loadModels()
     })
     window.briefly.getLaunchAtLogin().then(setLaunchAtLogin)
+    window.briefly.getJobs().then((v) => {
+      setProfile(v.profile)
+      setProfileDir(v.profileDir)
+    })
   }, [])
+
+  const changeJobsScan = async (minutes: number): Promise<void> => {
+    setJobsScan(minutes)
+    await window.briefly.saveSettings({ jobsScanMinutes: minutes })
+  }
+
+  const toggleJobsInBadge = async (): Promise<void> => {
+    const next = !jobsInBadge
+    setJobsInBadge(next)
+    await window.briefly.saveSettings({ jobsInBadge: next })
+  }
+
+  const openProfile = async (name: ProfileFile['name'] | null): Promise<void> => {
+    await window.briefly.openProfile(name)
+    // Re-read timestamps after the user has had a chance to save.
+    setTimeout(() => window.briefly.getJobs().then((v) => setProfile(v.profile)), 3000)
+  }
 
   const toggleLaunchAtLogin = async (): Promise<void> => {
     setLaunchAtLogin(await window.briefly.setLaunchAtLogin(!launchAtLogin))
@@ -210,6 +238,61 @@ export function SettingsView({ onSaved }: { onSaved: () => void }): React.JSX.El
         onToggle={toggleLaunchAtLogin}
         hintCls={hintCls}
       />
+
+      <div className="space-y-3 border-t border-slate-200 pt-4 dark:border-white/[0.08]">
+        <span className={labelCls}>Jobs</span>
+
+        <label className="block space-y-1.5">
+          <span className="block text-[13px] font-medium">Scan for postings</span>
+          <select
+            value={jobsScan}
+            onChange={(e) => changeJobsScan(Number(e.target.value))}
+            className={inputCls}
+          >
+            <option value={0}>Off</option>
+            <option value={15}>Every 15 minutes</option>
+            <option value={30}>Every 30 minutes</option>
+            <option value={60}>Every hour</option>
+          </select>
+          <span className={hintCls}>
+            Polls your watchlist companies&apos; job boards and the public internship feeds, then scores
+            new postings against your profile.
+          </span>
+        </label>
+
+        <ToggleRow
+          title="Count new jobs in menu bar"
+          hint="Adds the New-postings count to the badge next to open tasks."
+          on={jobsInBadge}
+          onToggle={toggleJobsInBadge}
+          hintCls={hintCls}
+        />
+
+        <div className="space-y-1.5">
+          <span className="block text-[13px] font-medium">Profile files</span>
+          <div className="grid grid-cols-2 gap-1.5">
+            {profile.map((f) => (
+              <button
+                key={f.name}
+                onClick={() => openProfile(f.name)}
+                className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-[12px] shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition hover:border-slate-300 dark:border-white/[0.08] dark:bg-ink-900 dark:hover:border-white/20"
+              >
+                <span className="font-medium">{f.name}</span>
+                <span className="text-[10px] text-gray-400 dark:text-zinc-500">
+                  {f.exists && f.modifiedAt ? relativeTime(f.modifiedAt) : 'missing'}
+                </span>
+              </button>
+            ))}
+          </div>
+          <span className={hintCls}>
+            Opens in your default editor. Folder:{' '}
+            <button onClick={() => openProfile(null)} className="underline decoration-dotted">
+              {profileDir.replace(/^\/Users\/[^/]+/, '~')}
+            </button>
+            . Edits to resume or preferences re-score every posting on the next scan.
+          </span>
+        </div>
+      </div>
 
       <button
         onClick={save}

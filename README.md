@@ -21,6 +21,19 @@ You keep dumping todos into Notes exactly like you already do. briefly reads the
 - **Light/dark mode** with a proper theme, not just inverted colors
 - **Private by design** — notes are read-only, locked notes are skipped, the API key is stored encrypted with macOS `safeStorage`
 
+## Jobs tab
+
+briefly also watches for internship postings so you don't have to refresh job boards. It pulls from the public ApplyGuy, SimplifyJobs, SpeedyApply, and Jobright feeds, plus the career pages of companies you list in a watchlist, then scores each new posting against your resume and preferences with the same LLM. Verdicts are **apply**, **flagged**, or **skip** with a one-line reason.
+
+- The same posting from several feeds is merged into one row (SpeedyApply supplies hourly pay when it has it)
+- Postings are scored a few at a time in the background, watchlist companies first, so a free-tier API key is enough
+- Track your own status per posting — Saved, Applying, Applied, OA, Interview, Offer — with a note. Your status always wins; a rescan never changes it, and Applied history survives a posting disappearing from the feeds
+- "Add to Today" puts an apply task on your board, with the deadline if the posting has one. It's always a click, never automatic
+
+Your profile lives in `~/.briefly/profile/` as four markdown files you edit in any editor: `resume.md` and `preferences.md` (what the matcher reads — hard blockers, soft flags, pay floor), `watchlist.md` (one company per line, optionally pinned to its ATS board like `Stripe greenhouse:stripe`), and `answers.md` (standard application answers, for a later Apply hand-off). Settings has buttons to open each one. Editing the resume or preferences re-scores everything on the next scan.
+
+Current limits: an Apply button that fills the form for you is planned but not built; Instagram story ingestion (`zero2sudo`) is designed as a separate sidecar and not shipped yet; postings on Oracle HCM and some company-hosted pages can't be read, so they're flagged as triage-only.
+
 ## Setup
 
 1. `npm install`
@@ -43,6 +56,8 @@ Apple Notes --(osascript/JXA, read-only)--> Electron main
 On each scan the LLM receives your current open tasks alongside fresh notes and returns a merge — new tasks, updated ones, and ones that no longer appear. User state always wins over the model: done and dismissed tasks are never resurrected, and tasks you've renamed keep your wording.
 
 Ask questions run a two-pass flow: a retrieval call picks relevant notes from the full library index (titles are matched semantically — a note called "spots" can answer a question about viewpoints), then those notes' contents are used to answer.
+
+The Jobs pipeline lives in `src/main/jobs/`: `sources/` fetch feeds and watchlist boards, `extract.ts` reads posting text via the Greenhouse/Lever/Ashby/Workday JSON APIs (plain HTML as a fallback), `match.ts` scores postings in small batches, and `pipeline.ts` runs it all on a 15-minute tick that pauses while the popover is open. Design notes and spike results are in `docs/jobs-plan.md`.
 
 ## Scripts
 
