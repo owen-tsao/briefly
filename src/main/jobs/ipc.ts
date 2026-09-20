@@ -6,7 +6,7 @@ import { JOB_STATUSES } from '../../shared/jobs'
 import { addTask } from '../taskStore'
 import { updateTrayCount } from '../tray'
 import { ensureProfile, PROFILE_FILES, profileDir } from './profile'
-import { getItem, getView, loadFixture, setNote, setPromotedTask, setStatus } from './jobsStore'
+import { getItem, getUserState, getView, loadFixture, setNote, setPromotedTask, setStatus } from './jobsStore'
 import { launchApply } from './apply'
 import { runJobsScan } from './pipeline'
 
@@ -40,11 +40,11 @@ export function registerJobsIpc(): void {
     return view()
   })
 
-  /** "Add to Today": create a task on the board and remember the link. Never automatic. */
+  /** "Add to Today": create a task on the board and remember the link. Never automatic, never twice. */
   ipcMain.handle('jobs:promote', (_event, id: string) => {
     if (typeof id === 'string') {
       const item = getItem(id)
-      if (item) {
+      if (item && !getUserState(id)?.promotedTaskId) {
         const taskId = addTask(`Apply: ${item.company} — ${item.title}`, {
           sourceNote: 'jobs',
           track: 'job-apps',

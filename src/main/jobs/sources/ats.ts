@@ -73,14 +73,16 @@ async function workday(b: Board, maxAgeDays: number): Promise<JobItem[]> {
   const hosts = wdHint ? [wdHint] : ['wd5', 'wd1', 'wd3', 'wd12']
   for (const wd of hosts) {
     const base = `https://${tenant}.${wd}.myworkdayjobs.com`
-    try {
-      const r = await fetch(`${base}/wday/cxs/${tenant}/${site}/jobs`, {
+    const j = await getJson<{ jobPostings?: { title: string; externalPath: string; locationsText?: string; postedOn?: string }[] }>(
+      `${base}/wday/cxs/${tenant}/${site}/jobs`,
+      {
         method: 'POST',
-        headers: { 'content-type': 'application/json', accept: 'application/json', 'user-agent': 'Mozilla/5.0' },
+        headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ appliedFacets: {}, limit: 20, offset: 0, searchText: 'intern' })
-      })
-      if (!r.ok) continue
-      const j = (await r.json()) as { jobPostings?: { title: string; externalPath: string; locationsText?: string; postedOn?: string }[] }
+      }
+    )
+    if (!j) continue
+    {
       const out: JobItem[] = []
       for (const x of j.jobPostings ?? []) {
         if (!titleLooksRelevant(x.title)) continue
@@ -97,8 +99,6 @@ async function workday(b: Board, maxAgeDays: number): Promise<JobItem[]> {
         )
       }
       return out.filter((it) => withinDays(it.postedAt, maxAgeDays))
-    } catch {
-      // try next host
     }
   }
   throw new Error(`workday:${b.board} unavailable`)

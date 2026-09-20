@@ -48,17 +48,19 @@ export function greenhouseEmbedId(url: string): string | null {
   }
 }
 
-const TRACKING = /^(utm_|gh_src|lever-|src|source|ref|referrer|trk|mc_)/i
+const TRACKING = /^(utm_|gh_src|lever-|src|source|ref|referrer|trk|mc_|embed)$/i
+const TRACKING_PREFIX = /^(utm_|lever-|mc_)/i
 
 /** Strip tracking params and fragments so the same posting from two feeds gets one id. */
 export function normalizeUrl(url: string): string {
   try {
     const u = new URL(url.trim())
     u.hash = ''
-    for (const k of [...u.searchParams.keys()]) if (TRACKING.test(k)) u.searchParams.delete(k)
+    for (const k of [...u.searchParams.keys()]) if (TRACKING.test(k) || TRACKING_PREFIX.test(k)) u.searchParams.delete(k)
     u.hostname = u.hostname.toLowerCase()
     let s = u.toString()
     if (s.endsWith('/')) s = s.slice(0, -1)
+    if (s.endsWith('?')) s = s.slice(0, -1)
     return s
   } catch {
     return url.trim()
@@ -69,18 +71,22 @@ function sha1(s: string): string {
   return createHash('sha1').update(s).digest('hex').slice(0, 16)
 }
 
-/** Canonical id: ATS-based when recognized, else the normalized URL. */
+/**
+ * Canonical id. Greenhouse job ids, and Lever/Ashby posting UUIDs, are unique across all
+ * boards, so the id ignores the board slug: `boards.greenhouse.io/acme/jobs/123` and
+ * `acme.com/careers?gh_jid=123` are one posting. Workday paths are per tenant.
+ */
 export function canonicalId(url: string): { id: string; sourceRef: string | null } {
   const ref = classifyUrl(url)
   if (ref) {
-    const key =
-      ref.ats === 'workday'
-        ? `workday:${ref.tenant}:${ref.path}`
-        : `${ref.ats}:${ref.board.toLowerCase()}:${ref.id}`
-    return { id: sha1(key), sourceRef: key }
+    if (ref.ats === 'workday') {
+      const key = `workday:${ref.tenant.toLowerCase()}:${ref.path}`
+      return { id: sha1(key), sourceRef: key }
+    }
+    return { id: sha1(`${ref.ats}:${ref.id.toLowerCase()}`), sourceRef: `${ref.ats}:${ref.board.toLowerCase()}:${ref.id}` }
   }
   const gh = greenhouseEmbedId(url)
-  if (gh) return { id: sha1(`greenhouse-embed:${gh}`), sourceRef: `greenhouse:?:${gh}` }
+  if (gh) return { id: sha1(`greenhouse:${gh}`), sourceRef: `greenhouse:?:${gh}` }
   return { id: sha1(normalizeUrl(url)), sourceRef: null }
 }
 

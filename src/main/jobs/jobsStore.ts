@@ -10,9 +10,10 @@ import type {
   JobsView
 } from '../../shared/jobs'
 import { JOB_STATUSES } from '../../shared/jobs'
+import { canonicalId } from './normalize'
 import { profileDir, profileFiles, profileVersion } from './profile'
 
-const STORE_VERSION = 1
+const STORE_VERSION = 2
 const PRUNE_INACTIVE_DAYS = 60
 /** A posting no feed has listed for this long is treated as closed. */
 const UNSEEN_INACTIVE_DAYS = 21
@@ -61,7 +62,7 @@ export function load(): StoreFile {
       // Newer than this build understands: keep what we can read, never rewrite it.
       console.warn(`[jobs] store version ${raw.version} > ${STORE_VERSION}; running read-only`)
     }
-    return {
+    const store: StoreFile = {
       ...empty(),
       ...raw,
       items: Array.isArray(raw.items) ? raw.items : [],
@@ -70,9 +71,53 @@ export function load(): StoreFile {
       sources: raw.sources && typeof raw.sources === 'object' ? raw.sources : {},
       events: Array.isArray(raw.events) ? raw.events : []
     }
+    if ((raw.version ?? 1) < 2) {
+      migrateIdsV2(store)
+      store.version = STORE_VERSION
+      save(store)
+    }
+    return store
   } catch {
     return empty()
   }
+}
+
+/**
+ * v1 keyed Greenhouse/Lever/Ashby ids by board slug, so the board URL and the company-site
+ * embed of one posting were two rows. v2 keys by the ATS's global job id. Recompute every id
+ * from its URL, fold rows that now collide, and carry user state across.
+ */
+function migrateIdsV2(store: StoreFile): void {
+  const merged = new Map<string, JobItem>()
+  const idMap = new Map<string, string>()
+  for (const it of store.items) {
+    const { id, sourceRef } = canonicalId(it.url)
+    idMap.set(it.id, id)
+    const cur = merged.get(id)
+    if (!cur) {
+      merged.set(id, { ...it, id, sourceRef: sourceRef ?? it.sourceRef })
+      continue
+    }
+    if (cur.source !== it.source && !cur.alsoSeenIn.includes(it.source)) cur.alsoSeenIn.push(it.source)
+    cur.verdict = cur.verdict ?? it.verdict
+    cur.scoredWithProfileVersion = cur.scoredWithProfileVersion ?? it.scoredWithProfileVersion
+    cur.descriptionAvailable = cur.descriptionAvailable || it.descriptionAvailable
+    cur.pay = cur.pay ?? it.pay
+    cur.deadline = cur.deadline ?? it.deadline
+    cur.location = cur.location ?? it.location
+    cur.dcLink = cur.dcLink || it.dcLink
+    cur.referralNote = cur.referralNote ?? it.referralNote
+    cur.active = cur.active || it.active
+    if ((it.lastSeenAt ?? '') > (cur.lastSeenAt ?? '')) cur.lastSeenAt = it.lastSeenAt
+  }
+  store.items = [...merged.values()]
+  const state: Record<string, JobUserState> = {}
+  for (const [oldId, st] of Object.entries(store.state)) {
+    const newId = idMap.get(oldId) ?? (st.snapshot?.url ? canonicalId(st.snapshot.url).id : oldId)
+    // Two old rows folding into one: keep whichever the user touched most recently.
+    if (!state[newId] || st.updatedAt > state[newId].updatedAt) state[newId] = st
+  }
+  store.state = state
 }
 
 export function save(store: StoreFile): void {
@@ -182,6 +227,10 @@ export function setPromotedTask(id: string, taskId: string): void {
 
 export function getItem(id: string): JobItem | undefined {
   return load().items.find((it) => it.id === id)
+}
+
+export function getUserState(id: string): JobUserState | undefined {
+  return load().state[id]
 }
 
 /**

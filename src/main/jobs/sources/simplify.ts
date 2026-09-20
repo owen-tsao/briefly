@@ -37,8 +37,8 @@ export async function fetchSimplify(maxAgeDays: number): Promise<JobItem[]> {
     if (!titleLooksRelevant(r.title)) continue
     const postedAt = r.date_posted ? new Date(r.date_posted * 1000).toISOString() : null
     if (!withinDays(postedAt, maxAgeDays)) continue
-    // Simplify appends ?embed=true / utm to Ashby/Greenhouse links; normalizeUrl handles utm, strip embed here.
-    const url = r.url.replace(/[?&]embed=true/, '')
+    // Simplify appends ?embed=true to Ashby/Greenhouse links; normalizeUrl strips it with the other tracking params.
+    const url = r.url
     out.push(
       toItem({
         source: 'simplify',

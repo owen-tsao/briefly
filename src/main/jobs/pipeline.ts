@@ -17,6 +17,7 @@ import { scoreBatch } from './match'
 import { ensureProfile, profileVersion, readWatchlist } from './profile'
 import { fetchApplyGuy } from './sources/applyguy'
 import { fetchWatchlistBoards } from './sources/ats'
+import { withinDays } from './sources/common'
 import { fetchInstagram } from './sources/instagram'
 import { fetchJobright } from './sources/jobright'
 import { fetchSimplify } from './sources/simplify'
@@ -36,7 +37,10 @@ interface Source {
   fetch: (maxAgeDays: number) => Promise<{ items: JobItem[]; errors?: string[] }>
 }
 
+/** Postings older than this are ignored when first seen, so a fresh install isn't flooded. */
 const FIRST_RUN_DAYS = 14
+/** Sources return everything; the age gate is applied here only to unknown ids. */
+const ALL_DAYS = 3650
 /** Postings per LLM call — cuts request count 4x against free-tier caps. */
 const POSTINGS_PER_CALL = 4
 /** Gap between LLM calls; keeps a 4-posting call (~4k tokens) under an 8k tokens/min cap. */
@@ -93,9 +97,14 @@ export async function runJobsScan(opts: { force?: boolean } = {}): Promise<ScanR
     for (const source of SOURCES) {
       if (!due(source, Boolean(opts.force))) continue
       try {
-        const { items, errors: srcErrors } = await source.fetch(FIRST_RUN_DAYS)
-        // Re-read so rows added earlier in this same tick count for cross-source dedupe.
-        const deduped = dropSoftDuplicates(items, load().items)
+        const { items, errors: srcErrors } = await source.fetch(ALL_DAYS)
+        // Re-read so rows added earlier in this same tick count for cross-source dedupe, and so
+        // postings we already track are always refreshed (otherwise they'd look "no longer
+        // listed" once they age past the first-run window while still open on the feed).
+        const known = load().items
+        const knownIds = new Set(known.map((it) => it.id))
+        const fresh = items.filter((it) => knownIds.has(it.id) || withinDays(it.postedAt, FIRST_RUN_DAYS))
+        const deduped = dropSoftDuplicates(fresh, known)
         const r = upsertItems(deduped)
         added += r.added.length
         for (const e of srcErrors ?? []) errors.push(`${source.name}: ${e}`)

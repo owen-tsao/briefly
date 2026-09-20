@@ -19,6 +19,8 @@ function sectionOf(row: JobRow): Section | 'queue' {
   if (status === 'saved' || status === 'applying') return 'progress'
   if (OUTCOME_STATUSES.includes(status)) return 'applied'
   if (status === 'skipped') return 'hidden'
+  // Untouched and no longer listed anywhere: nothing to act on, so it leaves New.
+  if (row.item && !row.item.active) return 'hidden'
   if (row.item && !row.item.verdict) return 'queue'
   if (row.item?.verdict?.decision === 'skip') return 'hidden'
   return 'new'

@@ -1,5 +1,5 @@
 import type { JobItem } from '../../../shared/jobs'
-import { fetchWithTimeout } from '../extract'
+import { fetchText } from '../extract'
 import { stripHtml, titleLooksRelevant } from '../normalize'
 import { toItem } from './common'
 
@@ -10,9 +10,9 @@ const URL = 'https://raw.githubusercontent.com/speedyapply/2027-SWE-College-Jobs
  * | <a href=site><strong>Company</strong></a> | Title | Location | $55/hr | <a href=APPLY_URL>… | 4d |
  */
 export async function fetchSpeedyApply(maxAgeDays: number): Promise<JobItem[]> {
-  const r = await fetchWithTimeout(URL)
+  const r = await fetchText(URL)
   if (!r.ok) throw new Error('SpeedyApply README unavailable')
-  const md = await r.text()
+  const md = r.text
   const out: JobItem[] = []
   for (const line of md.split('\n')) {
     if (!line.startsWith('|') || !/https?:/.test(line)) continue

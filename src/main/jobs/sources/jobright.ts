@@ -1,5 +1,5 @@
 import type { JobItem } from '../../../shared/jobs'
-import { fetchWithTimeout } from '../extract'
+import { fetchText } from '../extract'
 import { titleLooksRelevant } from '../normalize'
 import { toItem } from './common'
 
@@ -14,9 +14,9 @@ const MONTHS: Record<string, number> = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4,
  * Row: | **[Company](site)** | **[Title](jobright url)** | Location | On Site | Sep 19 |
  */
 export async function fetchJobright(maxAgeDays: number): Promise<JobItem[]> {
-  const r = await fetchWithTimeout(URL)
+  const r = await fetchText(URL)
   if (!r.ok) throw new Error('Jobright README unavailable')
-  const md = await r.text()
+  const md = r.text
   const out: JobItem[] = []
   for (const line of md.split('\n')) {
     if (!line.startsWith('|') || !/jobright\.ai\/jobs/.test(line)) continue

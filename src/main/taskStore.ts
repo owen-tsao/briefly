@@ -31,6 +31,8 @@ interface StoreFile {
     /** Recurring tasks the close reopened, with their prior completion time — for exact undo. */
     reopened: { id: string; updatedAt: string }[]
   } | null
+  /** Notes seen at the last reconcile; a sharp drop means a partial read, not mass deletion. */
+  notesCountAtReconcile?: number
 }
 
 export interface LlmTask {
@@ -570,6 +572,17 @@ export function reconcileWithNotes(notes: Note[]): AppState {
   for (const n of notes) byTitle.set(n.title, [...(byTitle.get(n.title) ?? []), n])
   const completed: Task[] = []
 
+  // The Notes read skips any folder that errors mid-scan, so a hiccup can hand us a partial
+  // library. A sudden drop in note count is that signature: re-verify what we can, but do
+  // not complete anything this pass. The baseline still advances so real deletions are
+  // honored on the next pass.
+  const prevCount = store.notesCountAtReconcile ?? null
+  const partialRead = notes.length === 0 || (prevCount !== null && notes.length < prevCount * 0.75)
+  if (partialRead) {
+    console.warn(`[reconcile] notes count ${notes.length} vs baseline ${prevCount}; skipping completions`)
+  }
+  store.notesCountAtReconcile = notes.length
+
   for (const task of store.tasks) {
     if (task.state !== 'open' && task.state !== 'snoozed') continue
     if (task.recurrence === 'daily') continue
@@ -584,7 +597,7 @@ export function reconcileWithNotes(notes: Note[]): AppState {
       task.sourceNote = found.note.title
       task.sourceExcerpt = found.line.raw.slice(0, 500)
       task.sourceVerifiedAt = now
-    } else if (task.sourceVerifiedAt) {
+    } else if (task.sourceVerifiedAt && !partialRead) {
       task.state = 'done'
       task.completedVia = 'notes'
       task.updatedAt = now
