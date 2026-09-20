@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronRight, ExternalLink, ListPlus, RefreshCw, Search, Sparkles } from 'lucide-react'
+import { ChevronRight, ExternalLink, ListPlus, RefreshCw, Rocket, Search, Sparkles } from 'lucide-react'
 import type { JobRow, JobStatus, JobsView as JobsViewData } from '../../../shared/jobs'
 import { JOB_STATUS_LABELS, OUTCOME_STATUSES } from '../../../shared/jobs'
 import { cn, relativeTime } from '@/lib/utils'
@@ -74,6 +74,14 @@ export function JobsView({ hasApiKey, onOpenSettings, onTasksChanged }: Props): 
   const promote = async (id: string): Promise<void> => {
     setData(await window.briefly.promoteJob(id))
     onTasksChanged()
+  }
+  const apply = async (id: string): Promise<void> => {
+    const r = await window.briefly.applyJob(id)
+    setData(r.view)
+    if (r.via === 'clipboard') {
+      setScanMsg('Opened in Aside — prompt is on your clipboard, paste it to start')
+      setTimeout(() => setScanMsg(null), 8000)
+    }
   }
   const scanNow = async (): Promise<void> => {
     setScanning(true)
@@ -258,6 +266,7 @@ export function JobsView({ hasApiKey, onOpenSettings, onTasksChanged }: Props): 
                     onStatus={setStatus}
                     onNote={setNote}
                     onPromote={promote}
+                    onApply={apply}
                   />
                 ))}
               </div>
@@ -282,13 +291,15 @@ function JobCard({
   section,
   onStatus,
   onNote,
-  onPromote
+  onPromote,
+  onApply
 }: {
   row: JobRow
   section: Section
   onStatus: (id: string, status: JobStatus) => void
   onNote: (id: string, note: string) => void
   onPromote: (id: string) => void
+  onApply: (id: string) => void
 }): React.JSX.Element {
   const [expanded, setExpanded] = useState(false)
   const [note, setNoteDraft] = useState(row.state?.note ?? '')
@@ -359,10 +370,28 @@ function JobCard({
             )}
             {pruned && <span className="italic">posting removed</span>}
             {stale && <span className="italic">no longer listed</span>}
+            {status === 'applying' && row.state?.openedInAsideAt && (
+              <span className="text-amber-600 dark:text-amber-400">
+                in Aside since {relativeTime(row.state.openedInAsideAt)}
+              </span>
+            )}
           </div>
         </div>
 
         <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+          {status === 'applying' && (
+            <button
+              onClick={() => onStatus(row.id, 'applied')}
+              className="rounded-md bg-emerald-600 px-2 py-1 text-[11px] font-semibold text-white shadow-sm transition-all hover:bg-emerald-500 active:scale-95 dark:bg-emerald-500/90 dark:hover:bg-emerald-400"
+            >
+              Mark applied
+            </button>
+          )}
+          {item && !stale && (section === 'new' || status === 'saved') && (
+            <ActionButton title="Apply with Aside — fills the form, never submits" onClick={() => onApply(row.id)}>
+              <Rocket size={12} />
+            </ActionButton>
+          )}
           {url && (
             <ActionButton title="Open posting" onClick={() => window.briefly.openUrl(url)}>
               <ExternalLink size={12} />

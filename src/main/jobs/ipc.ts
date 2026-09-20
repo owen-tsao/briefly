@@ -7,6 +7,7 @@ import { addTask } from '../taskStore'
 import { updateTrayCount } from '../tray'
 import { ensureProfile, PROFILE_FILES, profileDir } from './profile'
 import { getItem, getView, loadFixture, setNote, setPromotedTask, setStatus } from './jobsStore'
+import { launchApply } from './apply'
 import { runJobsScan } from './pipeline'
 
 function view(): JobsView {
@@ -67,6 +68,17 @@ export function registerJobsIpc(): void {
     if (typeof url === 'string' && /^https:\/\//i.test(url) && url.length <= 2000) {
       await shell.openExternal(url)
     }
+  })
+
+  /** Apply hand-off: mark as applying and launch Aside. Never submits anything itself. */
+  ipcMain.handle('jobs:apply', async (_event, id: string) => {
+    if (typeof id !== 'string') return { via: null, view: view() }
+    const item = getItem(id)
+    if (!item || !/^https:\/\//i.test(item.url)) return { via: null, view: view() }
+    const { via } = await launchApply(item)
+    setStatus(id, 'applying')
+    updateTrayCount()
+    return { via, view: view() }
   })
 
   ipcMain.handle('jobs:scanNow', async () => {
