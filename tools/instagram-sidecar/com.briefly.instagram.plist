@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.briefly.instagram</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/YOU/briefly/tools/instagram-sidecar/.venv/bin/python</string>
+    <string>/Users/YOU/briefly/tools/instagram-sidecar/poll.py</string>
+  </array>
+  <!-- Hourly. Stories live 24h; polling faster only adds ban risk. -->
+  <key>StartInterval</key>
+  <integer>3600</integer>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>/Users/YOU/Library/Logs/briefly-instagram.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/YOU/Library/Logs/briefly-instagram.log</string>
+</dict>
+</plist>

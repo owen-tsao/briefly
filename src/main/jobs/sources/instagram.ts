@@ -2,19 +2,23 @@ import { existsSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import type { JobItem } from '../../../shared/jobs'
+import { classifyUrl } from '../normalize'
 import { toItem } from './common'
 
-export const INSTAGRAM_FILE = join(homedir(), '.briefly', 'instagram.json')
+export const INSTAGRAM_FILE = process.env.BRIEFLY_IG_FILE ?? join(homedir(), '.briefly', 'instagram.json')
 const STALE_MS = 3 * 3_600_000
 
 interface SidecarItem {
-  url: string
+  storyId?: string
+  url: string | null
   company?: string
-  title?: string
-  caption?: string
+  title?: string | null
+  caption?: string | null
   dcLink?: boolean
   referralNote?: string | null
   deadline?: string | null
+  imagePath?: string | null
+  takenAt?: string
   seenAt: string
 }
 
@@ -33,7 +37,7 @@ export async function fetchInstagram(): Promise<{ items: JobItem[]; stale: boole
   const raw = JSON.parse(readFileSync(INSTAGRAM_FILE, 'utf8')) as SidecarFile
   const stale = Date.now() - new Date(raw.generatedAt).getTime() > STALE_MS
   const items = (raw.items ?? [])
-    .filter((it) => it.url && /^https?:\/\//.test(it.url))
+    .filter((it): it is SidecarItem & { url: string } => Boolean(it.url && /^https?:\/\//.test(it.url)))
     .map((it) =>
       toItem({
         source: 'instagram',
@@ -43,18 +47,19 @@ export async function fetchInstagram(): Promise<{ items: JobItem[]; stale: boole
         dcLink: it.dcLink ?? /\bdc\b|direct/i.test(it.caption ?? ''),
         referralNote: it.referralNote ?? null,
         deadline: it.deadline ?? null,
-        postedAt: it.seenAt
+        postedAt: it.takenAt ?? it.seenAt
       })
     )
   return { items, stale }
 }
 
 function hostToCompany(url: string): string {
+  const ref = classifyUrl(url)
+  const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1)
+  if (ref) return cap(decodeURIComponent(ref.ats === 'workday' ? ref.tenant : ref.board))
   try {
-    const h = new URL(url).hostname.replace(/^www\./, '')
-    const parts = h.split('.')
-    const core = parts.length > 2 && /greenhouse|lever|ashby|myworkdayjobs/.test(h) ? parts[0] : parts[parts.length - 2]
-    return core.charAt(0).toUpperCase() + core.slice(1)
+    const parts = new URL(url).hostname.replace(/^www\./, '').split('.')
+    return cap(parts[parts.length - 2] ?? 'Unknown')
   } catch {
     return 'Unknown'
   }
