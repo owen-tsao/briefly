@@ -368,7 +368,7 @@ a posting present in ApplyGuy, Simplify, and the watchlist shows as **one** row 
 `alsoSeenIn` filled; a watchlist posting appears in briefly before it appears on Simplify;
 log line per tick with counts per source.
 
-### Phase 4 — Apply hand-off, ~half day
+### Phase 4 — Apply hand-off, ~half day — **built 2026-09-20, awaiting first supervised run**
 
 1. `jobs:apply` sets `status: applying`, `openedInAsideAt: now`, writes `snapshot`.
 2. Prompt = fixed instruction block + `answers.md` + `resume.pdf` path + posting fields +
@@ -386,7 +386,7 @@ log line per tick with counts per source.
 Acceptance: five real applications supervised end to end; the "unsure fields" list is
 read every time; no submission happened without Owen clicking.
 
-### Phase 5 — Instagram sidecar (only if 1d passed)
+### Phase 5 — Instagram sidecar (only if 1d passed) — **written 2026-09-20, not yet run live**
 
 Tiny Python script (`tools/instagram-sidecar/`, in this repo, own venv, only `instagrapi`):
 hourly via launchd (stories live 24 h; 30 min is only more ban risk), saved session, no
@@ -399,11 +399,11 @@ decision. Recruiting events → `events[]`.
 If the sidecar dies, briefly notices `instagram.json` going stale (>3 h) and shows a small
 "Instagram feed stale" note in the Jobs tab. Nothing else is affected.
 
-### Phase 6 — Polish
+### Phase 6 — Polish — **done except Oracle HCM**
 
 Menu bar badge includes New count behind the setting; new-item notification via the existing
-notifications module (respects the toggle); README: briefly now polls public job feeds,
-reads `~/.briefly/profile`, and launches Aside; Notes remains read-only.
+notifications module (respects the toggle); README updated. Not done: an Oracle HCM adapter
+(8% of Simplify, JS-rendered). Add only if that residual matters after a week of real use.
 
 ## 5. Changes from the handoff, and why
 
@@ -486,6 +486,6 @@ _(fill in after Phase 1)_
 | Spike | Result | Decision |
 |---|---|---|
 | 1a ATS coverage + residual readability | **2026-09-20.** Four-ATS share: ApplyGuy 82% (689 urls: Workday 401, Greenhouse 94, Ashby 54, Lever 14), Simplify-14d 64% (1,126 urls: Workday 563, Greenhouse 95, Ashby 41, Lever 23). All four JSON APIs returned real descriptions on 5/5 samples (1.4k–14k chars; one Lever at 465). Residual by vendor: Oracle HCM 8% of Simplify (JS-rendered, 0 chars via HTML), iCIMS 3% (server-rendered, readable), then long tail. Several "other" URLs are Greenhouse embeds (`?gh_jid=`) — resolvable to the Greenhouse API if the board slug is known. Plain-HTML residual: 13/20 returned >1.5k chars, but the largest were SPA payloads, so treat plain HTML as best-effort. | Build the four ATS adapters first. Add Greenhouse-embed resolution (`gh_jid` + company→slug guess) in Phase 3 — cheap, recovers a visible chunk of "other". Oracle HCM has a public REST endpoint; add as a fifth adapter if the 8% matters after a week of real data. Everything else: plain HTML, `descriptionAvailable` only if >500 chars of body text, else flagged. |
-| 1b Matcher on 10 postings | | |
-| 1c Aside hand-off | | |
-| 1d Instagram burner | | |
+| 1b Matcher on 10 postings | **Not run.** Meaningless until `resume.md`/`preferences.md` are filled in; today every verdict carries the "Resume not filled in" flag. First real scan on empty templates: 37 scored → 21 apply / 15 flagged / 1 skip, i.e. too generous, as expected with no blockers defined. | Run after Owen fills the profile: pick 10 postings from New, hand-label, compare. If any hard-blocker posting scores `apply`, tighten the rubric in `match.ts` before trusting New. |
+| 1c Aside hand-off | **Partially verified 2026-09-20.** Aside.app is installed; the `aside` CLI is not (not in PATH, not in the bundle — it comes from Aside's install script). Built both paths: CLI `spawn` when present, otherwise `open -a Aside <url>` + prompt on clipboard + notification. Prompt builder verified on a real posting. The launch itself is untested — needs a click in the app. | Install the CLI (`curl -fsSL https://releases.aside.com/install.sh \| bash`) when ready; briefly picks it up automatically. Until then the clipboard path works with one paste. Supervise the first five runs. |
+| 1d Instagram burner | **Sidecar written, not run live.** `tools/instagram-sidecar/poll.py` verified end to end against a stubbed `instagrapi` (login → session file 600 → link unwrapping → DC detection → atomic JSON → briefly reader merges onto the Stripe row by ATS id). Field names checked against instagrapi `types.py`. Whether link stickers come back populated for `zero2sudo` is still the open question. | Owen: create the burner, `pip install` in the sidecar venv (new dependency — go/no-go is his), run `--login` once, check `url`s are non-null. Kill if every url is null or a challenge appears in week one. |

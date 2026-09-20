@@ -29,10 +29,13 @@ briefly also watches for internship postings so you don't have to refresh job bo
 - Postings are scored a few at a time in the background, watchlist companies first, so a free-tier API key is enough
 - Track your own status per posting — Saved, Applying, Applied, OA, Interview, Offer — with a note. Your status always wins; a rescan never changes it, and Applied history survives a posting disappearing from the feeds
 - "Add to Today" puts an apply task on your board, with the deadline if the posting has one. It's always a click, never automatic
+- **Apply** hands a posting to [Aside](https://aside.com) with a prompt built from the posting, the matcher's notes, and your `answers.md`. If the Aside CLI is installed briefly starts the task directly; otherwise it opens the posting in Aside and puts the prompt on your clipboard. The prompt tells Aside to stop before submitting — you review and click "Mark applied" yourself. Aside has no hard submit gate, so supervise it.
 
-Your profile lives in `~/.briefly/profile/` as four markdown files you edit in any editor: `resume.md` and `preferences.md` (what the matcher reads — hard blockers, soft flags, pay floor), `watchlist.md` (one company per line, optionally pinned to its ATS board like `Stripe greenhouse:stripe`), and `answers.md` (standard application answers, for a later Apply hand-off). Settings has buttons to open each one. Editing the resume or preferences re-scores everything on the next scan.
+Your profile lives in `~/.briefly/profile/` as four markdown files you edit in any editor: `resume.md` and `preferences.md` (what the matcher reads — hard blockers, soft flags, pay floor), `watchlist.md` (one company per line, optionally pinned to its ATS board like `Stripe greenhouse:stripe`), and `answers.md` (standard application answers Aside fills from). Settings has buttons to open each one. Editing the resume or preferences re-scores everything on the next scan.
 
-Current limits: an Apply button that fills the form for you is planned but not built; Instagram story ingestion (`zero2sudo`) is designed as a separate sidecar and not shipped yet; postings on Oracle HCM and some company-hosted pages can't be read, so they're flagged as triage-only.
+Instagram (`zero2sudo` stories) is handled by a small separate script in `tools/instagram-sidecar/` because it uses a private API through a burner account and may get banned; see its README. It is written but not yet running.
+
+Current limits: the Instagram sidecar needs a burner account and one `pip install` before it does anything; postings on Oracle HCM and some company-hosted pages can't be read, so they're flagged as triage-only; verdicts are only as good as your `resume.md` and `preferences.md`.
 
 ## Setup
 
