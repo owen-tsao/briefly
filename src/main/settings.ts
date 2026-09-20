@@ -14,9 +14,16 @@ interface StoredSettings {
   notificationsEnabled: boolean
   /** Hour (0–8) at which a new work day starts. */
   dayStartHour: number
+  /** Jobs: profile folder override; empty = ~/.briefly/profile. */
+  profileDir: string
+  /** Jobs: scan interval in minutes; 0 = off. */
+  jobsScanMinutes: number
+  /** Jobs: include the New count in the menu bar badge. */
+  jobsInBadge: boolean
 }
 
 const RESCAN_CHOICES = [0, 30, 60, 180, 360]
+const JOBS_SCAN_CHOICES = [0, 15, 30, 60]
 const MAX_DAY_START_HOUR = 8
 
 function settingsPath(): string {
@@ -33,7 +40,10 @@ function load(): StoredSettings {
     apiKeyEnc: null,
     autoRescanMinutes: 0,
     notificationsEnabled: true,
-    dayStartHour: 4
+    dayStartHour: 4,
+    profileDir: '',
+    jobsScanMinutes: 15,
+    jobsInBadge: false
   }
   if (!existsSync(path)) return defaults
   try {
@@ -46,7 +56,12 @@ function load(): StoredSettings {
         ? (raw.autoRescanMinutes as number)
         : 0,
       notificationsEnabled: raw.notificationsEnabled !== false,
-      dayStartHour: validDayStartHour(raw.dayStartHour) ? raw.dayStartHour : 4
+      dayStartHour: validDayStartHour(raw.dayStartHour) ? raw.dayStartHour : 4,
+      profileDir: typeof raw.profileDir === 'string' ? raw.profileDir : '',
+      jobsScanMinutes: JOBS_SCAN_CHOICES.includes(raw.jobsScanMinutes ?? -1)
+        ? (raw.jobsScanMinutes as number)
+        : 15,
+      jobsInBadge: raw.jobsInBadge === true
     }
   } catch {
     return defaults
@@ -72,7 +87,10 @@ export function getSettingsView(): SettingsView {
     hasApiKey: Boolean(s.apiKeyEnc) || Boolean(process.env.BRIEFLY_API_KEY),
     autoRescanMinutes: s.autoRescanMinutes,
     notificationsEnabled: s.notificationsEnabled,
-    dayStartHour: s.dayStartHour
+    dayStartHour: s.dayStartHour,
+    profileDir: s.profileDir,
+    jobsScanMinutes: s.jobsScanMinutes,
+    jobsInBadge: s.jobsInBadge
   }
 }
 
@@ -88,6 +106,18 @@ export function getDayStartHour(): number {
   return load().dayStartHour
 }
 
+export function getProfileDir(): string {
+  return load().profileDir
+}
+
+export function getJobsScanMinutes(): number {
+  return load().jobsScanMinutes
+}
+
+export function getJobsInBadge(): boolean {
+  return load().jobsInBadge
+}
+
 export function saveSettings(update: {
   baseUrl?: string
   model?: string
@@ -95,6 +125,9 @@ export function saveSettings(update: {
   autoRescanMinutes?: number
   notificationsEnabled?: boolean
   dayStartHour?: number
+  profileDir?: string
+  jobsScanMinutes?: number
+  jobsInBadge?: boolean
 }): SettingsView {
   const s = load()
   if (update.baseUrl !== undefined) s.baseUrl = update.baseUrl.trim() || DEFAULT_BASE_URL
@@ -106,6 +139,11 @@ export function saveSettings(update: {
     s.notificationsEnabled = Boolean(update.notificationsEnabled)
   }
   if (validDayStartHour(update.dayStartHour)) s.dayStartHour = update.dayStartHour
+  if (typeof update.profileDir === 'string') s.profileDir = update.profileDir.trim().slice(0, 500)
+  if (update.jobsScanMinutes !== undefined && JOBS_SCAN_CHOICES.includes(update.jobsScanMinutes)) {
+    s.jobsScanMinutes = update.jobsScanMinutes
+  }
+  if (update.jobsInBadge !== undefined) s.jobsInBadge = Boolean(update.jobsInBadge)
   if (update.apiKey !== undefined) {
     const key = update.apiKey.trim()
     if (!key) {

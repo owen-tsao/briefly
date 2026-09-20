@@ -18,6 +18,8 @@ import { openNote } from './notes'
 import { listModels } from './llm'
 import { updateTrayCount } from './tray'
 import { scheduleAutoRescan } from './scheduler'
+import { registerJobsIpc } from './jobs/ipc'
+import { scheduleJobsScan } from './jobs/pipeline'
 import type { Horizon, Priority, TaskState, Track } from '../shared/types'
 import { HORIZONS, TRACKS } from '../shared/types'
 
@@ -25,6 +27,7 @@ const TASK_STATES: TaskState[] = ['open', 'done', 'snoozed', 'dismissed', 'archi
 const PRIORITIES: Priority[] = ['high', 'medium', 'low']
 
 export function registerIpc(): void {
+  registerJobsIpc()
   ipcMain.handle('state:get', () => getState(Boolean(getApiKey())))
 
   ipcMain.handle('state:refresh', async () => {
@@ -138,9 +141,14 @@ export function registerIpc(): void {
       autoRescanMinutes?: number
       notificationsEnabled?: boolean
       dayStartHour?: number
+      profileDir?: string
+      jobsScanMinutes?: number
+      jobsInBadge?: boolean
     }) => {
       const view = saveSettings(update)
       scheduleAutoRescan()
+      scheduleJobsScan()
+      updateTrayCount()
       return view
     }
   )

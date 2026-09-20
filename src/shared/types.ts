@@ -77,6 +77,12 @@ export interface SettingsView {
   notificationsEnabled: boolean
   /** Hour (0–8) at which a new work day starts. */
   dayStartHour: number
+  /** Jobs profile folder override; empty = ~/.briefly/profile. */
+  profileDir: string
+  /** Jobs scan interval in minutes; 0 = off. */
+  jobsScanMinutes: number
+  /** Include the New-jobs count in the menu bar badge. */
+  jobsInBadge: boolean
 }
 
 export interface RefreshResult {

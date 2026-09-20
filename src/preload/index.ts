@@ -10,6 +10,15 @@ import type {
   TaskState,
   Track
 } from '../shared/types'
+import type { JobStatus, JobsView, ProfileFile } from '../shared/jobs'
+
+export interface JobsScanOutcome {
+  ok: boolean
+  added: number
+  scored: number
+  errors: string[]
+  view: JobsView
+}
 
 export interface BrieflyApi {
   getState: () => Promise<AppState>
@@ -34,6 +43,9 @@ export interface BrieflyApi {
     autoRescanMinutes?: number
     notificationsEnabled?: boolean
     dayStartHour?: number
+    profileDir?: string
+    jobsScanMinutes?: number
+    jobsInBadge?: boolean
   }) => Promise<SettingsView>
   listModels: () => Promise<{ ok: boolean; models?: string[]; error?: string }>
   getLaunchAtLogin: () => Promise<boolean>
@@ -42,6 +54,15 @@ export interface BrieflyApi {
   extractNote: (title: string, modified: string | null) => Promise<RefreshResult>
   /** Fires when the main process refreshes state in the background. Returns unsubscribe. */
   onStateChanged: (callback: (state: AppState) => void) => () => void
+  /** Fires when a background jobs scan changes the pipeline. Returns unsubscribe. */
+  onJobsChanged: (callback: (view: JobsView) => void) => () => void
+  getJobs: () => Promise<JobsView>
+  setJobStatus: (id: string, status: JobStatus) => Promise<JobsView>
+  setJobNote: (id: string, note: string) => Promise<JobsView>
+  promoteJob: (id: string) => Promise<JobsView>
+  openProfile: (name: ProfileFile['name'] | null) => Promise<void>
+  openUrl: (url: string) => Promise<void>
+  scanJobsNow: () => Promise<JobsScanOutcome>
   quit: () => Promise<void>
 }
 
@@ -73,6 +94,18 @@ const api: BrieflyApi = {
     ipcRenderer.on('state:changed', listener)
     return () => ipcRenderer.removeListener('state:changed', listener)
   },
+  onJobsChanged: (callback) => {
+    const listener = (_event: Electron.IpcRendererEvent, view: JobsView): void => callback(view)
+    ipcRenderer.on('jobs:changed', listener)
+    return () => ipcRenderer.removeListener('jobs:changed', listener)
+  },
+  getJobs: () => ipcRenderer.invoke('jobs:get'),
+  setJobStatus: (id, status) => ipcRenderer.invoke('jobs:setStatus', id, status),
+  setJobNote: (id, note) => ipcRenderer.invoke('jobs:setNote', id, note),
+  promoteJob: (id) => ipcRenderer.invoke('jobs:promote', id),
+  openProfile: (name) => ipcRenderer.invoke('jobs:openProfile', name),
+  openUrl: (url) => ipcRenderer.invoke('jobs:openUrl', url),
+  scanJobsNow: () => ipcRenderer.invoke('jobs:scanNow'),
   quit: () => ipcRenderer.invoke('app:quit')
 }
 

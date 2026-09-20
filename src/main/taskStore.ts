@@ -289,18 +289,22 @@ export function setTaskPriority(id: string, priority: Priority): void {
 }
 
 /** Instant local task creation (quick-add) — no LLM involved, text is sticky. */
-export function addTask(text: string): void {
+export function addTask(
+  text: string,
+  opts: { sourceNote?: string; track?: Track; deadline?: string | null } = {}
+): string | null {
   const trimmed = text.trim().slice(0, 500)
-  if (!trimmed) return
+  if (!trimmed) return null
   const store = load()
   const now = new Date().toISOString()
+  const id = randomUUID()
   store.tasks.push({
-    id: randomUUID(),
+    id,
     text: trimmed,
-    track: 'other',
+    track: opts.track ?? 'other',
     priority: 'medium',
-    deadline: null,
-    sourceNote: 'quick add',
+    deadline: opts.deadline ?? null,
+    sourceNote: opts.sourceNote ?? 'quick add',
     state: 'open',
     snoozedUntil: null,
     editedByUser: true,
@@ -309,6 +313,7 @@ export function addTask(text: string): void {
     updatedAt: now
   })
   save(store)
+  return id
 }
 
 /**
@@ -569,6 +574,7 @@ export function reconcileWithNotes(notes: Note[]): AppState {
     if (task.state !== 'open' && task.state !== 'snoozed') continue
     if (task.recurrence === 'daily') continue
     if (!task.sourceNote || task.sourceNote === 'quick add' || task.sourceNote === 'unknown') continue
+    if (task.sourceNote === 'jobs') continue
 
     const sources = byTitle.get(task.sourceNote) ?? []
     const found =
