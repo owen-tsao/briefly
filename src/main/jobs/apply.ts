@@ -87,6 +87,11 @@ export async function launchApply(item: JobItem): Promise<{ via: ApplyLaunch }> 
   return { via: 'clipboard' }
 }
 
+/** Put the Aside prompt on the clipboard again, without changing status. */
+export function copyApplyPrompt(item: JobItem): void {
+  clipboard.writeText(buildApplyPrompt(item, readProfileFile('answers.md'), join(profileDir(), 'resume.pdf')))
+}
+
 /** Fire-and-forget spawn that resolves false instead of crashing the main process on ENOENT/EACCES. */
 function spawnDetached(cmd: string, args: string[]): Promise<boolean> {
   return new Promise((resolve) => {

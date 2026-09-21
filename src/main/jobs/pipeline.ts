@@ -9,11 +9,13 @@ import {
   itemsNeedingScore,
   load,
   markScan,
+  retireNonUS,
   setSourceCursor,
   setVerdict,
   upsertItems
 } from './jobsStore'
 import { scoreBatch } from './match'
+import { locationLooksNonUS } from './normalize'
 import { ensureProfile, profileVersion, readWatchlist } from './profile'
 import { fetchApplyGuy } from './sources/applyguy'
 import { fetchWatchlistBoards } from './sources/ats'
@@ -103,7 +105,9 @@ export async function runJobsScan(opts: { force?: boolean } = {}): Promise<ScanR
         // listed" once they age past the first-run window while still open on the feed).
         const known = load().items
         const knownIds = new Set(known.map((it) => it.id))
-        const fresh = items.filter((it) => knownIds.has(it.id) || withinDays(it.postedAt, FIRST_RUN_DAYS))
+        const fresh = items.filter(
+          (it) => knownIds.has(it.id) || (withinDays(it.postedAt, FIRST_RUN_DAYS) && !locationLooksNonUS(it.location))
+        )
         const deduped = dropSoftDuplicates(fresh, known)
         const r = upsertItems(deduped)
         added += r.added.length
@@ -117,6 +121,7 @@ export async function runJobsScan(opts: { force?: boolean } = {}): Promise<ScanR
     }
 
     const version = profileVersion()
+    retireNonUS(locationLooksNonUS)
     if (!getApiKey() && added > 0) errors.push('No API key — new postings were saved but not scored')
     if (scoreError) errors.push(scoreError)
 

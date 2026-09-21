@@ -63,6 +63,8 @@ export interface BrieflyApi {
   openProfile: (name: ProfileFile['name'] | null) => Promise<void>
   openUrl: (url: string) => Promise<void>
   applyJob: (id: string) => Promise<{ via: 'cli' | 'clipboard' | null; view: JobsView }>
+  copyJobPrompt: (id: string) => Promise<boolean>
+  unpromoteJob: (id: string) => Promise<JobsView>
   scanJobsNow: () => Promise<JobsScanOutcome>
   quit: () => Promise<void>
 }
@@ -107,6 +109,8 @@ const api: BrieflyApi = {
   openProfile: (name) => ipcRenderer.invoke('jobs:openProfile', name),
   openUrl: (url) => ipcRenderer.invoke('jobs:openUrl', url),
   applyJob: (id) => ipcRenderer.invoke('jobs:apply', id),
+  copyJobPrompt: (id) => ipcRenderer.invoke('jobs:copyPrompt', id),
+  unpromoteJob: (id) => ipcRenderer.invoke('jobs:unpromote', id),
   scanJobsNow: () => ipcRenderer.invoke('jobs:scanNow'),
   quit: () => ipcRenderer.invoke('app:quit')
 }

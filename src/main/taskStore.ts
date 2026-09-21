@@ -318,6 +318,15 @@ export function addTask(
   return id
 }
 
+/** Delete a task outright. Only for tasks the app itself created (e.g. a job promoted to the board). */
+export function removeTask(id: string): void {
+  const store = load()
+  const idx = store.tasks.findIndex((t) => t.id === id)
+  if (idx === -1) return
+  store.tasks.splice(idx, 1)
+  save(store)
+}
+
 /**
  * Open tasks due by tomorrow (incl. overdue) not yet notified today.
  * Marks them notified as a side effect — callers should notify or drop the result.

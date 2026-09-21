@@ -110,6 +110,18 @@ export function titleLooksRelevant(title: string): boolean {
   return TITLE_MUST.test(title) && TITLE_ANY.test(title) && !TITLE_NOT.test(title)
 }
 
+const NON_US =
+  /\b(canada|toronto|vancouver|montr[eé]al|ottawa|calgary|waterloo|united kingdom|\buk\b|london|england|ireland|dublin|germany|berlin|munich|france|paris|netherlands|amsterdam|poland|warsaw|india|bangalore|bengaluru|hyderabad|pune|mumbai|singapore|israel|tel aviv|australia|sydney|melbourne|japan|tokyo|china|shanghai|beijing|taiwan|taipei|korea|seoul|mexico|brazil|s[aã]o paulo|spain|madrid|barcelona|switzerland|zurich|sweden|stockholm)\b|,\s?(ON|BC|QC|AB)\b/i
+
+/**
+ * Locations that are plainly outside the US. Empty/remote/unknown stays in, so this only
+ * removes postings that would fail the location rule anyway — before they cost LLM tokens.
+ */
+export function locationLooksNonUS(location: string | null | undefined): boolean {
+  if (!location) return false
+  return NON_US.test(location) && !/united states|\busa?\b|remote.*us|us.*remote/i.test(location)
+}
+
 export function stripHtml(html: string): string {
   return html
     .replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<noscript[\s\S]*?<\/noscript>/gi, ' ')

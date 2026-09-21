@@ -3,11 +3,11 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { JobStatus, JobsView, ProfileFile } from '../../shared/jobs'
 import { JOB_STATUSES } from '../../shared/jobs'
-import { addTask } from '../taskStore'
+import { addTask, removeTask } from '../taskStore'
 import { updateTrayCount } from '../tray'
 import { ensureProfile, PROFILE_FILES, profileDir } from './profile'
 import { getItem, getUserState, getView, loadFixture, setNote, setPromotedTask, setStatus } from './jobsStore'
-import { launchApply } from './apply'
+import { copyApplyPrompt, launchApply } from './apply'
 import { runJobsScan } from './pipeline'
 
 function view(): JobsView {
@@ -79,6 +79,25 @@ export function registerJobsIpc(): void {
     setStatus(id, 'applying')
     updateTrayCount()
     return { via, view: view() }
+  })
+
+  ipcMain.handle('jobs:copyPrompt', (_event, id: string) => {
+    if (typeof id !== 'string') return false
+    const item = getItem(id)
+    if (!item) return false
+    copyApplyPrompt(item)
+    return true
+  })
+
+  /** Undo "Add to Today": remove the task it created (if still untouched) and forget the link. */
+  ipcMain.handle('jobs:unpromote', (_event, id: string) => {
+    if (typeof id === 'string') {
+      const taskId = getUserState(id)?.promotedTaskId
+      if (taskId) removeTask(taskId)
+      setPromotedTask(id, null)
+      updateTrayCount()
+    }
+    return view()
   })
 
   ipcMain.handle('jobs:scanNow', async () => {

@@ -3,8 +3,9 @@ import { classifyUrl, greenhouseEmbedId, stripHtml, type AtsRef } from './normal
 const UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36'
 const TIMEOUT_MS = 20_000
-/** Feeds are a few MB at most; anything bigger is not a job posting. */
+/** Postings and READMEs are well under this; the Simplify listings feed is ~13 MB. */
 const MAX_BODY_BYTES = 8 * 1024 * 1024
+export const FEED_MAX_BODY_BYTES = 32 * 1024 * 1024
 const MIN_READABLE = 500
 
 export interface Extracted {
@@ -19,7 +20,11 @@ export interface Extracted {
  * Fetch and read the whole body under one deadline and size cap. `fetch` alone only times out
  * the headers, so a slow or endless body could otherwise park a scan until restart.
  */
-export async function fetchText(url: string, init: RequestInit = {}): Promise<{ ok: boolean; status: number; text: string }> {
+export async function fetchText(
+  url: string,
+  init: RequestInit = {},
+  maxBytes = MAX_BODY_BYTES
+): Promise<{ ok: boolean; status: number; text: string }> {
   const ctrl = new AbortController()
   const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS)
   try {
@@ -31,7 +36,7 @@ export async function fetchText(url: string, init: RequestInit = {}): Promise<{ 
     })
     if (!r.ok || !r.body) return { ok: r.ok, status: r.status, text: '' }
     const declared = Number(r.headers.get('content-length') ?? 0)
-    if (declared > MAX_BODY_BYTES) throw new Error(`response too large (${declared} bytes)`)
+    if (declared > maxBytes) throw new Error(`response too large (${declared} bytes)`)
     const reader = r.body.getReader()
     const chunks: Uint8Array[] = []
     let size = 0
@@ -39,7 +44,7 @@ export async function fetchText(url: string, init: RequestInit = {}): Promise<{ 
       const { done, value } = await reader.read()
       if (done) break
       size += value.byteLength
-      if (size > MAX_BODY_BYTES) {
+      if (size > maxBytes) {
         await reader.cancel()
         throw new Error('response too large')
       }
@@ -51,9 +56,9 @@ export async function fetchText(url: string, init: RequestInit = {}): Promise<{ 
   }
 }
 
-export async function getJson<T>(url: string, init: RequestInit = {}): Promise<T | null> {
+export async function getJson<T>(url: string, init: RequestInit = {}, maxBytes = MAX_BODY_BYTES): Promise<T | null> {
   try {
-    const r = await fetchText(url, init)
+    const r = await fetchText(url, init, maxBytes)
     if (!r.ok) return null
     return JSON.parse(r.text) as T
   } catch {

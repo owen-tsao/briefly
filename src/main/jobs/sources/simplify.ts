@@ -1,5 +1,5 @@
 import type { JobItem } from '../../../shared/jobs'
-import { getJson } from '../extract'
+import { FEED_MAX_BODY_BYTES, getJson } from '../extract'
 import { titleLooksRelevant } from '../normalize'
 import { toItem, withinDays } from './common'
 
@@ -28,7 +28,7 @@ const TERM_OK = /2027|fall 2026|autumn 2026/i
  * visible, active, 2027-ish, recent, relevant-title rows before doing anything else.
  */
 export async function fetchSimplify(maxAgeDays: number): Promise<JobItem[]> {
-  const rows = await getJson<Row[]>(URL)
+  const rows = await getJson<Row[]>(URL, {}, FEED_MAX_BODY_BYTES)
   if (!rows) throw new Error('Simplify feed unavailable')
   const out: JobItem[] = []
   for (const r of rows) {

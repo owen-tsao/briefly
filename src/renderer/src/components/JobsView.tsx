@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronRight, ExternalLink, ListPlus, RefreshCw, Rocket, Search, Sparkles, X } from 'lucide-react'
+import { ChevronRight, Clipboard, ExternalLink, ListPlus, RefreshCw, Rocket, Search, Sparkles, X } from 'lucide-react'
 import type { JobRow, JobStatus, JobsView as JobsViewData } from '../../../shared/jobs'
 import { JOB_STATUS_LABELS, OUTCOME_STATUSES } from '../../../shared/jobs'
 import { cn, relativeTime } from '@/lib/utils'
@@ -56,6 +56,8 @@ export function JobsView({ hasApiKey, onOpenSettings, onTasksChanged }: Props): 
   const [query, setQuery] = useState('')
   const [scanning, setScanning] = useState(false)
   const [scanMsg, setScanMsg] = useState<string | null>(null)
+  /** Sticky until dismissed — the OS notification is easy to miss and the clipboard is invisible. */
+  const [applied, setApplied] = useState<{ id: string; company: string; via: 'cli' | 'clipboard' } | null>(null)
   const [openSections, setOpenSections] = useState<Record<Section, boolean>>({
     new: true,
     progress: true,
@@ -78,13 +80,20 @@ export function JobsView({ hasApiKey, onOpenSettings, onTasksChanged }: Props): 
     setData(await window.briefly.promoteJob(id))
     onTasksChanged()
   }
+  const unpromote = async (id: string): Promise<void> => {
+    setData(await window.briefly.unpromoteJob(id))
+    onTasksChanged()
+  }
   const apply = async (id: string): Promise<void> => {
     const r = await window.briefly.applyJob(id)
     setData(r.view)
-    if (r.via === 'clipboard') {
-      setScanMsg('Opened in Aside — prompt is on your clipboard, paste it to start')
-      setTimeout(() => setScanMsg(null), 8000)
-    }
+    const row = r.view.rows.find((x) => x.id === id)
+    if (r.via) setApplied({ id, company: row?.item?.company ?? row?.state?.snapshot.company ?? 'Posting', via: r.via })
+  }
+  const copyPrompt = async (id: string): Promise<void> => {
+    const ok = await window.briefly.copyJobPrompt(id)
+    setScanMsg(ok ? 'Prompt copied — paste into Aside with ⌘V' : 'Could not build the prompt')
+    setTimeout(() => setScanMsg(null), 6000)
   }
   const scanNow = async (): Promise<void> => {
     setScanning(true)
@@ -183,6 +192,32 @@ export function JobsView({ hasApiKey, onOpenSettings, onTasksChanged }: Props): 
         </span>
       </div>
 
+      {applied && (
+        <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11.5px] leading-relaxed text-emerald-900 dark:border-emerald-500/25 dark:bg-emerald-950/30 dark:text-emerald-200">
+          <span className="min-w-0 flex-1">
+            {applied.via === 'cli' ? (
+              <>Aside is working on <b>{applied.company}</b>. Review before you submit.</>
+            ) : (
+              <>
+                <b>{applied.company}</b> opened in Aside. The prompt is on your clipboard — click Aside's agent
+                box and press <kbd className="rounded bg-white/70 px-1 font-mono dark:bg-white/10">⌘V</kbd>.
+              </>
+            )}
+          </span>
+          {applied.via === 'clipboard' && (
+            <button
+              onClick={() => copyPrompt(applied.id)}
+              className="shrink-0 rounded-md border border-emerald-300 px-2 py-0.5 text-[11px] font-semibold hover:bg-emerald-100 dark:border-emerald-500/40 dark:hover:bg-emerald-500/10"
+            >
+              Copy again
+            </button>
+          )}
+          <button onClick={() => setApplied(null)} className="shrink-0 text-emerald-700/70 hover:text-emerald-900 dark:text-emerald-300/70" title="Dismiss">
+            <X size={12} />
+          </button>
+        </div>
+      )}
+
       {!hasApiKey && (
         <Notice>
           Add an API key in{' '}
@@ -275,7 +310,9 @@ export function JobsView({ hasApiKey, onOpenSettings, onTasksChanged }: Props): 
                     onStatus={setStatus}
                     onNote={setNote}
                     onPromote={promote}
+                    onUnpromote={unpromote}
                     onApply={apply}
+                    onCopyPrompt={copyPrompt}
                   />
                 ))}
               </div>
@@ -303,7 +340,6 @@ function TopPicks({
   return (
     <section className="rounded-xl border border-slate-200 bg-slate-50/70 p-2.5 dark:border-white/[0.1] dark:bg-white/[0.03]">
       <div className="mb-2 flex items-center gap-1.5 px-0.5">
-        <Sparkles size={12} className="text-gray-500 dark:text-zinc-400" />
         <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-gray-600 dark:text-zinc-300">
           Top picks
         </span>
@@ -368,14 +404,18 @@ function JobCard({
   onStatus,
   onNote,
   onPromote,
-  onApply
+  onUnpromote,
+  onApply,
+  onCopyPrompt
 }: {
   row: JobRow
   section: Section
   onStatus: (id: string, status: JobStatus) => void
   onNote: (id: string, note: string) => void
   onPromote: (id: string) => void
+  onUnpromote: (id: string) => void
   onApply: (id: string) => void
+  onCopyPrompt: (id: string) => void
 }): React.JSX.Element {
   const [expanded, setExpanded] = useState(false)
   const [note, setNoteDraft] = useState(row.state?.note ?? '')
@@ -456,12 +496,17 @@ function JobCard({
 
         <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
           {status === 'applying' && (
-            <button
-              onClick={() => onStatus(row.id, 'applied')}
-              className="rounded-md bg-emerald-600 px-2 py-1 text-[11px] font-semibold text-white shadow-sm transition-all hover:bg-emerald-500 active:scale-95 dark:bg-emerald-500/90 dark:hover:bg-emerald-400"
-            >
-              Mark applied
-            </button>
+            <>
+              <ActionButton title="Copy the Aside prompt again" onClick={() => onCopyPrompt(row.id)}>
+                <Clipboard size={12} />
+              </ActionButton>
+              <button
+                onClick={() => onStatus(row.id, 'applied')}
+                className="rounded-md bg-emerald-600 px-2 py-1 text-[11px] font-semibold text-white shadow-sm transition-all hover:bg-emerald-500 active:scale-95 dark:bg-emerald-500/90 dark:hover:bg-emerald-400"
+              >
+                Mark applied
+              </button>
+            </>
           )}
           {item && !stale && (section === 'new' || status === 'saved') && (
             <ActionButton title="Apply with Aside — fills the form, never submits" onClick={() => onApply(row.id)}>
@@ -478,7 +523,11 @@ function JobCard({
               <ListPlus size={12} />
             </ActionButton>
           )}
-          {row.state?.promotedTaskId && <ActionButton title="On your board" onClick={() => undefined} active><ListPlus size={12} /></ActionButton>}
+          {row.state?.promotedTaskId && (
+            <ActionButton title="On your board — click to remove" onClick={() => onUnpromote(row.id)} active>
+              <ListPlus size={12} />
+            </ActionButton>
+          )}
         </div>
       </div>
 

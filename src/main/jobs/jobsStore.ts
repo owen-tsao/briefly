@@ -218,12 +218,26 @@ export function setNote(id: string, note: string): void {
   save(store)
 }
 
-export function setPromotedTask(id: string, taskId: string): void {
+export function setPromotedTask(id: string, taskId: string | null): void {
   const store = load()
   const state = touch(store, id)
   if (!state) return
   state.promotedTaskId = taskId
   save(store)
+}
+
+/** Untouched postings that are plainly outside the US: retire them so they stop costing tokens and attention. */
+export function retireNonUS(isNonUS: (location: string | null) => boolean): number {
+  const store = load()
+  let n = 0
+  for (const it of store.items) {
+    if (it.active && !store.state[it.id] && isNonUS(it.location)) {
+      it.active = false
+      n++
+    }
+  }
+  if (n > 0) save(store)
+  return n
 }
 
 export function getItem(id: string): JobItem | undefined {
@@ -285,20 +299,31 @@ export function upsertItems(incoming: JobItem[]): { added: string[]; changed: st
   return { added, changed }
 }
 
+/** Unscored postings older than this are not worth LLM budget — they're the initial backfill, not inflow. */
+const SCORE_MAX_AGE_DAYS = 10
+
+function scoreEligible(it: JobItem, profileVersion: string, now = Date.now()): boolean {
+  if (!it.active) return false
+  if (it.verdict && it.scoredWithProfileVersion === profileVersion) return false
+  // Already scored under an older profile: always worth re-scoring. Never scored: only if recent.
+  if (it.verdict) return true
+  return now - new Date(it.postedAt ?? it.seenAt).getTime() <= SCORE_MAX_AGE_DAYS * 86_400_000
+}
+
 /** Items that still need a verdict for the current profile version. Watchlist companies first, then newest. */
 export function itemsNeedingScore(profileVersion: string, limit: number, priorityCompanies: string[] = []): JobItem[] {
   const store = load()
   const prio = new Set(priorityCompanies.map((c) => c.toLowerCase()))
   const rank = (it: JobItem): number => (it.source === 'ats' || prio.has(it.company.toLowerCase()) ? 0 : it.pay ? 1 : 2)
   return store.items
-    .filter((it) => it.active && (!it.verdict || it.scoredWithProfileVersion !== profileVersion))
+    .filter((it) => scoreEligible(it, profileVersion))
     .sort((a, b) => rank(a) - rank(b) || (b.postedAt ?? b.seenAt).localeCompare(a.postedAt ?? a.seenAt))
     .slice(0, limit)
 }
 
 /** How many active items are still waiting for a verdict. */
 export function getUnscoredCount(profileVersion: string): number {
-  return load().items.filter((it) => it.active && (!it.verdict || it.scoredWithProfileVersion !== profileVersion)).length
+  return load().items.filter((it) => scoreEligible(it, profileVersion)).length
 }
 
 export function setVerdict(
