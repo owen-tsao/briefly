@@ -11,7 +11,7 @@ import type {
 } from '../../shared/jobs'
 import { JOB_STATUSES } from '../../shared/jobs'
 import { canonicalId } from './normalize'
-import { profileDir, profileFiles, profileVersion } from './profile'
+import { profileDir, profileFiles, profileVersion, readWatchlist } from './profile'
 
 const STORE_VERSION = 2
 const PRUNE_INACTIVE_DAYS = 60
@@ -175,7 +175,8 @@ export function getView(): JobsView {
     lastScanAt: store.lastScanAt,
     lastErrors: store.lastErrors,
     unscored: getUnscoredCount(profileVersion()),
-    sources: store.sources
+    sources: store.sources,
+    watchlist: readWatchlist().map((w) => w.company)
   }
 }
 

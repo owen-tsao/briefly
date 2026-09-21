@@ -125,4 +125,6 @@ export interface JobsView {
   unscored: number
   /** Per-source last successful run. */
   sources: Record<string, { lastRun: string | null; lastError: string | null }>
+  /** Company names from watchlist.md, for ranking top picks. */
+  watchlist: string[]
 }

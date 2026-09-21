@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronRight, ExternalLink, ListPlus, RefreshCw, Rocket, Search, Sparkles } from 'lucide-react'
+import { ChevronRight, ExternalLink, ListPlus, RefreshCw, Rocket, Search, Sparkles, X } from 'lucide-react'
 import type { JobRow, JobStatus, JobsView as JobsViewData } from '../../../shared/jobs'
 import { JOB_STATUS_LABELS, OUTCOME_STATUSES } from '../../../shared/jobs'
 import { cn, relativeTime } from '@/lib/utils'
+import { rankPicks, type Pick } from '@/lib/picks'
 import { ActionButton, MetaMenu } from '@/components/primitives'
 
 type Section = 'new' | 'progress' | 'applied' | 'hidden'
@@ -130,6 +131,8 @@ export function JobsView({ hasApiKey, onOpenSettings, onTasksChanged }: Props): 
     return out
   }, [data, query])
 
+  const picks = useMemo(() => (data ? rankPicks(data.rows, data.watchlist ?? []) : []), [data])
+
   if (!data) return <div className="p-4 text-xs text-gray-400">Loading…</div>
 
   const total = data.rows.length
@@ -223,6 +226,10 @@ export function JobsView({ hasApiKey, onOpenSettings, onTasksChanged }: Props): 
         </div>
       )}
 
+      {picks.length > 0 && !query && (
+        <TopPicks picks={picks} onApply={apply} onSkip={(id) => setStatus(id, 'skipped')} />
+      )}
+
       {SECTIONS.map((s) => {
         const rows = grouped[s.id]
         if (rows.length === 0 && s.id !== 'new') return null
@@ -277,6 +284,73 @@ export function JobsView({ hasApiKey, onOpenSettings, onTasksChanged }: Props): 
         )
       })}
     </div>
+  )
+}
+
+/**
+ * The "should I apply to something right now" glance: the three strongest untouched apply
+ * verdicts, with Apply as the primary action instead of hidden behind hover.
+ */
+function TopPicks({
+  picks,
+  onApply,
+  onSkip
+}: {
+  picks: Pick[]
+  onApply: (id: string) => void
+  onSkip: (id: string) => void
+}): React.JSX.Element {
+  return (
+    <section className="rounded-xl border border-slate-200 bg-slate-50/70 p-2.5 dark:border-white/[0.1] dark:bg-white/[0.03]">
+      <div className="mb-2 flex items-center gap-1.5 px-0.5">
+        <Sparkles size={12} className="text-gray-500 dark:text-zinc-400" />
+        <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-gray-600 dark:text-zinc-300">
+          Top picks
+        </span>
+        <span className="ml-auto text-[10.5px] text-gray-400 dark:text-zinc-500">
+          referral · watchlist · pay · fresh
+        </span>
+      </div>
+      <div className="space-y-1.5">
+        {picks.map(({ row, why }) => {
+          const it = row.item!
+          return (
+            <div
+              key={row.id}
+              className="flex items-center gap-2.5 rounded-lg border border-slate-200 bg-white px-2.5 py-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:border-white/[0.08] dark:bg-ink-900"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="truncate text-[12.5px] font-semibold">{it.company}</span>
+                  {it.dcLink && <Chip tone="teal">DC</Chip>}
+                  {it.pay && <Chip tone="neutral">{it.pay}</Chip>}
+                </div>
+                <div className="truncate text-[11.5px] text-gray-600 dark:text-zinc-300">{it.title}</div>
+                <div className="mt-0.5 truncate text-[10.5px] text-gray-400 dark:text-zinc-500">
+                  {[...why, it.location].filter(Boolean).join(' · ')}
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                <ActionButton title="Open posting" onClick={() => window.briefly.openUrl(it.url)}>
+                  <ExternalLink size={12} />
+                </ActionButton>
+                <ActionButton title="Not for me — skip" onClick={() => onSkip(row.id)}>
+                  <X size={12} />
+                </ActionButton>
+                <button
+                  onClick={() => onApply(row.id)}
+                  title="Apply with Aside — fills the form, never submits"
+                  className="flex items-center gap-1 rounded-md bg-gray-900 px-2 py-1 text-[11px] font-semibold text-white shadow-sm transition-all hover:bg-gray-700 active:scale-95 dark:bg-accent dark:hover:bg-accent-hover"
+                >
+                  <Rocket size={11} />
+                  Apply
+                </button>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </section>
   )
 }
 
