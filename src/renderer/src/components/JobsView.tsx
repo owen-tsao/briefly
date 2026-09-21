@@ -6,25 +6,33 @@ import { cn, relativeTime } from '@/lib/utils'
 import { rankPicks, type Pick } from '@/lib/picks'
 import { ActionButton, MetaMenu } from '@/components/primitives'
 
-type Section = 'new' | 'progress' | 'applied' | 'hidden'
+type Section = 'sudo' | 'week' | 'progress' | 'applied' | 'older' | 'hidden'
+
+const WEEK_MS = 7 * 86_400_000
 
 const SECTIONS: { id: Section; label: string; hint: string }[] = [
-  { id: 'new', label: 'New', hint: 'Scored apply or flagged, nothing done yet' },
+  { id: 'sudo', label: 'From zero2sudo', hint: 'Human-curated stories, often with a referral route' },
+  { id: 'week', label: 'New this week', hint: 'Apply verdicts from the last 7 days, newest first' },
   { id: 'progress', label: 'In progress', hint: 'Saved or applying' },
   { id: 'applied', label: 'Applied', hint: 'Submitted — track the outcome here' },
+  { id: 'older', label: 'Older & flagged', hint: 'Apply verdicts older than a week, and anything the matcher was unsure about' },
   { id: 'hidden', label: 'Hidden', hint: 'Skipped by you or by the matcher' }
 ]
 
-function sectionOf(row: JobRow): Section | 'queue' {
+function sectionOf(row: JobRow, now: number): Section | 'queue' {
   const status = row.state?.status ?? 'new'
   if (status === 'saved' || status === 'applying') return 'progress'
   if (OUTCOME_STATUSES.includes(status)) return 'applied'
   if (status === 'skipped') return 'hidden'
-  // Untouched and no longer listed anywhere: nothing to act on, so it leaves New.
-  if (row.item && !row.item.active) return 'hidden'
-  if (row.item && !row.item.verdict) return 'queue'
-  if (row.item?.verdict?.decision === 'skip') return 'hidden'
-  return 'new'
+  const it = row.item
+  if (!it) return 'hidden'
+  // Untouched and no longer listed anywhere: nothing to act on.
+  if (!it.active) return 'hidden'
+  if (!it.verdict) return 'queue'
+  if (it.verdict.decision === 'skip') return 'hidden'
+  if (it.source === 'instagram' || it.alsoSeenIn.includes('instagram')) return 'sudo'
+  if (it.verdict.decision === 'flagged') return 'older'
+  return now - new Date(it.postedAt ?? it.seenAt).getTime() <= WEEK_MS ? 'week' : 'older'
 }
 
 const STATUS_DOT: Record<JobStatus, string> = {
@@ -59,9 +67,11 @@ export function JobsView({ hasApiKey, onOpenSettings, onTasksChanged }: Props): 
   /** Sticky until dismissed — the OS notification is easy to miss and the clipboard is invisible. */
   const [applied, setApplied] = useState<{ id: string; company: string; via: 'cli' | 'clipboard' } | null>(null)
   const [openSections, setOpenSections] = useState<Record<Section, boolean>>({
-    new: true,
+    sudo: true,
+    week: true,
     progress: true,
     applied: true,
+    older: false,
     hidden: false
   })
 
@@ -116,22 +126,34 @@ export function JobsView({ hasApiKey, onOpenSettings, onTasksChanged }: Props): 
 
   const grouped = useMemo(() => {
     const q = query.trim().toLowerCase()
-    const out: Record<Section, JobRow[]> & { queue: JobRow[] } = { new: [], progress: [], applied: [], hidden: [], queue: [] }
+    const now = Date.now()
+    const out: Record<Section, JobRow[]> & { queue: JobRow[] } = {
+      sudo: [],
+      week: [],
+      progress: [],
+      applied: [],
+      older: [],
+      hidden: [],
+      queue: []
+    }
     if (!data) return out
     for (const row of data.rows) {
       const company = row.item?.company ?? row.state?.snapshot.company ?? ''
       const title = row.item?.title ?? row.state?.snapshot.title ?? ''
       if (q && !`${company} ${title}`.toLowerCase().includes(q)) continue
-      out[sectionOf(row)].push(row)
+      out[sectionOf(row, now)].push(row)
     }
     const key = (r: JobRow): string => r.state?.updatedAt ?? r.item?.postedAt ?? r.item?.seenAt ?? ''
+    const posted = (r: JobRow): string => r.item?.postedAt ?? r.item?.seenAt ?? ''
     for (const s of Object.keys(out) as (Section | 'queue')[]) {
-      if (s === 'new') {
+      if (s === 'week' || s === 'sudo') {
+        out[s].sort((a, b) => posted(b).localeCompare(posted(a)))
+      } else if (s === 'older') {
         // Apply verdicts first, then newest.
         out[s].sort((a, b) => {
           const av = a.item?.verdict?.decision === 'apply' ? 0 : 1
           const bv = b.item?.verdict?.decision === 'apply' ? 0 : 1
-          return av - bv || key(b).localeCompare(key(a))
+          return av - bv || posted(b).localeCompare(posted(a))
         })
       } else {
         out[s].sort((a, b) => key(b).localeCompare(key(a)))
@@ -267,9 +289,13 @@ export function JobsView({ hasApiKey, onOpenSettings, onTasksChanged }: Props): 
 
       {SECTIONS.map((s) => {
         const rows = grouped[s.id]
-        if (rows.length === 0 && s.id !== 'new') return null
+        if (rows.length === 0 && s.id !== 'week') return null
         if (rows.length === 0 && total === 0) return null
         const open = openSections[s.id]
+        const counts =
+          s.id === 'older'
+            ? `${rows.filter((r) => r.item?.verdict?.decision === 'apply').length} apply · ${rows.filter((r) => r.item?.verdict?.decision === 'flagged').length} flagged`
+            : String(rows.length)
         return (
           <section key={s.id}>
             <button
@@ -287,7 +313,7 @@ export function JobsView({ hasApiKey, onOpenSettings, onTasksChanged }: Props): 
                 {s.label}
               </span>
               <span className="text-[11px] tabular-nums text-gray-400 dark:text-zinc-600">
-                {rows.length}
+                {counts}
               </span>
               <span className="ml-auto hidden text-[10.5px] text-gray-400 group-hover:inline dark:text-zinc-600">
                 {s.hint}
@@ -297,7 +323,7 @@ export function JobsView({ hasApiKey, onOpenSettings, onTasksChanged }: Props): 
               <p className="pl-5 text-[11.5px] text-gray-400 dark:text-zinc-500">
                 {data.unscored > 0
                   ? `Nothing scored yet — ${data.unscored} waiting. Scan to score a batch now.`
-                  : 'Nothing new. Scans run every 15 minutes while briefly is open.'}
+                  : 'Nothing new this week. Scans run every 15 minutes while briefly is open.'}
               </p>
             )}
             {open && (
@@ -455,7 +481,7 @@ function JobCard({
             <span className="truncate text-[13px] font-semibold">{company}</span>
             {item?.dcLink && <Chip tone="teal">DC</Chip>}
             {item?.pay && <Chip tone="neutral">{item.pay}</Chip>}
-            {verdict && section === 'new' && (
+            {verdict && (section === 'week' || section === 'older' || section === 'sudo') && (
               <Chip tone={verdict.decision === 'apply' ? 'emerald' : 'amber'}>
                 {verdict.decision === 'apply' ? 'apply' : 'flagged'}
               </Chip>
@@ -508,7 +534,7 @@ function JobCard({
               </button>
             </>
           )}
-          {item && !stale && (section === 'new' || status === 'saved') && (
+          {item && !stale && (status === 'new' || status === 'saved') && (
             <ActionButton title="Apply with Aside — fills the form, never submits" onClick={() => onApply(row.id)}>
               <Rocket size={12} />
             </ActionButton>
