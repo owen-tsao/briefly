@@ -13,7 +13,7 @@ Return ONLY valid JSON (no markdown fences, no commentary) with this exact shape
     {
       "id": string | null,       // existing task id if updating it, null if new
       "text": string,             // concise, action-oriented, imperative
-      "track": string,            // "work" | "leetcode" | "job-apps" | "resume" | "personal" | "other"
+      "track": string,            // "work" | "leetcode" | "job-apps" | "resume" | "school" | "personal" | "other"
       "priority": string,         // "high" | "medium" | "low"
       "deadline": string | null,  // ISO date (YYYY-MM-DD) if explicit or clearly implied, else null
       "sourceNote": string,       // title of the note it came from
