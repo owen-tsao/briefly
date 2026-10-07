@@ -7,3 +7,4 @@ dist/
 *.tsbuildinfo
 .venv/
 __pycache__/
+.tmp/

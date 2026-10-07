@@ -5,6 +5,8 @@ import { setTray, updateTrayCount } from './tray'
 import { initScheduler, scheduleAutoRescan } from './scheduler'
 import { initNotifications } from './notifications'
 import { initJobsScheduler } from './jobs/pipeline'
+import { initSchoolScheduler } from './school/school'
+import { closeBrowser } from './browser/session'
 
 const WINDOW_WIDTH = 400
 const WINDOW_HEIGHT = 580
@@ -112,6 +114,7 @@ app.whenReady().then(() => {
   }
   initNotifications(openPopover)
   initJobsScheduler(() => window, openPopover)
+  initSchoolScheduler(() => window, openPopover)
 
   // Open the popover once on launch so the app is easy to locate.
   window.webContents.once('did-finish-load', () => {
@@ -127,3 +130,6 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {})
 
 app.on('will-quit', () => globalShortcut.unregisterAll())
+
+// Playwright kills its Chromium when we exit anyway; closing it first flushes the profile cleanly.
+app.on('before-quit', () => void closeBrowser())

@@ -1,7 +1,7 @@
 import type { BrowserWindow } from 'electron'
 import { powerMonitor } from 'electron'
 import { refresh } from './agent'
-import { getApiKey, getAutoRescanMinutes } from './settings'
+import { llmConfigured, getAutoRescanMinutes } from './settings'
 import { getLastRefreshed } from './taskStore'
 import { updateTrayCount } from './tray'
 import { notifyDueTasks } from './notifications'
@@ -43,7 +43,7 @@ export function scheduleAutoRescan(): void {
 }
 
 async function autoRescan(): Promise<void> {
-  if (!getApiKey()) return
+  if (!llmConfigured()) return
   const win = getWindow()
   // Never yank state out from under the user mid-edit — defer until the popover closes.
   if (win && !win.isDestroyed() && win.isVisible()) {

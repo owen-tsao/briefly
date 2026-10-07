@@ -9,12 +9,14 @@ import { AskView } from '@/components/AskView'
 import { NotesView } from '@/components/NotesView'
 import { SettingsView } from '@/components/SettingsView'
 import { JobsView } from '@/components/JobsView'
+import { SchoolView } from '@/components/SchoolView'
 
-type Tab = 'tasks' | 'jobs' | 'notes' | 'ask' | 'settings'
+type Tab = 'tasks' | 'jobs' | 'school' | 'notes' | 'ask' | 'settings'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'tasks', label: 'Tasks' },
   { id: 'jobs', label: 'Jobs' },
+  { id: 'school', label: 'School' },
   { id: 'notes', label: 'Notes' },
   { id: 'ask', label: 'Ask' },
   { id: 'settings', label: 'Settings' }
@@ -45,7 +47,7 @@ export function App(): React.JSX.Element {
           day: 'numeric',
           month: 'short'
         }),
-        time: now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+        time: now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
       })
     }
     updateTime()
@@ -77,6 +79,8 @@ export function App(): React.JSX.Element {
 
   // Pick up auto-rescan results from the main process.
   useEffect(() => window.briefly.onStateChanged(setState), [])
+  // School mirrors deadlines into Tasks in the background; re-read tasks when it does.
+  useEffect(() => window.briefly.onSchoolChanged(() => void loadState()), [loadState])
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true)
@@ -135,12 +139,12 @@ export function App(): React.JSX.Element {
     setState(await window.briefly.setTaskPriority(id, priority))
   }, [])
 
-  const handleOpenNote = useCallback((title: string) => {
-    void window.briefly.openNote(title)
+  const handleTaskPin = useCallback(async (id: string, pinned: boolean) => {
+    setState(await window.briefly.setTaskPinned(id, pinned))
   }, [])
 
-  const handleTodayDismiss = useCallback(async (text: string) => {
-    setState(await window.briefly.dismissTodayItem(text))
+  const handleOpenNote = useCallback((title: string) => {
+    void window.briefly.openNote(title)
   }, [])
 
   const allDone = useMemo(() => {
@@ -253,8 +257,8 @@ export function App(): React.JSX.Element {
             onTaskHorizon={handleTaskHorizon}
             onTaskTrack={handleTaskTrack}
             onTaskPriority={handleTaskPriority}
+            onTaskPin={handleTaskPin}
             onOpenNote={handleOpenNote}
-            onTodayDismiss={handleTodayDismiss}
             onEndDay={handleEndDay}
             onOpenSettings={() => setTab('settings')}
           />
@@ -266,6 +270,7 @@ export function App(): React.JSX.Element {
             onTasksChanged={loadState}
           />
         )}
+        {tab === 'school' && <SchoolView onOpenSettings={() => setTab('settings')} onTasksChanged={loadState} />}
         {tab === 'notes' && <NotesView onTasksChanged={loadState} />}
         {tab === 'ask' && <AskView hasApiKey={state?.hasApiKey ?? false} />}
         {tab === 'settings' && <SettingsView onSaved={loadState} />}

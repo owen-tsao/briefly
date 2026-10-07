@@ -9,18 +9,22 @@ import {
   setTaskHorizon,
   setTaskTrack,
   setTaskPriority,
+  setTaskPinned,
   endDay,
   reopenDay
 } from './taskStore'
-import { getSettingsView, saveSettings, getApiKey } from './settings'
+import { getBedrockConfig, getBedrockCredentials, getSettingsView, saveSettings, llmConfigured } from './settings'
 import { refresh, ask, listNotes, extractFromNote } from './agent'
 import { openNote } from './notes'
 import { listModels } from './llm'
+import { testConnection } from './bedrock'
 import { updateTrayCount } from './tray'
 import { scheduleAutoRescan } from './scheduler'
 import { registerJobsIpc } from './jobs/ipc'
 import { scheduleJobsScan } from './jobs/pipeline'
-import type { Horizon, Priority, TaskState, Track } from '../shared/types'
+import { registerSchoolIpc } from './school/ipc'
+import { scheduleSchoolPoll } from './school/school'
+import type { Horizon, Priority, SettingsUpdate, TaskState, Track } from '../shared/types'
 import { HORIZONS, TRACKS } from '../shared/types'
 
 const TASK_STATES: TaskState[] = ['open', 'done', 'snoozed', 'dismissed', 'archived']
@@ -28,7 +32,8 @@ const PRIORITIES: Priority[] = ['high', 'medium', 'low']
 
 export function registerIpc(): void {
   registerJobsIpc()
-  ipcMain.handle('state:get', () => getState(Boolean(getApiKey())))
+  registerSchoolIpc()
+  ipcMain.handle('state:get', () => getState(llmConfigured()))
 
   ipcMain.handle('state:refresh', async () => {
     const result = await refresh()
@@ -47,13 +52,13 @@ export function registerIpc(): void {
         setTaskState(id, state, until)
         updateTrayCount()
       }
-      return getState(Boolean(getApiKey()))
+      return getState(llmConfigured())
     }
   )
 
   ipcMain.handle('task:updateText', (_event, id: string, text: string) => {
     if (typeof id === 'string' && typeof text === 'string') updateTaskText(id, text)
-    return getState(Boolean(getApiKey()))
+    return getState(llmConfigured())
   })
 
   ipcMain.handle('task:add', (_event, text: string) => {
@@ -61,29 +66,34 @@ export function registerIpc(): void {
       addTask(text)
       updateTrayCount()
     }
-    return getState(Boolean(getApiKey()))
+    return getState(llmConfigured())
   })
 
   ipcMain.handle('task:setRecurrence', (_event, id: string, recurrence: 'daily' | null) => {
     if (typeof id === 'string' && (recurrence === 'daily' || recurrence === null)) {
       setTaskRecurrence(id, recurrence)
     }
-    return getState(Boolean(getApiKey()))
+    return getState(llmConfigured())
   })
 
   ipcMain.handle('task:setHorizon', (_event, id: string, horizon: Horizon) => {
     if (typeof id === 'string' && HORIZONS.includes(horizon)) setTaskHorizon(id, horizon)
-    return getState(Boolean(getApiKey()))
+    return getState(llmConfigured())
   })
 
   ipcMain.handle('task:setTrack', (_event, id: string, track: Track) => {
     if (typeof id === 'string' && TRACKS.includes(track)) setTaskTrack(id, track)
-    return getState(Boolean(getApiKey()))
+    return getState(llmConfigured())
   })
 
   ipcMain.handle('task:setPriority', (_event, id: string, priority: Priority) => {
     if (typeof id === 'string' && PRIORITIES.includes(priority)) setTaskPriority(id, priority)
-    return getState(Boolean(getApiKey()))
+    return getState(llmConfigured())
+  })
+
+  ipcMain.handle('task:setPinned', (_event, id: string, pinned: boolean) => {
+    if (typeof id === 'string' && typeof pinned === 'boolean') setTaskPinned(id, pinned)
+    return getState(llmConfigured())
   })
 
   ipcMain.handle('notes:open', async (_event, title: string) => {
@@ -98,19 +108,19 @@ export function registerIpc(): void {
 
   ipcMain.handle('today:dismiss', (_event, text: string) => {
     if (typeof text === 'string') dismissTodayItem(text)
-    return getState(Boolean(getApiKey()))
+    return getState(llmConfigured())
   })
 
   ipcMain.handle('day:end', () => {
     endDay()
     updateTrayCount()
-    return getState(Boolean(getApiKey()))
+    return getState(llmConfigured())
   })
 
   ipcMain.handle('day:reopen', () => {
     reopenDay()
     updateTrayCount()
-    return getState(Boolean(getApiKey()))
+    return getState(llmConfigured())
   })
 
   ipcMain.handle('ask', (_event, question: string) => ask(question))
@@ -133,25 +143,37 @@ export function registerIpc(): void {
     }
   })
 
-  ipcMain.handle('settings:save',
-    (_event, update: {
-      baseUrl?: string
-      model?: string
-      apiKey?: string
-      autoRescanMinutes?: number
-      notificationsEnabled?: boolean
-      dayStartHour?: number
-      profileDir?: string
-      jobsScanMinutes?: number
-      jobsInBadge?: boolean
-    }) => {
+  ipcMain.handle('settings:save', (_event, update: SettingsUpdate) => {
+    if (!update || typeof update !== 'object') return { ok: false as const, error: 'Bad settings payload.', view: getSettingsView() }
+    try {
       const view = saveSettings(update)
       scheduleAutoRescan()
       scheduleJobsScan()
+      scheduleSchoolPoll()
       updateTrayCount()
-      return view
+      return { ok: true as const, view }
+    } catch (err: unknown) {
+      // Validation failures (malformed key, keychain unavailable) come back as messages, never thrown
+      // across IPC where Electron would serialize the whole error.
+      return { ok: false as const, error: err instanceof Error ? err.message : 'Could not save settings.', view: getSettingsView() }
     }
-  )
+  })
+
+  /**
+   * One tiny Bedrock call with the stored credentials, so a bad key, region, or model shows up
+   * in Settings instead of as a silent screening stall. Only ever uses what is already saved.
+   */
+  ipcMain.handle('bedrock:test', async () => {
+    const credentials = getBedrockCredentials()
+    if (!credentials) return { ok: false, error: 'Save an access key pair first.' }
+    try {
+      const { region, model } = getBedrockConfig()
+      const r = await testConnection(region, model, credentials)
+      return { ok: true, ms: r.ms, tokens: r.tokens }
+    } catch (err: unknown) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) }
+    }
+  })
 
   ipcMain.handle('login:get', () => app.getLoginItemSettings().openAtLogin)
 
