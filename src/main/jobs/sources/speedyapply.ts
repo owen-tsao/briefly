@@ -1,18 +1,19 @@
 import type { JobItem } from '../../../shared/jobs'
-import { fetchText } from '../extract'
 import { stripHtml, titleLooksRelevant } from '../normalize'
-import { toItem } from './common'
+import { fetchFeed, toItem } from './common'
 
 const URL = 'https://raw.githubusercontent.com/speedyapply/2027-SWE-College-Jobs/main/README.md'
 
 /**
  * SpeedyApply README: the only feed that lists hourly pay. Row shape:
  * | <a href=site><strong>Company</strong></a> | Title | Location | $55/hr | <a href=APPLY_URL>… | 4d |
+ * Returns null when the README is unchanged since the last fetch.
  */
-export async function fetchSpeedyApply(maxAgeDays: number): Promise<JobItem[]> {
-  const r = await fetchText(URL)
-  if (!r.ok) throw new Error('SpeedyApply README unavailable')
-  const md = r.text
+export async function fetchSpeedyApply(maxAgeDays: number, force = false): Promise<JobItem[] | null> {
+  const f = await fetchFeed(URL, 'speedyapply', force)
+  if (f.unchanged) return null
+  if (!f.text) throw new Error('SpeedyApply README unavailable')
+  const md = f.text
   const out: JobItem[] = []
   for (const line of md.split('\n')) {
     if (!line.startsWith('|') || !/https?:/.test(line)) continue

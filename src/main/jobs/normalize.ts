@@ -101,7 +101,8 @@ export function detectTerm(...texts: (string | null | undefined)[]): JobTerm {
   return 'unknown'
 }
 
-const TITLE_MUST = /intern|co-?op/i
+// Word-bounded: "Internal Agent", "Database Internals", "International", "Cooperative Systems" are not internships.
+const TITLE_MUST = /\b(intern|interns|internship|internships|co-?op|coop)\b/i
 const TITLE_ANY = /software|engineer|swe|developer|machine learning|\bml\b|\bai\b|data|quant|research|infra|platform|backend|frontend|full[- ]?stack|systems|security|robotics/i
 const TITLE_NOT = /\b(marketing|sales|hr\b|human resources|recruit|finance|accounting|legal|paralegal|design intern|ux|product manager|pm intern|business|operations|analyst|supply chain|mechanical|civil|electrical|chemical|nurse|pharma)/i
 
@@ -111,15 +112,28 @@ export function titleLooksRelevant(title: string): boolean {
 }
 
 const NON_US =
-  /\b(canada|toronto|vancouver|montr[eé]al|ottawa|calgary|waterloo|united kingdom|\buk\b|london|england|ireland|dublin|germany|berlin|munich|france|paris|netherlands|amsterdam|poland|warsaw|india|bangalore|bengaluru|hyderabad|pune|mumbai|singapore|israel|tel aviv|australia|sydney|melbourne|japan|tokyo|china|shanghai|beijing|taiwan|taipei|korea|seoul|mexico|brazil|s[aã]o paulo|spain|madrid|barcelona|switzerland|zurich|sweden|stockholm)\b|,\s?(ON|BC|QC|AB)\b/i
+  /\b(canada|toronto|vancouver|montr[eé]al|ottawa|calgary|waterloo|united kingdom|\buk\b|england|ireland|germany|berlin|munich|france|netherlands|amsterdam|poland|warsaw|india|bangalore|bengaluru|hyderabad|pune|mumbai|singapore|israel|tel aviv|australia|sydney|japan|tokyo|china|shanghai|beijing|taiwan|taipei|korea|seoul|brazil|s[aã]o paulo|spain|madrid|barcelona|switzerland|zurich|sweden|stockholm)\b|(?<!new )\bmexico\b|\b(dublin|melbourne|paris)\b(?![^,]*,\s*(ohio|florida|texas|oh|fl|tx)\b)/i
+/** Canadian province codes and "London" are case-sensitive: ", on site" and "New London, CT" must not match. */
+const NON_US_STRICT = /,\s?(ON|BC|QC|AB)\b|(?<!New )\bLondon\b/
+const US_STATE = /\b(A[LKZR]|C[AOT]|DE|FL|GA|HI|I[DLNA]|K[SY]|LA|M[EDAINSOT]|N[EVHJMYCD]|O[HKR]|PA|RI|S[CD]|T[NX]|UT|V[TA]|W[AVIY]|DC)\b/
+const US_STATE_NAME =
+  /\b(alabama|alaska|arizona|arkansas|california|colorado|connecticut|delaware|florida|georgia|hawaii|idaho|illinois|indiana|iowa|kansas|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|new hampshire|new jersey|new mexico|new york|north carolina|north dakota|ohio|oklahoma|oregon|pennsylvania|rhode island|south carolina|south dakota|tennessee|texas|utah|vermont|virginia|washington|west virginia|wisconsin|wyoming)\b/i
 
 /**
  * Locations that are plainly outside the US. Empty/remote/unknown stays in, so this only
  * removes postings that would fail the location rule anyway — before they cost LLM tokens.
+ * Any US marker anywhere in the string wins ("Toronto / New York" is a US option).
  */
 export function locationLooksNonUS(location: string | null | undefined): boolean {
   if (!location) return false
-  return NON_US.test(location) && !/united states|\busa?\b|remote.*us|us.*remote/i.test(location)
+  // ISO country codes collide with state codes: "Toronto, ON, CA" / "Berlin, DE" / "Bangalore, IN".
+  // A trailing two-letter code right after a known non-US place is a country, not a state.
+  const trailingCountryCode = /\b(CA|DE|IN)\s*$/.test(location.trim()) && (NON_US.test(location) || NON_US_STRICT.test(location))
+  const stateCode = US_STATE.test(trailingCountryCode ? location.trim().replace(/\b(CA|DE|IN)\s*$/, '') : location)
+  if (/united states|\busa?\b|remote.*us|us.*remote/i.test(location) || stateCode || US_STATE_NAME.test(location)) {
+    return false
+  }
+  return NON_US.test(location) || NON_US_STRICT.test(location)
 }
 
 export function stripHtml(html: string): string {
@@ -137,4 +151,62 @@ export function stripHtml(html: string): string {
     .replace(/[ \t]+/g, ' ')
     .replace(/\n\s*\n+/g, '\n')
     .trim()
+}
+
+/**
+ * Best-effort role name from a URL. Many ATS URLs carry the role in the path
+ * ("/jobs/10559746/software-development-engineer-intern-summer-2027"), which beats a blank.
+ * Returns '' when the path is only ids or site chrome.
+ */
+const SITE_CHROME = /^(careers?-home|job-?boards?|job-?search|en-us|search-results|job-details?)$/i
+export function slugTitle(url: string): string {
+  try {
+    const segs = new URL(url).pathname.split('/').filter(Boolean)
+    const slug = [...segs]
+      .reverse()
+      .find((s) => /[a-z]/i.test(s) && /-/.test(s) && !/^[0-9a-f-]{32,}$/i.test(s) && !SITE_CHROME.test(s))
+    if (!slug) return ''
+    return slug
+      .replace(/\.[a-z]+$/i, '')
+      // Workday appends the requisition id to the slug: "...-Summer-2027_JR1990001".
+      .replace(/_[A-Z]*\d+$/i, '')
+      .split('-')
+      .filter((w) => w && !/^\d+$/.test(w))
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ')
+      .slice(0, 120)
+  } catch {
+    return ''
+  }
+}
+
+/** Multi-tenant ATS hosts where the company is a path segment, not the hostname. */
+const PATH_TENANT: { host: RegExp; seg: number }[] = [
+  { host: /^jobs\.smartrecruiters\.com$/, seg: 0 }, // /Intuitive/7440-ai-research-intern
+  { host: /^app\.careerpuck\.com$/, seg: 1 } // /job-board/lyft/job/123
+]
+/** Single-tenant ATS hosts of the form <company>.<ats>.com or careers-<company>.<ats>.com. */
+const SUBDOMAIN_TENANT = /^(?:careers-|jobs-)?([a-z0-9-]+)\.(?:icims|jibeapply|myworkdayjobs|wd\d+\.myworkdayjobs|taleo|successfactors|avature)\.(?:com|net)$/i
+
+/** Best-effort company name from a posting URL: ATS board handle first, then host heuristics. */
+export function hostToCompany(url: string): string {
+  const ref = classifyUrl(url)
+  const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1)
+  if (ref) return cap(decodeURIComponent(ref.ats === 'workday' ? ref.tenant : ref.board))
+  try {
+    const u = new URL(url)
+    const host = u.hostname.replace(/^www\./, '')
+    const segs = u.pathname.split('/').filter(Boolean)
+    const pathRule = PATH_TENANT.find((r) => r.host.test(host))
+    if (pathRule && segs[pathRule.seg]) return cap(decodeURIComponent(segs[pathRule.seg]))
+    const sub = SUBDOMAIN_TENANT.exec(host)
+    if (sub) return cap(sub[1])
+    if (host === 'google.com' && segs[0] === 'about') return 'Google'
+    if (/(^|\.)withgoogle\.com$/.test(host)) return 'Google'
+    const parts = host.split('.')
+    // careers.lutron.com / jobs.statefarm.com → the registrable label, not the "careers" prefix.
+    return cap(parts[parts.length - 2] ?? 'Unknown')
+  } catch {
+    return 'Unknown'
+  }
 }

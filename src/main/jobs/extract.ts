@@ -1,4 +1,5 @@
 import { classifyUrl, greenhouseEmbedId, stripHtml, type AtsRef } from './normalize'
+import { parseHourlyPay } from '../../shared/pay'
 
 const UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36'
@@ -14,6 +15,11 @@ export interface Extracted {
   /** Populated from ATS metadata when present. */
   location?: string | null
   postedAt?: string | null
+  /** Hourly pay quoted in the text, e.g. "$45–60/hr". */
+  pay?: string | null
+  /** Role and employer as the ATS/JSON-LD states them; used to replace URL guesses on pasted links. */
+  title?: string | null
+  company?: string | null
 }
 
 /**
@@ -24,7 +30,7 @@ export async function fetchText(
   url: string,
   init: RequestInit = {},
   maxBytes = MAX_BODY_BYTES
-): Promise<{ ok: boolean; status: number; text: string }> {
+): Promise<{ ok: boolean; status: number; text: string; etag: string | null }> {
   const ctrl = new AbortController()
   const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS)
   try {
@@ -34,7 +40,9 @@ export async function fetchText(
       redirect: 'follow',
       headers: { 'user-agent': UA, accept: 'application/json, text/html;q=0.9', ...(init.headers ?? {}) }
     })
-    if (!r.ok || !r.body) return { ok: r.ok, status: r.status, text: '' }
+    const etag = r.headers.get('etag')
+    // 304 = our If-None-Match matched; the caller keeps what it has. Costs neither side a body.
+    if (!r.ok || !r.body) return { ok: r.ok, status: r.status, text: '', etag }
     const declared = Number(r.headers.get('content-length') ?? 0)
     if (declared > maxBytes) throw new Error(`response too large (${declared} bytes)`)
     const reader = r.body.getReader()
@@ -50,7 +58,7 @@ export async function fetchText(
       }
       chunks.push(value)
     }
-    return { ok: true, status: r.status, text: Buffer.concat(chunks).toString('utf8') }
+    return { ok: true, status: r.status, text: Buffer.concat(chunks).toString('utf8'), etag }
   } finally {
     clearTimeout(t)
   }
@@ -69,16 +77,24 @@ export async function getJson<T>(url: string, init: RequestInit = {}, maxBytes =
 async function fromAts(ref: NonNullable<AtsRef>): Promise<Extracted | null> {
   switch (ref.ats) {
     case 'greenhouse': {
-      const j = await getJson<{ content?: string; location?: { name?: string }; updated_at?: string }>(
+      const j = await getJson<{ title?: string; company_name?: string; content?: string; location?: { name?: string }; updated_at?: string }>(
         `https://boards-api.greenhouse.io/v1/boards/${ref.board}/jobs/${ref.id}`
       )
       if (!j) return null
       // Greenhouse returns HTML-escaped HTML in `content`.
       const text = stripHtml(stripHtml(j.content ?? ''))
-      return { text, descriptionAvailable: text.length >= MIN_READABLE, location: j.location?.name ?? null, postedAt: j.updated_at ?? null }
+      return {
+        text,
+        descriptionAvailable: text.length >= MIN_READABLE,
+        location: j.location?.name ?? null,
+        postedAt: j.updated_at ?? null,
+        title: j.title ?? null,
+        company: j.company_name ?? null
+      }
     }
     case 'lever': {
       const j = await getJson<{
+        text?: string
         descriptionPlain?: string
         lists?: { text: string; content: string }[]
         additionalPlain?: string
@@ -97,26 +113,39 @@ async function fromAts(ref: NonNullable<AtsRef>): Promise<Extracted | null> {
         text,
         descriptionAvailable: text.length >= MIN_READABLE,
         location: j.categories?.location ?? null,
-        postedAt: j.createdAt ? new Date(j.createdAt).toISOString() : null
+        postedAt: j.createdAt ? new Date(j.createdAt).toISOString() : null,
+        title: j.text ?? null
       }
     }
     case 'ashby': {
-      const j = await getJson<{ jobs?: { id: string; descriptionPlain?: string; location?: string; publishedAt?: string }[] }>(
+      const j = await getJson<{ jobs?: { id: string; title?: string; descriptionPlain?: string; location?: string; publishedAt?: string }[] }>(
         `https://api.ashbyhq.com/posting-api/job-board/${ref.board}`
       )
       const job = j?.jobs?.find((x) => x.id === ref.id)
       if (!job) return null
       const text = job.descriptionPlain ?? ''
-      return { text, descriptionAvailable: text.length >= MIN_READABLE, location: job.location ?? null, postedAt: job.publishedAt ?? null }
+      return {
+        text,
+        descriptionAvailable: text.length >= MIN_READABLE,
+        location: job.location ?? null,
+        postedAt: job.publishedAt ?? null,
+        title: job.title ?? null
+      }
     }
     case 'workday': {
-      const j = await getJson<{ jobPostingInfo?: { jobDescription?: string; location?: string; startDate?: string } }>(
+      const j = await getJson<{ jobPostingInfo?: { title?: string; jobDescription?: string; location?: string; startDate?: string } }>(
         `https://${ref.tenant}.${ref.wd}.myworkdayjobs.com/wday/cxs/${ref.tenant}/${ref.site}/job/${ref.path}`
       )
       const info = j?.jobPostingInfo
       if (!info) return null
       const text = stripHtml(info.jobDescription ?? '')
-      return { text, descriptionAvailable: text.length >= MIN_READABLE, location: info.location ?? null, postedAt: info.startDate ?? null }
+      return {
+        text,
+        descriptionAvailable: text.length >= MIN_READABLE,
+        location: info.location ?? null,
+        postedAt: info.startDate ?? null,
+        title: info.title ?? null
+      }
     }
   }
 }
@@ -150,7 +179,14 @@ async function fromHtml(url: string): Promise<Extracted> {
           if (n && (n['@type'] === 'JobPosting' || n['@type']?.includes?.('JobPosting')) && n.description) {
             const text = stripHtml(String(n.description))
             if (text.length >= MIN_READABLE) {
-              return { text, descriptionAvailable: true, postedAt: n.datePosted ?? null, location: n.jobLocation?.address?.addressLocality ?? null }
+              return {
+                text,
+                descriptionAvailable: true,
+                postedAt: n.datePosted ?? null,
+                location: n.jobLocation?.address?.addressLocality ?? null,
+                title: typeof n.title === 'string' ? n.title : null,
+                company: typeof n.hiringOrganization?.name === 'string' ? n.hiringOrganization.name : null
+              }
             }
           }
         }
@@ -173,6 +209,12 @@ async function fromHtml(url: string): Promise<Extracted> {
  * plain HTML last. Never throws.
  */
 export async function extract(url: string, company: string): Promise<Extracted> {
+  const r = await extractRaw(url, company)
+  // Pay-transparency ranges live in the description; the feeds almost never carry them.
+  return { ...r, pay: r.text ? parseHourlyPay(r.text) : null }
+}
+
+async function extractRaw(url: string, company: string): Promise<Extracted> {
   try {
     const ref = classifyUrl(url)
     if (ref) {

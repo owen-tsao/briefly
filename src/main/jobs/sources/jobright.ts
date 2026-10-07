@@ -1,7 +1,6 @@
 import type { JobItem } from '../../../shared/jobs'
-import { fetchText } from '../extract'
 import { titleLooksRelevant } from '../normalize'
-import { toItem } from './common'
+import { fetchFeed, toItem } from './common'
 
 // The repo is still named 2026 but carries 2027-season rows.
 const URL = 'https://raw.githubusercontent.com/jobright-ai/2026-Software-Engineer-Internship/master/README.md'
@@ -12,11 +11,13 @@ const MONTHS: Record<string, number> = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4,
  * Jobright README: daily, ~100 rows, links go to jobright.ai (not the employer). Kept as a
  * backstop — rows whose company+title already exist from a direct source are dropped in the pipeline.
  * Row: | **[Company](site)** | **[Title](jobright url)** | Location | On Site | Sep 19 |
+ * Returns null when the README is unchanged since the last fetch.
  */
-export async function fetchJobright(maxAgeDays: number): Promise<JobItem[]> {
-  const r = await fetchText(URL)
-  if (!r.ok) throw new Error('Jobright README unavailable')
-  const md = r.text
+export async function fetchJobright(maxAgeDays: number, force = false): Promise<JobItem[] | null> {
+  const f = await fetchFeed(URL, 'jobright', force)
+  if (f.unchanged) return null
+  if (!f.text) throw new Error('Jobright README unavailable')
+  const md = f.text
   const out: JobItem[] = []
   for (const line of md.split('\n')) {
     if (!line.startsWith('|') || !/jobright\.ai\/jobs/.test(line)) continue

@@ -1,14 +1,19 @@
 import type { JobItem } from '../../../shared/jobs'
-import { getJson } from '../extract'
+import { FEED_MAX_BODY_BYTES, getJson } from '../extract'
 import { titleLooksRelevant } from '../normalize'
 import { readWatchlist, type WatchEntry } from '../profile'
 import { toItem, withinDays } from './common'
 
 type Board = WatchEntry & { ats: NonNullable<WatchEntry['ats']>; board: string }
 
+// Ashby returns every job's full description in one payload; OpenAI's board is ~14 MB.
+const BOARD_MAX_BYTES = FEED_MAX_BODY_BYTES
+
 async function greenhouse(b: Board, maxAgeDays: number): Promise<JobItem[]> {
   const j = await getJson<{ jobs?: { id: number; title: string; absolute_url: string; updated_at?: string; location?: { name?: string } }[] }>(
-    `https://boards-api.greenhouse.io/v1/boards/${b.board}/jobs`
+    `https://boards-api.greenhouse.io/v1/boards/${b.board}/jobs`,
+    {},
+    BOARD_MAX_BYTES
   )
   if (!j?.jobs) throw new Error(`greenhouse:${b.board} unavailable`)
   return j.jobs
@@ -27,7 +32,9 @@ async function greenhouse(b: Board, maxAgeDays: number): Promise<JobItem[]> {
 
 async function lever(b: Board, maxAgeDays: number): Promise<JobItem[]> {
   const j = await getJson<{ text: string; hostedUrl: string; createdAt?: number; categories?: { location?: string; commitment?: string } }[]>(
-    `https://api.lever.co/v0/postings/${b.board}?mode=json`
+    `https://api.lever.co/v0/postings/${b.board}?mode=json`,
+    {},
+    BOARD_MAX_BYTES
   )
   if (!j) throw new Error(`lever:${b.board} unavailable`)
   return j
@@ -48,7 +55,9 @@ async function lever(b: Board, maxAgeDays: number): Promise<JobItem[]> {
 
 async function ashby(b: Board, maxAgeDays: number): Promise<JobItem[]> {
   const j = await getJson<{ jobs?: { title: string; jobUrl: string; location?: string; publishedAt?: string; employmentType?: string }[] }>(
-    `https://api.ashbyhq.com/posting-api/job-board/${encodeURIComponent(b.board)}`
+    `https://api.ashbyhq.com/posting-api/job-board/${encodeURIComponent(b.board)}`,
+    {},
+    BOARD_MAX_BYTES
   )
   if (!j?.jobs) throw new Error(`ashby:${b.board} unavailable`)
   return j.jobs
@@ -112,20 +121,29 @@ function parsePostedOn(s?: string): string | null {
   return null
 }
 
+/**
+ * Boards in flight at once. Seventy pinned boards fired together looked like a burst to
+ * Greenhouse and a couple of requests came back empty; six at a time finishes in a few seconds
+ * and stays well inside what a browser tab would do.
+ */
+const BOARD_CONCURRENCY = 6
+
 /** Poll every board pinned in watchlist.md. One request per board; failures are per-board. */
 export async function fetchWatchlistBoards(maxAgeDays: number): Promise<{ items: JobItem[]; errors: string[] }> {
   const boards = readWatchlist().filter((w): w is Board => Boolean(w.ats && w.board))
   const items: JobItem[] = []
   const errors: string[] = []
-  await Promise.all(
-    boards.map(async (b) => {
+  const queue = [...boards]
+  const worker = async (): Promise<void> => {
+    for (let b = queue.shift(); b; b = queue.shift()) {
       try {
         const fn = { greenhouse, lever, ashby, workday }[b.ats]
         items.push(...(await fn(b, maxAgeDays)))
       } catch (err) {
         errors.push(err instanceof Error ? err.message : String(err))
       }
-    })
-  )
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(BOARD_CONCURRENCY, boards.length) }, worker))
   return { items, errors }
 }

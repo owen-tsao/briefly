@@ -1,7 +1,6 @@
 import type { JobItem } from '../../../shared/jobs'
-import { getJson } from '../extract'
 import { titleLooksRelevant } from '../normalize'
-import { toItem, withinDays } from './common'
+import { fetchFeed, toItem, withinDays } from './common'
 
 const URL = 'https://raw.githubusercontent.com/ApplyGuy/2027-Internships/main/data/internships.json'
 
@@ -17,10 +16,17 @@ interface Row {
   url?: string
 }
 
-/** ApplyGuy: updated hourly, direct ATS links, `posted` is YYYY-MM-DD. */
-export async function fetchApplyGuy(maxAgeDays: number): Promise<JobItem[]> {
-  const data = await getJson<Row[] | Record<string, unknown>>(URL)
-  if (!data) throw new Error('ApplyGuy feed unavailable')
+/** ApplyGuy: updated hourly, direct ATS links, `posted` is YYYY-MM-DD. Returns null when unchanged since last fetch. */
+export async function fetchApplyGuy(maxAgeDays: number, force = false): Promise<JobItem[] | null> {
+  const f = await fetchFeed(URL, 'applyguy', force)
+  if (f.unchanged) return null
+  if (!f.text) throw new Error('ApplyGuy feed unavailable')
+  let data: Row[] | Record<string, unknown>
+  try {
+    data = JSON.parse(f.text)
+  } catch {
+    throw new Error('ApplyGuy feed is not valid JSON')
+  }
   const rows = (Array.isArray(data) ? data : (Object.values(data).find(Array.isArray) as Row[] | undefined)) ?? []
   const out: JobItem[] = []
   for (const r of rows) {

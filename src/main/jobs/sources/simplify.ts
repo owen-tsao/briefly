@@ -1,7 +1,7 @@
 import type { JobItem } from '../../../shared/jobs'
-import { FEED_MAX_BODY_BYTES, getJson } from '../extract'
+import { FEED_MAX_BODY_BYTES } from '../extract'
 import { titleLooksRelevant } from '../normalize'
-import { toItem, withinDays } from './common'
+import { fetchFeed, toItem, withinDays } from './common'
 
 const URL =
   'https://raw.githubusercontent.com/SimplifyJobs/Summer2027-Internships/dev/.github/scripts/listings.json'
@@ -27,9 +27,17 @@ const TERM_OK = /2027|fall 2026|autumn 2026/i
  * SimplifyJobs listings.json is ~13 MB and includes every past season. Filter to
  * visible, active, 2027-ish, recent, relevant-title rows before doing anything else.
  */
-export async function fetchSimplify(maxAgeDays: number): Promise<JobItem[]> {
-  const rows = await getJson<Row[]>(URL, {}, FEED_MAX_BODY_BYTES)
-  if (!rows) throw new Error('Simplify feed unavailable')
+export async function fetchSimplify(maxAgeDays: number, force = false): Promise<JobItem[] | null> {
+  const f = await fetchFeed(URL, 'simplify', force, FEED_MAX_BODY_BYTES)
+  if (f.unchanged) return null
+  if (!f.text) throw new Error('Simplify feed unavailable')
+  let rows: Row[]
+  try {
+    rows = JSON.parse(f.text)
+  } catch {
+    throw new Error('Simplify feed is not valid JSON')
+  }
+  if (!Array.isArray(rows)) throw new Error('Simplify feed has an unexpected shape')
   const out: JobItem[] = []
   for (const r of rows) {
     if (!r.active || !r.is_visible || !r.url || !r.title) continue
