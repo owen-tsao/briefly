@@ -9,7 +9,9 @@
     <string>/Users/YOU/briefly/tools/instagram-sidecar/.venv/bin/python</string>
     <string>/Users/YOU/briefly/tools/instagram-sidecar/poll.py</string>
   </array>
-  <!-- Hourly. Stories live 24h; polling faster only adds ban risk. -->
+  <!-- Hourly, plus 0–4 min of jitter inside poll.py. The first account ran at 30 min and was
+       flagged for scraping within four days, so this is a floor, not a tuning knob: ~24
+       read-only requests a day. Stories live 24h, so hourly still catches them. -->
   <key>StartInterval</key>
   <integer>3600</integer>
   <key>RunAtLoad</key>

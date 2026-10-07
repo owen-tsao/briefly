@@ -1,1 +1,4 @@
-instagrapi>=2.1
+# Needs Python >= 3.10 (instagrapi 3.x). macOS's /usr/bin/python3 is 3.9 and will silently install the
+# retired 2.x line, which Instagram rejects with "Your version of Instagram is out of date".
+# Create the venv with Homebrew Python: /opt/homebrew/bin/python3.12 -m venv .venv
+instagrapi>=3.0.2
