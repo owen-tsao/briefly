@@ -153,6 +153,7 @@ function sweep(store: StoreFile): void {
   expireDayClose(store)
   wakeSnoozed(store)
   resetRecurring(store)
+  expirePins(store)
   pruneOld(store)
 }
 
@@ -290,10 +291,37 @@ export function setTaskPriority(id: string, priority: Priority): void {
   save(store)
 }
 
+/** Pin a task as a must-finish for the current work day. Does not touch updatedAt: pinning isn't editing. */
+export function setTaskPinned(id: string, pinned: boolean): void {
+  const store = load()
+  const task = store.tasks.find((t) => t.id === id)
+  if (!task) return
+  task.pinned = pinned
+  task.pinnedAt = pinned ? new Date().toISOString() : null
+  save(store)
+}
+
+/**
+ * A pin lasts until the task is completed or unpinned. Once completed, it stays in the box
+ * (struck through) for the rest of that work day, then falls off so finished work doesn't linger.
+ */
+function expirePins(store: StoreFile): void {
+  const cfg = dayConfig(store)
+  const today = currentWorkDay(cfg)
+  for (const t of store.tasks) {
+    if (!t.pinned) continue
+    const finished = t.state === 'done' || t.state === 'dismissed' || t.state === 'archived'
+    if (finished && workDayOf(t.updatedAt, cfg) < today) {
+      t.pinned = false
+      t.pinnedAt = null
+    }
+  }
+}
+
 /** Instant local task creation (quick-add) — no LLM involved, text is sticky. */
 export function addTask(
   text: string,
-  opts: { sourceNote?: string; track?: Track; deadline?: string | null } = {}
+  opts: { sourceNote?: string; track?: Track; deadline?: string | null; priority?: Priority } = {}
 ): string | null {
   const trimmed = text.trim().slice(0, 500)
   if (!trimmed) return null
@@ -304,7 +332,8 @@ export function addTask(
     id,
     text: trimmed,
     track: opts.track ?? 'other',
-    priority: 'medium',
+    // Typing a task by hand means it matters now; extracted tasks get their priority from the LLM.
+    priority: opts.priority ?? 'high',
     deadline: opts.deadline ?? null,
     sourceNote: opts.sourceNote ?? 'quick add',
     state: 'open',
@@ -318,13 +347,82 @@ export function addTask(
   return id
 }
 
-/** Delete a task outright. Only for tasks the app itself created (e.g. a job promoted to the board). */
-export function removeTask(id: string): void {
+/**
+ * Delete a task outright. Only for tasks the app itself created (a job promoted to the board, a
+ * School deadline), and only while still untouched: once the user has completed, snoozed, or
+ * renamed it, keep it.
+ */
+export function removeTask(id: string, opts: { sourceText?: string } = {}): boolean {
   const store = load()
   const idx = store.tasks.findIndex((t) => t.id === id)
-  if (idx === -1) return
+  if (idx === -1) return false
+  const t = store.tasks[idx]
+  if (!APP_SOURCES.has(t.sourceNote) || t.state !== 'open' || t.snoozedUntil) return false
+  // "Untouched" is normally createdAt === updatedAt. Mirrored tasks written before syncTaskFromSource
+  // existed had updatedAt bumped by the mirror itself; if the text is still exactly what the source
+  // would write, nobody renamed it, so it is fair game.
+  const untouched = t.updatedAt === t.createdAt || (opts.sourceText !== undefined && t.text === opts.sourceText)
+  if (!untouched) return false
   store.tasks.splice(idx, 1)
   save(store)
+  return true
+}
+
+/** sourceNote values that mean "created by the app, not extracted from a note". */
+export const APP_SOURCES = new Set(['jobs', 'school'])
+
+/** Read one task without the renderer projection; used by School to mirror done-state back. */
+export function getTask(id: string): Task | null {
+  return load().tasks.find((t) => t.id === id) ?? null
+}
+
+/** Every stored task, one file read. For callers that need to look up many ids at once. */
+export function listTasks(): Task[] {
+  return load().tasks
+}
+
+/**
+ * Move a deadline (and keep the task's own fields). Used when a Canvas due date changes; the
+ * task keeps whatever the user did to it otherwise.
+ */
+export function setTaskDeadline(id: string, deadline: string | null): void {
+  const store = load()
+  const t = store.tasks.find((x) => x.id === id)
+  if (!t || t.deadline === deadline) return
+  t.deadline = deadline
+  t.updatedAt = new Date().toISOString()
+  save(store)
+}
+
+/**
+ * The School mirror keeping a task in step with its source (new due date, renamed assignment).
+ * Deliberately leaves `updatedAt` and `editedByUser` alone: both mean "the user did something",
+ * and the mirror's own upkeep must not make a task look hand-edited, or it can never be cleaned
+ * up again when the deadline leaves the window.
+ */
+export function syncTaskFromSource(id: string, fields: { text?: string; deadline?: string | null; sourceNote?: string }): void {
+  const store = load()
+  const t = store.tasks.find((x) => x.id === id)
+  if (!t) return
+  let changed = false
+  const text = fields.text?.trim().slice(0, 500)
+  if (text && t.text !== text) {
+    t.text = text
+    changed = true
+  }
+  if (fields.deadline !== undefined && t.deadline !== fields.deadline) {
+    t.deadline = fields.deadline
+    changed = true
+  }
+  // Reclaim a mirrored task that an older build's Notes reconcile relabelled as coming from a
+  // note; left alone, that pass would later mark it done when the "note line" disappears.
+  if (fields.sourceNote !== undefined && t.sourceNote !== fields.sourceNote) {
+    t.sourceNote = fields.sourceNote
+    t.sourceExcerpt = undefined
+    t.sourceVerifiedAt = undefined
+    changed = true
+  }
+  if (changed) save(store)
 }
 
 /**
@@ -384,6 +482,13 @@ export function endDay(): void {
   const now = new Date().toISOString()
   store.dayClosed = { day: currentWorkDay(dayConfig(store)), at: now, reopened: [] }
   store.dayClosed.reopened = resetRecurring(store, now)
+  // Ending the day retires finished pins; open pins carry over — they're still not done.
+  for (const t of store.tasks) {
+    if (t.pinned && t.state !== 'open' && t.state !== 'snoozed') {
+      t.pinned = false
+      t.pinnedAt = null
+    }
+  }
   save(store)
 }
 
@@ -596,7 +701,7 @@ export function reconcileWithNotes(notes: Note[]): AppState {
     if (task.state !== 'open' && task.state !== 'snoozed') continue
     if (task.recurrence === 'daily') continue
     if (!task.sourceNote || task.sourceNote === 'quick add' || task.sourceNote === 'unknown') continue
-    if (task.sourceNote === 'jobs') continue
+    if (APP_SOURCES.has(task.sourceNote)) continue
 
     const sources = byTitle.get(task.sourceNote) ?? []
     const found =

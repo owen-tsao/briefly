@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { AlarmClock, ChevronRight, Plus, Repeat, Sunset, X } from 'lucide-react'
+import { AlarmClock, ChevronRight, Pin, PinOff, Plus, Repeat, Sunset, X } from 'lucide-react'
 import type { AppState, Horizon, Priority, Task, TaskState, Track } from '../../../shared/types'
 import { TRACKS, TRACK_LABELS } from '../../../shared/types'
 import {
@@ -26,8 +26,8 @@ interface Props {
   onTaskHorizon: (id: string, horizon: Horizon) => void
   onTaskTrack: (id: string, track: Track) => void
   onTaskPriority: (id: string, priority: Priority) => void
+  onTaskPin: (id: string, pinned: boolean) => void
   onOpenNote: (title: string) => void
-  onTodayDismiss: (text: string) => void
   onEndDay: () => void
   onOpenSettings: () => void
 }
@@ -37,6 +37,7 @@ const TRACK_DOT: Record<Track, string> = {
   leetcode: 'bg-amber-500',
   'job-apps': 'bg-emerald-500',
   resume: 'bg-pink-500',
+  school: 'bg-violet-500',
   personal: 'bg-sky-500',
   other: 'bg-gray-400 dark:bg-zinc-500'
 }
@@ -68,8 +69,8 @@ export function TasksView({
   onTaskHorizon,
   onTaskTrack,
   onTaskPriority,
+  onTaskPin,
   onOpenNote,
-  onTodayDismiss,
   onEndDay,
   onOpenSettings
 }: Props): React.JSX.Element {
@@ -118,22 +119,41 @@ export function TasksView({
   const visible = state.tasks.filter(
     (t) => t.state === 'open' || (t.state === 'done' && workDayOf(t.updatedAt, state.day) === today)
   )
+  // Pinned = must-finish. Stays until done or unpinned; done ones sit struck through until the day ends.
+  const pinned = visible
+    .filter((t) => t.pinned)
+    .sort((a, b) => (a.pinnedAt ?? '').localeCompare(b.pinnedAt ?? ''))
 
-  const strip = (visible.length > 0 || (state.today?.changes.length ?? 0) > 0) && (
+  const strip = visible.length > 0 && (
     <section className="overflow-hidden rounded-xl border border-slate-200/80 bg-white/90 shadow-[0_1px_3px_rgba(0,0,0,0.04)] backdrop-blur dark:border-white/[0.08] dark:bg-ink-900/90">
       <DayPulse tasks={state.tasks} day={state.day} onEndDay={onEndDay} />
-      {state.today && state.today.changes.length > 0 && (
-        <div className="border-t border-slate-100 border-l-2 border-l-amber-500 px-3.5 py-3 dark:border-t-white/[0.06]">
-          <h4 className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-amber-600 dark:text-amber-400">
-            What changed
-          </h4>
+      <div className="border-t border-slate-100 border-l-2 border-l-amber-500 px-3.5 py-3 dark:border-t-white/[0.06]">
+        <h4 className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-amber-600 dark:text-amber-400">
+          <Pin size={10} />
+          Pinned
+          {pinned.length > 0 && (
+            <span className="font-semibold text-gray-400 dark:text-zinc-600">
+              {pinned.filter((t) => t.state === 'done').length}/{pinned.length}
+            </span>
+          )}
+        </h4>
+        {pinned.length === 0 ? (
+          <p className="text-[12px] leading-relaxed text-gray-400 dark:text-zinc-500">
+            Pin the tasks you must finish — hover a task and press the pin. They stay here until done.
+          </p>
+        ) : (
           <ul className="space-y-1">
-            {state.today.changes.map((c, i) => (
-              <TodayItem key={i} text={c} onDismiss={() => onTodayDismiss(c)} />
+            {pinned.map((t) => (
+              <PinnedItem
+                key={t.id}
+                task={t}
+                onToggle={() => onTaskState(t.id, t.state === 'done' ? 'open' : 'done')}
+                onUnpin={() => onTaskPin(t.id, false)}
+              />
             ))}
           </ul>
-        </div>
-      )}
+        )}
+      </div>
     </section>
   )
 
@@ -174,6 +194,7 @@ export function TasksView({
             onTaskHorizon={onTaskHorizon}
             onTaskTrack={onTaskTrack}
             onTaskPriority={onTaskPriority}
+            onTaskPin={onTaskPin}
             onOpenNote={onOpenNote}
           />
         ))
@@ -203,6 +224,7 @@ function ZoneSection({
   onTaskHorizon,
   onTaskTrack,
   onTaskPriority,
+  onTaskPin,
   onOpenNote
 }: {
   zone: Zone
@@ -213,6 +235,7 @@ function ZoneSection({
   onTaskHorizon: (id: string, horizon: Horizon) => void
   onTaskTrack: (id: string, track: Track) => void
   onTaskPriority: (id: string, priority: Priority) => void
+  onTaskPin: (id: string, pinned: boolean) => void
   onOpenNote: (title: string) => void
 }): React.JSX.Element | null {
   // Someday is a parking lot — start collapsed, remember the user's preference.
@@ -261,6 +284,7 @@ function ZoneSection({
               onTaskHorizon={onTaskHorizon}
               onTaskTrack={onTaskTrack}
               onTaskPriority={onTaskPriority}
+              onTaskPin={onTaskPin}
               onOpenNote={onOpenNote}
             />
           ))}
@@ -356,17 +380,55 @@ function formatDay(day: string, today: string): string {
 
 const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 }
 
-/** Today-strip line with a dismiss ✕ that fades in on hover — no layout shift. */
-function TodayItem({ text, onDismiss }: { text: string; onDismiss: () => void }): React.JSX.Element {
+/** One line in the pinned box: checkbox, text, and an unpin that fades in on hover — no layout shift. */
+function PinnedItem({
+  task,
+  onToggle,
+  onUnpin
+}: {
+  task: Task
+  onToggle: () => void
+  onUnpin: () => void
+}): React.JSX.Element {
+  const done = task.state === 'done'
   return (
-    <li className="group/today flex items-start gap-1.5 text-[13px] leading-relaxed text-gray-800 dark:text-zinc-200">
-      <span className="min-w-0 flex-1">{text}</span>
+    <li className="group/pin flex items-start gap-2 text-[13px] leading-relaxed">
       <button
-        title="Dismiss for today"
-        onClick={onDismiss}
-        className="pointer-events-none mt-0.5 shrink-0 rounded p-0.5 text-gray-400 opacity-0 transition-all hover:text-gray-700 active:scale-90 group-hover/today:pointer-events-auto group-hover/today:opacity-100 dark:text-zinc-500 dark:hover:text-zinc-200"
+        onClick={onToggle}
+        title={done ? 'Mark open' : 'Mark done'}
+        className={cn(
+          'mt-[3px] flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border transition-all duration-200',
+          done
+            ? 'border-gray-900 bg-gray-900 dark:border-accent dark:bg-accent'
+            : 'border-gray-300 bg-white hover:border-gray-400 dark:border-white/20 dark:bg-ink-800 dark:hover:border-white/40'
+        )}
       >
-        <X size={12} />
+        <svg
+          className={cn('h-2.5 w-2.5 text-white transition-opacity duration-200', done ? 'opacity-100' : 'opacity-0')}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.2"
+          viewBox="0 0 12 9"
+        >
+          <path d="M1 4.2L4 7L11 1" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      <span
+        className={cn(
+          'min-w-0 flex-1 line-through decoration-[1.2px] transition-[color,text-decoration-color] duration-300',
+          done
+            ? 'text-gray-400 decoration-gray-400/90 dark:text-zinc-500 dark:decoration-zinc-500/90'
+            : 'text-gray-800 decoration-transparent dark:text-zinc-200'
+        )}
+      >
+        {task.text}
+      </span>
+      <button
+        title="Unpin"
+        onClick={onUnpin}
+        className="pointer-events-none mt-0.5 shrink-0 rounded p-0.5 text-gray-400 opacity-0 transition-all hover:text-gray-700 active:scale-90 group-hover/pin:pointer-events-auto group-hover/pin:opacity-100 dark:text-zinc-500 dark:hover:text-zinc-200"
+      >
+        <PinOff size={12} />
       </button>
     </li>
   )
@@ -481,6 +543,7 @@ function TaskRow({
   onTaskHorizon,
   onTaskTrack,
   onTaskPriority,
+  onTaskPin,
   onOpenNote
 }: {
   task: Task
@@ -490,6 +553,7 @@ function TaskRow({
   onTaskHorizon: (id: string, horizon: Horizon) => void
   onTaskTrack: (id: string, track: Track) => void
   onTaskPriority: (id: string, priority: Priority) => void
+  onTaskPin: (id: string, pinned: boolean) => void
   onOpenNote: (title: string) => void
 }): React.JSX.Element {
   const done = task.state === 'done'
@@ -497,7 +561,7 @@ function TaskRow({
   const [snoozeOpen, setSnoozeOpen] = useState(false)
   const recurring = task.recurrence === 'daily'
   const horizon = task.horizon ?? 'soon'
-  const hasSourceNote = Boolean(task.sourceNote) && !['quick add', 'unknown'].includes(task.sourceNote)
+  const hasSourceNote = Boolean(task.sourceNote) && !['quick add', 'unknown', 'jobs', 'school'].includes(task.sourceNote)
 
   return (
     <li
@@ -591,8 +655,8 @@ function TaskRow({
               title="Change track"
               display={
                 <>
-                  <span className={cn('h-1.5 w-1.5 rounded-full', TRACK_DOT[task.track])} />
-                  {TRACK_LABELS[task.track].split(' ')[0]}
+                  <span className={cn('h-1.5 w-1.5 rounded-full', TRACK_DOT[task.track] ?? 'bg-gray-400')} />
+                  {(TRACK_LABELS[task.track] ?? task.track).split(' ')[0]}
                 </>
               }
               options={TRACKS.map((tr) => ({ id: tr, label: TRACK_LABELS[tr], dot: TRACK_DOT[tr] }))}
@@ -634,6 +698,14 @@ function TaskRow({
                 <Repeat size={10} /> daily
               </span>
             )}
+            {task.pinned && (
+              <span
+                title="Pinned as a must-finish today"
+                className="flex items-center gap-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400"
+              >
+                <Pin size={10} /> pinned
+              </span>
+            )}
             {deadline && (
               <span
                 className={cn(
@@ -664,11 +736,18 @@ function TaskRow({
       */}
       <span
         className={cn(
-          'relative flex w-[68px] shrink-0 justify-end gap-1 transition-opacity duration-150',
+          'relative flex w-[90px] shrink-0 justify-end gap-1 transition-opacity duration-150',
           done || !snoozeOpen ? 'pointer-events-none opacity-0' : 'pointer-events-auto opacity-100',
           !done && !snoozeOpen && 'group-hover:pointer-events-auto group-hover:opacity-100'
         )}
       >
+          <ActionButton
+            title={task.pinned ? 'Unpin from today' : 'Pin as a must-finish today'}
+            active={Boolean(task.pinned)}
+            onClick={() => onTaskPin(task.id, !task.pinned)}
+          >
+            <Pin size={12} />
+          </ActionButton>
           <ActionButton
             title={recurring ? 'Stop repeating daily' : 'Repeat daily'}
             active={recurring}
@@ -707,8 +786,11 @@ function TaskRow({
 }
 
 function formatDeadline(iso: string): { label: string; urgent: boolean } {
-  const date = new Date(iso + 'T23:59:59')
-  const days = Math.ceil((date.getTime() - Date.now()) / 86_400_000)
+  // Calendar-day difference, not elapsed hours: at 4 PM, tomorrow's end of day is 1.3 days away
+  // and used to round up to "due in 2d".
+  const date = new Date(iso + 'T12:00:00')
+  const todayNoon = new Date(localDay() + 'T12:00:00')
+  const days = Math.round((date.getTime() - todayNoon.getTime()) / 86_400_000)
   if (days < 0) return { label: `overdue ${Math.abs(days)}d`, urgent: true }
   if (days === 0) return { label: 'due today', urgent: true }
   if (days === 1) return { label: 'due tomorrow', urgent: true }
