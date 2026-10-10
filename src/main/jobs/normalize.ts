@@ -92,9 +92,10 @@ export function canonicalId(url: string): { id: string; sourceRef: string | null
 
 /** Term from title/tags/terms text. "2027" alone → summer; explicit season wins. */
 export function detectTerm(...texts: (string | null | undefined)[]): JobTerm {
-  const t = texts.filter(Boolean).join(' ').toLowerCase()
+  const t = texts.filter(Boolean).join(' ').toLowerCase().replace(/_/g, ' ')
   if (/co-?op/.test(t) && !/summer/.test(t)) return 'co-op'
-  if (/fall\s*(20)?26/.test(t) || /autumn\s*(20)?26/.test(t)) return 'fall-2026'
+  // "Fall 2026/Winter 2027" is still open for the 2027 term; only a lone Fall 2026 has passed.
+  if ((/fall\s*(20)?26/.test(t) || /autumn\s*(20)?26/.test(t)) && !/(winter|spring|summer)\s*(20)?27/.test(t)) return 'fall-2026'
   if (/winter\s*(20)?27/.test(t)) return 'winter-2027'
   if (/spring\s*(20)?27/.test(t)) return 'spring-2027'
   if (/summer\s*(20)?27/.test(t) || /2027/.test(t)) return 'summer-2027'
@@ -106,9 +107,10 @@ const TITLE_MUST = /\b(intern|interns|internship|internships|co-?op|coop)\b/i
 const TITLE_ANY = /software|engineer|swe|developer|machine learning|\bml\b|\bai\b|data|quant|research|infra|platform|backend|frontend|full[- ]?stack|systems|security|robotics/i
 const TITLE_NOT = /\b(marketing|sales|hr\b|human resources|recruit|finance|accounting|legal|paralegal|design intern|ux|product manager|pm intern|business|operations|analyst|supply chain|mechanical|civil|electrical|chemical|nurse|pharma)/i
 
-/** Cheap pre-filter before any network or LLM spend. */
+/** Cheap pre-filter before any network or LLM spend. Underscores read as spaces ("Co-op_Summer 2027"). */
 export function titleLooksRelevant(title: string): boolean {
-  return TITLE_MUST.test(title) && TITLE_ANY.test(title) && !TITLE_NOT.test(title)
+  const t = title.replace(/_/g, ' ')
+  return TITLE_MUST.test(t) && TITLE_ANY.test(t) && !TITLE_NOT.test(t)
 }
 
 const NON_US =

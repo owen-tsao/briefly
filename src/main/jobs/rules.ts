@@ -37,12 +37,21 @@ function esc(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-/** Whole-word, case-insensitive match of any entry against `text`. Returns the entry that hit. */
+/**
+ * Whole-word, case-insensitive match of any entry against `text`. Returns the entry that hit.
+ * An entry may carry exclusions in parentheses — `Sierra (not Sierra Nevada, Sierra Space)` — so a
+ * short brand name doesn't swallow unrelated companies that share a word.
+ */
 function matchList(text: string, entries: string[]): string | null {
-  for (const e of entries) {
+  for (const raw of entries) {
+    const ex = raw.match(/^(.*?)\s*\(\s*(?:not|except|excluding)\s+(.+?)\s*\)\s*$/i)
+    const e = (ex ? ex[1] : raw).trim()
     if (!e) continue
     const re = new RegExp(`(^|[^a-z0-9])${esc(e)}([^a-z0-9]|$)`, 'i')
-    if (re.test(text)) return e
+    if (!re.test(text)) continue
+    const excluded = ex ? ex[2].split(/\s*,\s*/).filter(Boolean) : []
+    if (excluded.some((x) => new RegExp(`(^|[^a-z0-9])${esc(x)}([^a-z0-9]|$)`, 'i').test(text))) continue
+    return e
   }
   return null
 }
@@ -89,13 +98,15 @@ const TITLE_RULES: { id: string; label: string; re: RegExp; unless?: RegExp }[] 
  * ingest and again before scoring.
  */
 export function titleRules(item: Pick<JobItem, 'title' | 'company' | 'term' | 'source'>, rules: RulesFile): RuleHit | null {
+  // Underscores are separators in some ATS titles ("Software Engineering Co-op_Summer 2027").
+  const title = item.title.replace(/_/g, ' ')
   // R0: the title must say it's an internship. Word-bounded, so "Internal", "International" and
   // "Database Internals" don't count. Only for aggregator feeds, which carry the real title:
   // Instagram and manual rows often have a placeholder or URL slug (the LLM reads the page), and
   // watchlist boards already gate on the title or on the ATS's own employment type ("Intern"),
   // which a Lever/Ashby title like "Software Engineer, Summer 2027" may not repeat.
-  if (item.source !== 'instagram' && item.source !== 'manual' && item.source !== 'ats' && !INTERN_WORD.test(item.title)) {
-    return { id: 'R0', label: 'Not an internship or co-op', quote: item.title.slice(0, 60) }
+  if (item.source !== 'instagram' && item.source !== 'manual' && item.source !== 'ats' && !INTERN_WORD.test(title)) {
+    return { id: 'R0', label: 'Not an internship or co-op', quote: title.slice(0, 60) }
   }
   const blocked = matchList(item.company, rules.blocklist)
   if (blocked) return { id: 'R12', label: 'Company on your blocklist', quote: blocked }
@@ -103,12 +114,15 @@ export function titleRules(item: Pick<JobItem, 'title' | 'company' | 'term' | 's
   if (capped) return { id: 'R11', label: 'Application cap reached at this company', quote: capped }
   const competitor = matchList(item.company, rules.competitors)
   if (competitor) return { id: 'R10', label: 'Direct competitor of your employer', quote: competitor }
-  const domain = matchList(item.title, rules.excludedTitleKeywords)
+  const domain = matchList(title, rules.excludedTitleKeywords)
   if (domain) return { id: 'R9', label: 'Excluded role domain', quote: domain }
-  if (item.term === 'fall-2026') return { id: 'R13', label: 'Term already passed (Fall 2026)', quote: 'fall 2026' }
+  // A title naming both ("Fall 2026/Winter 2027") is still open for the 2027 term; the LLM reads the dates.
+  if (item.term === 'fall-2026' && !/(winter|spring|summer)\s*(20)?27/i.test(title)) {
+    return { id: 'R13', label: 'Term already passed (Fall 2026)', quote: 'fall 2026' }
+  }
   for (const r of TITLE_RULES) {
-    const m = item.title.match(r.re)
-    if (m && !(r.unless && r.unless.test(item.title))) return { id: r.id, label: r.label, quote: m[0] }
+    const m = title.match(r.re)
+    if (m && !(r.unless && r.unless.test(title))) return { id: r.id, label: r.label, quote: m[0] }
   }
   return null
 }
@@ -131,13 +145,20 @@ export function textRules(text: string): TextRuleResult {
   const t = text.slice(0, 40_000)
 
   // R4: an explicit graduation window that excludes both Jun and Dec 2028.
+  // If any sentence in the posting admits a 2028 graduation, the window that doesn't is one option
+  // among several ("master's students graduating by Jan 2027; undergrads graduating 2028"), so no reject.
+  const admits2028 = /\bgraduat\w*[^.\n]{0,100}\b20(28|29)\b|\b20(28|29)\b[^.\n]{0,60}\bgraduat/i.test(t) || /\bclass of 2028\b/i.test(t)
   for (const m of t.matchAll(YEAR_WINDOW)) {
+    if (admits2028) break
     const lo = Number(m[1])
     const hi = m[2] ? Number(m[2]) : lo
     const [a, b] = lo <= hi ? [lo, hi] : [hi, lo]
     const sentence = m[0]
+    const context = t.slice(Math.max(0, (m.index ?? 0) - 80), (m.index ?? 0) + sentence.length + 40)
     // "students graduating before Dec 2027 should apply to new-grad roles" redirects earlier grads; it admits 2028.
-    if (/\bnew[- ]grad|full[- ]time (role|position|opening)/i.test(sentence)) continue
+    // "as well as recent graduates who completed their degree in 2026–2027" is an extra audience, not the bar.
+    // "(expected graduation by Dec 2027) are preferred" is a preference, not a requirement.
+    if (/\bnew[- ]grad|full[- ]time (role|position|opening)|recent(ly)?[- ]graduat|\bpreferred\b|\bideally\b/i.test(context)) continue
     // "by 2027", "no later than 2027" → upper bound. ("before"/"prior to" are ambiguous: they also
     // introduce lower bounds, so they only hint via the LLM.)
     if (/\b(by|no later than|on or before)\b/i.test(sentence) && b < GRAD_OK_YEAR) {
@@ -186,10 +207,13 @@ export function textRules(text: string): TextRuleResult {
   )
   if (degReq) {
     // A rule reject has no LLM backstop, so look a little past the sentence for a bachelor's mention
-    // ("...Master's program. Exceptional undergraduates also considered.") before rejecting.
+    // ("...Master's program. Exceptional undergraduates also considered.") before rejecting — and
+    // behind it, since "pursuing a Bachelor's … OR currently pursuing a Master's" lists the BS first.
     const start = degReq.index ?? 0
     const window = t.slice(start, start + degReq[0].length + 160)
-    const admitsBs = /\b(b\.?s\.?c?|b\.?a\.?|b\.?e\.?|bachelor\w*|baccalaureate|undergrad\w*|any\s+degree|or\s+equivalent|(junior|senior)\s+(year|standing))\b/i.test(window)
+    const before = t.slice(Math.max(0, start - 220), start)
+    const bsRe = /\b(b\.?s\.?c?|b\.?a\.?|b\.?e\.?|bachelor\w*|baccalaureate|undergrad\w*|any\s+degree|or\s+equivalent|(junior|senior)\s+(year|standing))\b/i
+    const admitsBs = bsRe.test(window) || (/\b(or|either)\b[\s,;:•\-–]*$/i.test(before) && bsRe.test(before))
     if (!admitsBs) {
       return { reject: { id: 'R2', label: "Master's or PhD required", quote: around(t, degReq, 110) }, hints }
     }

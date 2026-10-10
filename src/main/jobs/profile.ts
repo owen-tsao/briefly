@@ -50,6 +50,7 @@ Verkada
 
 ## Competitors
 # Direct competitors of your current employer (R10).
+# Short names can carry exclusions: Sierra (not Sierra Nevada, Sierra Space)
 Pylon
 Decagon
 Sierra
