@@ -162,9 +162,17 @@ export function textRules(text: string): TextRuleResult {
 
   // R1: years of professional experience stated as a requirement (not "a degree or 2+ years").
   // Allows a few words between the qualifier and "experience": "7+ years of full-time software engineering experience".
+  // Intern postings state the opposite — a cap ("no more than 2 years of full-time work experience",
+  // "0–2+ years of relevant professional experience") — so a cap phrase or a range lead-in right
+  // before the number means this is an upper bound that admits a student, not a requirement.
   const yrs = t.match(/\b([2-9]|1\d|two|three|four|five|six|seven|eight|ten)\+?\s*(years?|yrs?)\s+of\s+(professional|industry|relevant|work|full[- ]time|hands[- ]on|commercial|software|engineering)\b(?:\s+[\w/-]+){0,4}?\s+experience\b/i)
+  const lead = yrs ? t.slice(Math.max(0, (yrs.index ?? 0) - 40), yrs.index ?? 0) : ''
+  const isCap =
+    /\b(no more than|not more than|less than|fewer than|up to|at most|a maximum of|maximum|max\.?|under|not (to )?exceed\w*|limited to|cannot have more than|may not have more than)\s*$/i.test(lead) ||
+    /\b(0|1|zero|one)\s*(to|-|–|—)\s*$/i.test(lead)
   if (
     yrs &&
+    !isCap &&
     !/\b(preferred|plus|nice|bonus|ideally)\b/i.test(t.slice(Math.max(0, (yrs.index ?? 0) - 60), (yrs.index ?? 0) + 120)) &&
     !/\bor\s*$/i.test(t.slice(Math.max(0, (yrs.index ?? 0) - 12), yrs.index ?? 0))
   ) {
