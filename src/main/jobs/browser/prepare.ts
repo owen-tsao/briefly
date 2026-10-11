@@ -1,6 +1,6 @@
 /// <reference lib="dom" />
 import { Notification } from 'electron'
-import type { Page } from 'playwright'
+import type { Frame, Page } from 'playwright'
 import type { JobItem, JobStatus, PreparedInfo } from '../../../shared/jobs'
 import { getNotificationsEnabled } from '../../settings'
 import { classifyUrl, type Ats } from '../normalize'
@@ -24,7 +24,7 @@ export type PrepareVia = 'browser'
  * page that merely carries a Greenhouse `gh_jid` (its form is an iframe we cannot fill anyway)
  * does not qualify.
  */
-export function supportedAts(url: string): Ats | 'jobright' | null {
+export function supportedAts(url: string): Ats | 'jobright' | 'icims' | null {
   const ref = classifyUrl(url)
   if (ref) return ref.ats
   try {
@@ -36,16 +36,77 @@ export function supportedAts(url: string): Ats | 'jobright' | null {
     if (/(^|\.)myworkdayjobs\.com$|(^|\.)myworkdaysite\.com$/.test(host)) return 'workday'
     if (/(^|\.)lever\.co$/.test(host)) return 'lever'
     if (/(^|\.)ashbyhq\.com$/.test(host)) return 'ashby'
+    if (/(^|\.)icims\.com$/.test(host)) return 'icims'
   } catch {
     /* ignore */
   }
   return null
 }
 
-/** Fill only while the tab is on a system we meant to fill; a redirect elsewhere gets nothing. */
-function onFillableHost(page: Page): boolean {
+/** Every system briefly will open in its browser. Known ones get their own path; the rest a generic one. */
+export type FillRoute = Ats | 'jobright' | 'icims' | 'other'
+
+/**
+ * Where Apply sends a posting. Anything https opens in briefly's browser: known systems are filled
+ * with their quirks handled; unknown ones get the generic scanner on whatever form is on the page,
+ * and the "Fill this page" bar for every later step. Null only for non-https links.
+ */
+export function fillRoute(url: string): FillRoute | null {
+  const known = supportedAts(url)
+  if (known) return known
+  try {
+    return new URL(url).protocol === 'https:' ? 'other' : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Fill only while the tab is on a system we meant to fill. For a known ATS that is its own domain;
+ * for the generic route it is the site the application started on (a redirect elsewhere gets nothing).
+ */
+function onFillableHost(page: Page, startHost: string): boolean {
   const ats = supportedAts(page.url())
-  return ats !== null && ats !== 'jobright'
+  if (ats) return ats !== 'jobright'
+  try {
+    const host = new URL(page.url()).hostname
+    return new URL(page.url()).protocol === 'https:' && sameSite(host, startHost)
+  } catch {
+    return false
+  }
+}
+
+/**
+ * The document that actually holds the form. iCIMS renders the whole career site inside a same-origin
+ * iframe; Playwright locators do not pierce frames, so pick the frame with the most form controls.
+ */
+async function formFrame(page: Page): Promise<Frame> {
+  let best = page.mainFrame()
+  let bestCount = -1
+  for (const f of page.frames()) {
+    let host = ''
+    try {
+      const u = new URL(f.url())
+      if (u.protocol !== 'https:') continue
+      host = u.hostname
+    } catch {
+      continue
+    }
+    if (!sameSite(host, new URL(page.url()).hostname)) continue
+    // Visible controls only: the iCIMS shell document carries hidden inputs, the real form is in the frame.
+    const n = await f
+      .evaluate(() =>
+        Array.from(document.querySelectorAll('input:not([type=hidden]), select, textarea, [role="combobox"], [role="listbox"]')).filter(
+          (e) => (e as HTMLElement).getClientRects().length > 0
+        ).length
+      )
+      .catch(() => -1)
+    if (n > bestCount || (n === bestCount && f === page.mainFrame())) {
+      best = f
+      bestCount = n
+    }
+  }
+  return best
 }
 
 let onChange: (() => void) | null = null
@@ -84,8 +145,8 @@ export interface PrepareOptions {
 
 export async function prepareApplication(item: JobItem, opts: PrepareOptions = {}): Promise<{ ok: boolean; error?: string }> {
   const startUrl = opts.startUrl ?? item.url
-  const ats = supportedAts(startUrl)
-  if (!ats) return { ok: false, error: 'This application system is not supported for auto-fill yet.' }
+  const ats = fillRoute(startUrl)
+  if (!ats) return { ok: false, error: 'Only https links can be opened.' }
   // Already have a live tab for this card: just bring it forward instead of opening a second one.
   if (await focusPrepared(item.id)) return { ok: true }
   let page: Page
@@ -104,7 +165,7 @@ export async function prepareApplication(item: JobItem, opts: PrepareOptions = {
   setPrepared(item.id, { at: new Date().toISOString(), finishedAt: null, ats, filled: 0, drafted: [], unfilled: [], resumeUploaded: false, error: null, submittedAt: null, closedAt: null })
   onChange?.()
 
-  const run = runPreparation(page, item, ats, previous)
+  const run = runPreparation(page, item, ats, previous, new URL(startUrl).hostname)
   // Default: the user is now looking at the browser; progress lands in the card as it happens.
   if (opts.wait) await run
   else void run
@@ -136,7 +197,7 @@ export async function prepareBatch(items: JobItem[], resolved: (id: string) => s
   return { started, skipped, error: null }
 }
 
-async function runPreparation(page: Page, item: JobItem, ats: Ats | 'jobright', previous: JobStatus): Promise<void> {
+async function runPreparation(page: Page, item: JobItem, ats: FillRoute, previous: JobStatus, startHost: string): Promise<void> {
   try {
     if (ats === 'jobright') {
       const target = await resolveJobrightOnPage(page)
@@ -146,14 +207,16 @@ async function runPreparation(page: Page, item: JobItem, ats: Ats | 'jobright', 
       if (!target) throw new Error('Could not find the employer’s application link on jobright. Use its Apply button.')
       setResolvedUrl(item.id, target)
       await page.goto(target, { waitUntil: 'domcontentloaded', timeout: 45_000 })
-      const real = supportedAts(target)
+      const real = fillRoute(target)
       setPrepared(item.id, { ats: real ?? 'unknown' })
       if (!real || real === 'jobright') {
-        setPrepared(item.id, { finishedAt: new Date().toISOString(), error: 'The employer uses an application system briefly cannot fill yet.' })
-        await banner(page, { note: 'briefly opened the employer’s page. This system isn’t auto-filled; fill it by hand.' })
+        setPrepared(item.id, { finishedAt: new Date().toISOString(), error: 'The employer’s link is not an https application page.' })
+        await banner(page, { note: 'briefly opened the employer’s page but will not fill here.' })
         watchForSubmit(page, item)
         return
       }
+      // From here on, the employer's site is where the application lives.
+      startHost = new URL(target).hostname
     }
     await reachForm(page)
     const closed = await detectClosedPosting(page)
@@ -167,31 +230,35 @@ async function runPreparation(page: Page, item: JobItem, ats: Ats | 'jobright', 
     const loginWall = await detectLoginWall(page)
     if (loginWall) {
       setPrepared(item.id, { finishedAt: new Date().toISOString(), error: loginWall })
-      await banner(page, { note: `${loginWall} briefly will fill the form once you are past it — click “Fill this page” in this bar.` })
-      await installRefill(page, item)
+      await banner(page, { note: `${loginWall} Sign in here — briefly fills each page of the application as it appears.` })
+      await installRefill(page, item, startHost)
+      followSteps(page, item, startHost, '')
       watchForSubmit(page, item)
       onChange?.()
       return
     }
-    if (!onFillableHost(page)) {
+    if (!onFillableHost(page, startHost)) {
       // The posting link or an Apply button took us somewhere that is not an ATS we fill.
-      const note = `Not filling on ${new URL(page.url()).hostname}: this isn’t an application system briefly fills. Finish it by hand.`
+      const note = `Not filling on ${new URL(page.url()).hostname}: this isn’t where the application started. Finish it by hand.`
       setPrepared(item.id, { finishedAt: new Date().toISOString(), error: note })
       await banner(page, { note })
       watchForSubmit(page, item)
       return
     }
-    const report = await fillPage(page, item, loadCandidate())
+    const frame = await formFrame(page)
+    const report = await fillPage(frame, item, loadCandidate())
     recordReport(item.id, report)
     if (report.filled.length + report.unfilled.length + report.drafted.length === 0 && !report.resumeUploaded) {
       // Nothing scanned: the form is probably behind a button we did not find, or on another step.
-      const note = 'No form fields found on this page. Get to the application form on the site, then click “Fill this page”.'
+      const note = 'No form fields found on this page yet. Get to the application form — briefly fills it as soon as it appears.'
       setPrepared(item.id, { error: note })
       await banner(page, { note })
     } else {
-      await banner(page, { report })
+      const steps = ats === 'greenhouse' || ats === 'lever' || ats === 'ashby' ? undefined : 'This system goes step by step: press Next after reviewing each page and briefly fills the next one.'
+      await banner(page, { report, note: steps })
     }
-    await installRefill(page, item)
+    await installRefill(page, item, startHost)
+    followSteps(page, item, startHost, await formSignature(frame).catch(() => ''))
     watchForSubmit(page, item)
   } catch (err) {
     const msg = err instanceof Error ? err.message.split('\n')[0].slice(0, 200) : String(err)
@@ -224,8 +291,12 @@ function recordReport(id: string, report: FillReport): void {
  * and look for the control a few times rather than once.
  */
 async function reachForm(page: Page): Promise<void> {
-  const hasField = async (): Promise<boolean> =>
-    (await page.locator('input[type="email"], input[name*="email" i], input[autocomplete="given-name"], input#first_name, input[name*="first" i], [data-automation-id="legalNameSection_firstName"]').count()) > 0
+  const FIELD = 'input[type="email"], input[name*="email" i], input[autocomplete="given-name"], input#first_name, input[name*="first" i], [data-automation-id="legalNameSection_firstName"]'
+  // Locators do not pierce iframes; iCIMS keeps the whole career site in one.
+  const hasField = async (): Promise<boolean> => {
+    for (const f of page.frames()) if ((await f.locator(FIELD).count().catch(() => 0)) > 0) return true
+    return false
+  }
   await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => undefined)
   if (await hasField()) return
   // Ashby: the posting lives at /{org}/{id}; the form is the same URL plus /application.
@@ -234,19 +305,30 @@ async function reachForm(page: Page): Promise<void> {
     await page.goto(`${ashby[1]}/application`, { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => undefined)
     await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => undefined)
   } else {
-    const apply = page
-      .getByRole('button', { name: /^apply( now| for this job| for this position)?$/i })
-      .or(page.getByRole('link', { name: /^apply( now| for this job| for this position)?$/i }))
-      .or(page.locator('a[href*="/apply"], a[href$="/application"], a.postings-btn, [data-automation-id="adventureButton"]'))
+    const applyIn = (f: Frame) =>
+      f
+        .getByRole('button', { name: /^apply( now| for this job| for this position| online)?$/i })
+        .or(f.getByRole('link', { name: /^apply( now| for this job| for this position| online)?$/i }))
+        .or(f.locator('a[href*="/apply"], a[href$="/application"], a[href*="mode=apply"], a.postings-btn, [data-automation-id="adventureButton"]'))
     let clicked = false
     for (let i = 0; i < 8 && !clicked; i++) {
-      if ((await apply.count()) > 0) {
-        await apply.first().click({ timeout: 5000 }).catch(() => undefined)
-        await page.waitForLoadState('domcontentloaded').catch(() => undefined)
-        clicked = true
-      } else {
-        await page.waitForTimeout(500)
+      for (const f of page.frames()) {
+        const apply = applyIn(f)
+        if ((await apply.count().catch(() => 0)) > 0) {
+          await apply.first().click({ timeout: 5000 }).catch(() => undefined)
+          await page.waitForLoadState('domcontentloaded').catch(() => undefined)
+          clicked = true
+          break
+        }
       }
+      if (!clicked) await page.waitForTimeout(500)
+    }
+    // Workday answers Apply with a menu; "Autofill with Resume" leads to sign-in, then the resume step.
+    const autofill = page.getByRole('button', { name: /autofill with resume/i }).or(page.locator('[data-automation-id="autofillWithResume"]'))
+    for (let i = 0; i < 6 && (await autofill.count().catch(() => 0)) === 0; i++) await page.waitForTimeout(500)
+    if ((await autofill.count().catch(() => 0)) > 0) {
+      await autofill.first().click({ timeout: 5000 }).catch(() => undefined)
+      await page.waitForLoadState('domcontentloaded').catch(() => undefined)
     }
   }
   for (let i = 0; i < 16 && !(await hasField()); i++) await page.waitForTimeout(500)
@@ -274,31 +356,49 @@ async function detectClosedPosting(page: Page): Promise<string | null> {
   return null
 }
 
-/** Workday and some others want an account first. Detect it rather than typing into a login box. */
+/**
+ * Workday and some others want an account first. Detect it rather than typing into a login box.
+ * Two shapes: a visible password field next to sign-in wording, or a chooser with no form at all
+ * ("Sign in with Google / Apple / email", "Create Account") — Workday's current sign-in page.
+ * An email-only first step (iCIMS: email + "I agree", password comes after Next) is not a wall —
+ * the filler can do that page.
+ */
 async function detectLoginWall(page: Page): Promise<string | null> {
-  const pw = page.locator('input[type="password"]:visible')
-  if ((await pw.count()) === 0) return null
-  const host = new URL(page.url()).hostname
-  const signIn = (await page.locator('text=/sign in|log in|create account/i').count()) > 0
-  return signIn ? `${host} wants you to sign in or create an account first.` : null
+  const host = (): string => new URL(page.url()).hostname
+  for (const f of page.frames()) {
+    const pw = await f.locator('input[type="password"]:visible').count().catch(() => 0)
+    if (pw === 0) continue
+    const signIn = (await f.locator('text=/sign in|log in|create account/i').count().catch(() => 0)) > 0
+    if (signIn) return `${host()} wants you to sign in or create an account first.`
+  }
+  const chooser = await page
+    .locator('button:visible, a:visible, [role="button"]:visible')
+    .filter({ hasText: /sign in with (google|apple|email|linkedin|microsoft)|create account|(sign|log) in to (apply|continue)/i })
+    .count()
+    .catch(() => 0)
+  if (chooser === 0) return null
+  const fields = await page
+    .locator('input:not([type="hidden"]):not([type="file"]):visible, select:visible, textarea:visible')
+    .count()
+    .catch(() => 0)
+  return fields <= 1 ? `${host()} wants you to sign in or create an account first.` : null
 }
 
 /**
- * A "Fill this page" button in the banner so multi-step forms (Workday) can be filled step by
- * step. The binding is callable by page scripts, so it refuses to run anywhere but the host the
- * application started on: a redirect to some other site must not be able to pull your details.
+ * A "Fill this page" button in the banner as a manual fallback for `followSteps`. The binding is
+ * callable by page scripts, so it refuses to run anywhere but the site the application started on:
+ * a redirect to some other site must not be able to pull your details.
  */
-async function installRefill(page: Page, item: JobItem): Promise<void> {
-  const allowedHost = new URL(page.url()).hostname
+async function installRefill(page: Page, item: JobItem, allowedHost: string): Promise<void> {
+  const allowed = allowedOn(page, allowedHost)
   try {
     await page.exposeBinding('__brieflyRefill', async (source) => {
       if (source.frame !== page.mainFrame()) return
-      const host = new URL(page.url()).hostname
-      if ((host !== allowedHost && !sameSite(host, allowedHost)) || !onFillableHost(page)) {
-        await banner(page, { note: `Not filling on ${host}: this isn’t where the application started.` })
+      if (!allowed()) {
+        await banner(page, { note: `Not filling on ${new URL(page.url()).hostname}: this isn’t where the application started.` })
         return
       }
-      const report = await fillPage(page, item, loadCandidate())
+      const report = await fillPage(await formFrame(page), item, loadCandidate())
       recordReport(item.id, report)
       await banner(page, { report })
       onChange?.()
@@ -306,6 +406,91 @@ async function installRefill(page: Page, item: JobItem): Promise<void> {
   } catch {
     /* binding already exists on this page */
   }
+}
+
+/** True while the tab is still on the site the application started on (or a known ATS). */
+function allowedOn(page: Page, allowedHost: string): () => boolean {
+  return () => {
+    try {
+      const host = new URL(page.url()).hostname
+      return (host === allowedHost || sameSite(host, allowedHost)) && onFillableHost(page, allowedHost)
+    } catch {
+      return false
+    }
+  }
+}
+
+const following = new WeakSet<Page>()
+const STEP_POLL_MS = 1500
+
+/**
+ * Keep filling as the applicant moves through a multi-step application (Workday, iCIMS, most
+ * unknown systems): poll the tab, and whenever the sign-in wall is gone and the visible form is
+ * one that has not been filled yet, fill it. `filledSig` is the form already filled on this page
+ * (empty when nothing was). Never presses Next or Submit — the applicant reviews each step. The
+ * banner is repainted after navigations (Workday reloads after sign-in) so the status stays put.
+ */
+function followSteps(page: Page, item: JobItem, allowedHost: string, filledSig: string): void {
+  if (following.has(page)) return
+  following.add(page)
+  const allowed = allowedOn(page, allowedHost)
+  let lastSig = filledSig
+  let pending = ''
+  let busy = false
+  const timer = setInterval(async () => {
+    if (page.isClosed()) {
+      clearInterval(timer)
+      return
+    }
+    if (busy || !allowed()) return
+    busy = true
+    try {
+      await repaintBanner(page)
+      if (await detectLoginWall(page)) return
+      const frame = await formFrame(page)
+      const sig = await formSignature(frame)
+      if (!sig || sig === lastSig) {
+        pending = ''
+        return
+      }
+      // A step still rendering changes between ticks; fill once it holds still for one interval.
+      if (sig !== pending) {
+        pending = sig
+        return
+      }
+      pending = ''
+      const report = await fillPage(frame, item, loadCandidate())
+      // Conditional fields the fill revealed are part of this step now; don't treat them as a new one.
+      lastSig = await formSignature(frame).catch(() => sig)
+      if (report.filled.length + report.drafted.length + report.unfilled.length > 0 || report.resumeUploaded) {
+        recordReport(item.id, report)
+        await banner(page, { report, note: 'Review this page, press Next, and briefly fills the next one.' })
+        onChange?.()
+      }
+    } catch {
+      /* mid-navigation; try again next tick */
+    } finally {
+      busy = false
+    }
+  }, STEP_POLL_MS)
+  page.on('close', () => clearInterval(timer))
+}
+
+/**
+ * Identity of the form on screen: visible controls by tag, type, name, id, Workday automation id
+ * and label. Values are left out so typing never reads as a new step. File inputs count even when
+ * hidden — drop zones (Workday's resume step) keep theirs off-screen.
+ */
+async function formSignature(frame: Frame): Promise<string> {
+  return frame.evaluate(() => {
+    const els = Array.from(
+      document.querySelectorAll<HTMLElement>('input:not([type=hidden]), select, textarea, [role="combobox"], [role="listbox"], [role="radio"], [role="checkbox"]')
+    )
+    return els
+      .filter((e) => e.getAttribute('type') === 'file' || e.getClientRects().length > 0)
+      .map((e) => [e.tagName, e.getAttribute('type'), e.getAttribute('name'), e.id, e.getAttribute('data-automation-id'), e.getAttribute('aria-label')].join('|'))
+      .join('\n')
+  })
 }
 
 function sameSite(a: string, b: string): boolean {
@@ -316,6 +501,8 @@ function sameSite(a: string, b: string): boolean {
 // ---------------------------------------------------------------------------
 // Banner
 // ---------------------------------------------------------------------------
+
+const lastBanner = new WeakMap<Page, string>()
 
 async function banner(page: Page, content: { report?: FillReport; note?: string }): Promise<void> {
   const r = content.report
@@ -328,6 +515,21 @@ async function banner(page: Page, content: { report?: FillReport; note?: string 
   }
   if (content.note) lines.push(esc(content.note))
   const html = lines.join(' &nbsp;·&nbsp; ')
+  lastBanner.set(page, html)
+  await paintBanner(page, html)
+}
+
+/** Navigations (Workday reloads after sign-in) drop the bar; put the last one back if it's gone. */
+async function repaintBanner(page: Page): Promise<void> {
+  const html = lastBanner.get(page)
+  if (!html) return
+  const present = await page
+    .evaluate(() => Boolean(document.getElementById('briefly-banner')) || Boolean((window as unknown as { __brieflyBannerClosed?: boolean }).__brieflyBannerClosed))
+    .catch(() => true)
+  if (!present) await paintBanner(page, html)
+}
+
+async function paintBanner(page: Page, html: string): Promise<void> {
   await page.evaluate((html) => {
     let el = document.getElementById('briefly-banner')
     if (!el) {
@@ -345,7 +547,10 @@ async function banner(page: Page, content: { report?: FillReport; note?: string 
       '<span style="opacity:.7">You press Submit.</span>' +
       '<button id="briefly-refill" style="background:#27272a;color:#fff;border:1px solid #3f3f46;border-radius:6px;padding:4px 10px;font:12px inherit;cursor:pointer">Fill this page</button>' +
       '<button id="briefly-close" style="background:none;color:#a1a1aa;border:0;font-size:16px;cursor:pointer">×</button>'
-    document.getElementById('briefly-close')!.onclick = () => el!.remove()
+    document.getElementById('briefly-close')!.onclick = () => {
+      el!.remove()
+      ;(window as unknown as { __brieflyBannerClosed?: boolean }).__brieflyBannerClosed = true
+    }
     document.getElementById('briefly-refill')!.onclick = () => {
       const w = window as unknown as { __brieflyRefill?: () => Promise<void> }
       void w.__brieflyRefill?.()
