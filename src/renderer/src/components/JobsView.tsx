@@ -15,7 +15,7 @@ const NOW_PREVIEW = 8
 const SECTIONS: { id: Section; label: string; hint: string }[] = [
   { id: 'review', label: 'Review queue', hint: 'Forms briefly filled in its browser. Read the yellow drafts, then press Submit yourself' },
   { id: 'eligible', label: 'Also eligible', hint: 'Passed the screen but no strong signal: not a tiered company, no stated pay, not somewhere you\u2019ve applied' },
-  { id: 'progress', label: 'In progress', hint: 'Saved, or applying through Aside' },
+  { id: 'progress', label: 'In progress', hint: 'Saved, or being filled in the browser' },
   { id: 'applied', label: 'Applied', hint: 'Submitted — track the outcome here' },
   { id: 'flagged', label: 'Flagged', hint: 'The matcher was unsure — worth a look if you have time' },
   { id: 'hidden', label: 'Hidden', hint: 'Skipped by you or by the matcher' }
@@ -878,7 +878,7 @@ function ApplyNow({
                     <button
                       onClick={() => onApply(row.id)}
                       disabled={busy}
-                      title="Apply — fills the form in briefly's browser (or Aside), never submits"
+                      title="Apply — opens the posting in briefly's browser and fills the form, never submits"
                       className={cn(
                         'flex items-center gap-1 rounded-md bg-gray-900 px-2 py-1 text-[11px] font-semibold text-white shadow-sm transition-all hover:bg-gray-700 active:scale-95 dark:bg-accent dark:hover:bg-accent-hover',
                         busy && applyingId !== row.id && 'opacity-50',

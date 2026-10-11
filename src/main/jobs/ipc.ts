@@ -144,18 +144,13 @@ export function registerJobsIpc(): void {
       await shell.openExternal(item.url)
       return { via: null, view: view() }
     }
-    // A jobright wrapper that already resolved goes straight to the employer page.
+    // A jobright wrapper that already resolved goes straight to the employer page. Every https
+    // posting opens in briefly's browser; Aside is only ever used from the explicit action below.
     const startUrl = getUserState(id)?.resolvedUrl ?? item.url
-    if (supportedAts(startUrl)) {
-      const r = await prepareApplication(item, { startUrl })
-      updateTrayCount()
-      if (r.ok) return { via: 'browser' as const, view: view() }
-      return { via: null, error: r.error, view: view() }
-    }
-    const { via } = await launchApply(item)
-    setStatus(id, 'applying')
+    const r = await prepareApplication(item, { startUrl })
     updateTrayCount()
-    return { via, view: view() }
+    if (r.ok) return { via: 'browser' as const, view: view() }
+    return { via: null, error: r.error, view: view() }
   })
 
   /** Explicit Aside hand-off even for a supported ATS (e.g. the auto-fill got stuck). */

@@ -1,5 +1,5 @@
 /// <reference lib="dom" />
-import type { Page } from 'playwright'
+import type { Frame } from 'playwright'
 import type { JobItem } from '../../../shared/jobs'
 import { completeJson } from '../../llm'
 import { llmConfigured } from '../../settings'
@@ -392,12 +392,12 @@ export function decide(f: FormField, c: Candidate, ctx: FillContext = { usBased:
 
 const sel = (idx: number): string => `[${BRIEFLY_ATTR}="${idx}"]`
 
-export async function scanForm(page: Page): Promise<FormField[]> {
-  return page.evaluate(scanFormsScript)
+export async function scanForm(frame: Frame): Promise<FormField[]> {
+  return frame.evaluate(scanFormsScript)
 }
 
-async function setText(page: Page, f: FormField, value: string): Promise<boolean> {
-  const loc = page.locator(sel(f.idx)).first()
+async function setText(frame: Frame, f: FormField, value: string): Promise<boolean> {
+  const loc = frame.locator(sel(f.idx)).first()
   if ((await loc.count()) === 0) return false
   const v = f.maxLength > 0 ? value.slice(0, f.maxLength) : value
   await loc.click({ timeout: 3000 }).catch(() => undefined)
@@ -407,8 +407,8 @@ async function setText(page: Page, f: FormField, value: string): Promise<boolean
   return true
 }
 
-async function setSelect(page: Page, f: FormField, value: string): Promise<'ok' | 'no-option' | 'missing'> {
-  const loc = page.locator(sel(f.idx)).first()
+async function setSelect(frame: Frame, f: FormField, value: string): Promise<'ok' | 'no-option' | 'missing'> {
+  const loc = frame.locator(sel(f.idx)).first()
   if ((await loc.count()) === 0) return 'missing'
   const opt = chooseOption(f, value)
   if (!opt) return 'no-option'
@@ -440,12 +440,12 @@ export function chooseOptions(f: FormField, value: string): FormField['options']
   return picks
 }
 
-async function setChoice(page: Page, f: FormField, value: string): Promise<'ok' | 'no-option' | 'missing'> {
+async function setChoice(frame: Frame, f: FormField, value: string): Promise<'ok' | 'no-option' | 'missing'> {
   const picks = chooseOptions(f, value).filter((o) => o.idx !== undefined)
   if (!picks.length) return 'no-option'
   let any = false
   for (const opt of picks) {
-    const loc = page.locator(sel(opt.idx!)).first()
+    const loc = frame.locator(sel(opt.idx!)).first()
     if ((await loc.count()) === 0) continue
     // Many ATSs hide the real radio under a styled label; click the label when the input is covered.
     try {
@@ -466,12 +466,12 @@ async function setChoice(page: Page, f: FormField, value: string): Promise<'ok' 
  * react-select / Ashby / Workday style pickers: open, type, read the visible options, click the
  * best one. Returns the label actually chosen so the report is truthful.
  */
-async function setCombobox(page: Page, f: FormField, value: string): Promise<string | null> {
-  const loc = page.locator(sel(f.idx)).first()
+async function setCombobox(frame: Frame, f: FormField, value: string): Promise<string | null> {
+  const loc = frame.locator(sel(f.idx)).first()
   if ((await loc.count()) === 0) return null
-  const options = page.locator('[role="option"]:visible, [role="listbox"] li:visible, [data-automation-id="promptOption"]:visible')
+  const options = frame.locator('[role="option"]:visible, [role="listbox"] li:visible, [data-automation-id="promptOption"]:visible')
   const readOptions = async (): Promise<FormField['options']> => {
-    await page.waitForTimeout(400)
+    await frame.waitForTimeout(400)
     const labels = await options.allInnerTexts()
     return labels.map((l, i) => ({ value: String(i), label: l.trim() }))
   }
@@ -493,7 +493,7 @@ async function setCombobox(page: Page, f: FormField, value: string): Promise<str
     if (hit) return hit
   }
   if (!typeable) {
-    await page.keyboard.press('Escape').catch(() => undefined)
+    await frame.page().keyboard.press('Escape').catch(() => undefined)
     return null
   }
   // Full value first; if the filter leaves nothing, retry with the leading part ("Sunnyvale" of
@@ -510,28 +510,28 @@ async function setCombobox(page: Page, f: FormField, value: string): Promise<str
     if (hit) return hit
   }
   await loc.fill('', { timeout: 2000 }).catch(() => undefined)
-  await page.keyboard.press('Escape').catch(() => undefined)
+  await frame.page().keyboard.press('Escape').catch(() => undefined)
   return null
 }
 
 /** Open a picker just to read its choices (for the policy pass), then close it without choosing. */
-async function peekComboboxOptions(page: Page, f: FormField): Promise<string[]> {
-  const loc = page.locator(sel(f.idx)).first()
+async function peekComboboxOptions(frame: Frame, f: FormField): Promise<string[]> {
+  const loc = frame.locator(sel(f.idx)).first()
   if ((await loc.count()) === 0) return []
   try {
     await loc.click({ timeout: 2000 })
-    await page.waitForTimeout(350)
-    const labels = await page.locator('[role="option"]:visible, [role="listbox"] li:visible, [data-automation-id="promptOption"]:visible').allInnerTexts()
+    await frame.waitForTimeout(350)
+    const labels = await frame.locator('[role="option"]:visible, [role="listbox"] li:visible, [data-automation-id="promptOption"]:visible').allInnerTexts()
     return labels.map((l) => l.trim()).filter(Boolean).slice(0, 60)
   } catch {
     return []
   } finally {
-    await page.keyboard.press('Escape').catch(() => undefined)
+    await frame.page().keyboard.press('Escape').catch(() => undefined)
   }
 }
 
-async function setCheckbox(page: Page, f: FormField, on: boolean): Promise<boolean> {
-  const loc = page.locator(sel(f.idx)).first()
+async function setCheckbox(frame: Frame, f: FormField, on: boolean): Promise<boolean> {
+  const loc = frame.locator(sel(f.idx)).first()
   if ((await loc.count()) === 0) return false
   try {
     await loc.setChecked(on, { timeout: 3000 })
@@ -541,16 +541,16 @@ async function setCheckbox(page: Page, f: FormField, on: boolean): Promise<boole
   return true
 }
 
-async function uploadResume(page: Page, fields: FormField[], resumePdf: string | null): Promise<boolean> {
+async function uploadResume(frame: Frame, fields: FormField[], resumePdf: string | null): Promise<boolean> {
   if (!resumePdf) return false
   const files = fields.filter((f) => f.kind === 'file')
   // Prefer an input whose label says resume/CV; otherwise the first file input on the page.
   const target = files.find((f) => /resume|cv\b|curriculum/i.test(`${f.label} ${f.context}`) && !/cover/i.test(f.label)) ?? files.find((f) => !/cover|transcript|portfolio/i.test(f.label))
   if (!target) return false
-  const loc = page.locator(sel(target.idx)).first()
+  const loc = frame.locator(sel(target.idx)).first()
   if ((await loc.count()) === 0) return false
   await loc.setInputFiles(resumePdf, { timeout: 10_000 })
-  await page.waitForTimeout(1500)
+  await frame.waitForTimeout(1500)
   return true
 }
 
@@ -690,9 +690,9 @@ export interface FillOptions {
   resume?: boolean
 }
 
-export async function fillPage(page: Page, item: JobItem, c: Candidate, opts: FillOptions = {}): Promise<FillReport> {
+export async function fillPage(frame: Frame, item: JobItem, c: Candidate, opts: FillOptions = {}): Promise<FillReport> {
   const report: FillReport = { filled: [], drafted: [], unfilled: [], resumeUploaded: false }
-  const fields = await scanForm(page)
+  const fields = await scanForm(frame)
   const textQuestions: { f: FormField; id: string }[] = []
   const ctx: FillContext = { usBased: isUsBased(item.location) }
   const fieldKey = (f: FormField): string => `${f.kind}|${f.label}|${f.name}|${f.id}`
@@ -703,15 +703,15 @@ export async function fillPage(page: Page, item: JobItem, c: Candidate, opts: Fi
 
   const applyChoice = async (f: FormField, value: string, source: FillSource): Promise<string | null> => {
     if (f.kind === 'select') {
-      const r = await setSelect(page, f, value)
+      const r = await setSelect(frame, f, value)
       if (r !== 'ok') return r === 'no-option' ? `no option matching "${value.slice(0, 40)}"` : 'could not set'
       report.filled.push({ idx: f.idx, label: f.label, value: chooseOption(f, value)?.label ?? value, source })
     } else if (f.kind === 'radio' || f.kind === 'checkbox-group') {
-      const r = await setChoice(page, f, value)
+      const r = await setChoice(frame, f, value)
       if (r !== 'ok') return r === 'no-option' ? `no option matching "${value.slice(0, 40)}"` : 'could not set'
       report.filled.push({ idx: f.idx, label: f.label, value: chooseOptions(f, value).map((o) => o.label).join(', ') || value, source })
     } else {
-      const picked = await setCombobox(page, f, value)
+      const picked = await setCombobox(frame, f, value)
       if (picked === null) return `could not pick "${value.slice(0, 40)}" from the list`
       report.filled.push({ idx: f.idx, label: f.label, value: picked, source })
     }
@@ -731,7 +731,7 @@ export async function fillPage(page: Page, item: JobItem, c: Candidate, opts: Fi
         // Consent boxes: only tick when answers.md has a clear yes for this wording.
         const a = fromAnswers(f, c)
         if (a && /^yes|agree|accept/i.test(a)) {
-          if (await setCheckbox(page, f, true)) report.filled.push({ idx: f.idx, label: f.label, value: 'checked', source: 'answers' })
+          if (await setCheckbox(frame, f, true)) report.filled.push({ idx: f.idx, label: f.label, value: 'checked', source: 'answers' })
         } else if (f.required || /agree|consent|acknowledg|privacy|certify/i.test(f.label)) {
           report.unfilled.push({ label: f.label.slice(0, 120), reason: 'needs your consent' })
         }
@@ -751,12 +751,12 @@ export async function fillPage(page: Page, item: JobItem, c: Candidate, opts: Fi
       let ok = false
       let shown = d.value
       if (f.kind === 'checkbox') {
-        ok = await setCheckbox(page, f, /^yes|agree|accept|true/i.test(d.value))
+        ok = await setCheckbox(frame, f, /^yes|agree|accept|true/i.test(d.value))
         shown = 'checked'
       } else if (f.kind === 'date') {
         report.unfilled.push({ label: f.label.slice(0, 120), reason: 'date picker — pick it yourself' })
       } else {
-        ok = await setText(page, f, d.value)
+        ok = await setText(frame, f, d.value)
       }
       if (ok) report.filled.push({ idx: f.idx, label: f.label, value: shown, source: d.source })
     } catch (err) {
@@ -767,14 +767,14 @@ export async function fillPage(page: Page, item: JobItem, c: Candidate, opts: Fi
   for (const f of fields) await fillOne(f)
   // Conditional fields appear only after an earlier answer (Greenhouse shows "Please identify your
   // race" once Hispanic/Latino is No; "If yes…" boxes after a Yes). One more scan catches them.
-  const late = (await scanForm(page)).filter((f) => !handled.has(fieldKey(f)))
+  const late = (await scanForm(frame)).filter((f) => !handled.has(fieldKey(f)))
   for (const f of late) await fillOne(f)
 
   // Policy pass: the model applies answers.md to the real option lists for whatever is still open.
   if (choicePending.length && opts.draft !== false && llmConfigured()) {
     const qs: { id: string; label: string; context: string; options: string[]; f: FormField }[] = []
     for (const { f } of choicePending) {
-      const options = f.kind === 'combobox' ? await peekComboboxOptions(page, f) : f.options.map((o) => o.label)
+      const options = f.kind === 'combobox' ? await peekComboboxOptions(frame, f) : f.options.map((o) => o.label)
       qs.push({ id: `c${f.idx}`, label: f.label, context: f.context, options, f })
     }
     const picks = await chooseWithLlm(item, qs)
@@ -796,7 +796,7 @@ export async function fillPage(page: Page, item: JobItem, c: Candidate, opts: Fi
 
   if (opts.resume !== false) {
     try {
-      report.resumeUploaded = await uploadResume(page, fields, c.resumePdf)
+      report.resumeUploaded = await uploadResume(frame, fields, c.resumePdf)
     } catch (err) {
       report.unfilled.push({ label: 'Resume', reason: `upload failed (${err instanceof Error ? err.message.split('\n')[0].slice(0, 60) : 'error'})` })
     }
@@ -807,7 +807,7 @@ export async function fillPage(page: Page, item: JobItem, c: Candidate, opts: Fi
 
   if (opts.draft !== false && textQuestions.length) {
     // Research first (posting text + the company's own site) so "why us" answers can name something real.
-    const research = await researchForDrafts(page, item).catch(() => ({ posting: '', company: '', sources: [] }))
+    const research = await researchForDrafts(frame.page(), item).catch(() => ({ posting: '', company: '', sources: [] }))
     const drafts = await draftAnswers(
       item,
       textQuestions.map(({ f, id }) => ({ id, label: f.label, maxLength: f.maxLength, context: f.context })),
@@ -820,7 +820,7 @@ export async function fillPage(page: Page, item: JobItem, c: Candidate, opts: Fi
         continue
       }
       try {
-        if (await setText(page, f, text)) report.drafted.push({ idx: f.idx, label: f.label, value: text, source: 'draft' })
+        if (await setText(frame, f, text)) report.drafted.push({ idx: f.idx, label: f.label, value: text, source: 'draft' })
       } catch {
         report.unfilled.push({ label: f.label.slice(0, 120), reason: 'could not type the draft' })
       }
@@ -829,15 +829,15 @@ export async function fillPage(page: Page, item: JobItem, c: Candidate, opts: Fi
     for (const { f } of textQuestions) report.unfilled.push({ label: f.label.slice(0, 120), reason: 'free-text question' })
   }
 
-  await highlight(page, report)
+  await highlight(frame, report)
   return report
 }
 
 /** Green outline = from your files by rule, yellow = the model's call (drafts and policy picks — read before you submit). */
-async function highlight(page: Page, report: FillReport): Promise<void> {
+async function highlight(frame: Frame, report: FillReport): Promise<void> {
   const green = report.filled.filter((r) => r.source !== 'draft').map((r) => r.idx)
   const yellow = [...report.drafted.map((r) => r.idx), ...report.filled.filter((r) => r.source === 'draft').map((r) => r.idx)]
-  await page
+  await frame
     .evaluate(
       ({ green, yellow, attr }) => {
         const paint = (idx: number, color: string): void => {
