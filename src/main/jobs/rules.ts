@@ -147,7 +147,7 @@ export function textRules(text: string): TextRuleResult {
   // R4: an explicit graduation window that excludes both Jun and Dec 2028.
   // If any sentence in the posting admits a 2028 graduation, the window that doesn't is one option
   // among several ("master's students graduating by Jan 2027; undergrads graduating 2028"), so no reject.
-  const admits2028 = /\bgraduat\w*[^.\n]{0,100}\b20(28|29)\b|\b20(28|29)\b[^.\n]{0,60}\bgraduat/i.test(t) || /\bclass of 2028\b/i.test(t)
+  const admits2028 = /\bgraduat\w*[^.\n]{0,100}\b2028\b|\b2028\b[^.\n]{0,60}\bgraduat/i.test(t) || /\bclass of 2028\b/i.test(t)
   for (const m of t.matchAll(YEAR_WINDOW)) {
     if (admits2028) break
     const lo = Number(m[1])

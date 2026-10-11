@@ -231,6 +231,7 @@ async function runPreparation(page: Page, item: JobItem, ats: FillRoute, previou
     if (loginWall) {
       setPrepared(item.id, { finishedAt: new Date().toISOString(), error: loginWall })
       await banner(page, { note: `${loginWall} Sign in here — briefly fills each page of the application as it appears.` })
+      await nudgeSignIn(page)
       await installRefill(page, item, startHost)
       followSteps(page, item, startHost, '')
       watchForSubmit(page, item)
@@ -356,6 +357,25 @@ async function detectClosedPosting(page: Page): Promise<string | null> {
   return null
 }
 
+const nudged = new WeakMap<Page, string>()
+
+/**
+ * On a sign-in page, put the cursor in the email/username box once so Chrome's own password
+ * manager offers the saved credential for this site. Chrome does the filling and holds the
+ * secret; briefly never reads or types a password. Once per URL so it doesn't fight the applicant.
+ */
+async function nudgeSignIn(page: Page): Promise<void> {
+  const url = page.url()
+  if (nudged.get(page) === url) return
+  nudged.set(page, url)
+  const box = page
+    .locator('input[type="email"]:visible, input[autocomplete="username"]:visible, input[name*="email" i]:visible, input[name*="user" i]:visible, input[type="text"]:visible')
+    .first()
+  if ((await box.count().catch(() => 0)) === 0) return
+  if (await box.inputValue().catch(() => '')) return
+  await box.click({ timeout: 2000 }).catch(() => undefined)
+}
+
 /**
  * Workday and some others want an account first. Detect it rather than typing into a login box.
  * Two shapes: a visible password field next to sign-in wording, or a chooser with no form at all
@@ -398,14 +418,38 @@ async function installRefill(page: Page, item: JobItem, allowedHost: string): Pr
         await banner(page, { note: `Not filling on ${new URL(page.url()).hostname}: this isn’t where the application started.` })
         return
       }
-      const report = await fillPage(await formFrame(page), item, loadCandidate())
-      recordReport(item.id, report)
-      await banner(page, { report })
-      onChange?.()
+      const st = stepState(page)
+      if (st.busy) return // the step follower is mid-fill on this page
+      st.busy = true
+      try {
+        const frame = await formFrame(page)
+        const report = await fillPage(frame, item, loadCandidate())
+        st.lastSig = await formSignature(frame).catch(() => st.lastSig)
+        recordReport(item.id, report)
+        await banner(page, { report })
+        onChange?.()
+      } finally {
+        st.busy = false
+      }
     })
   } catch {
     /* binding already exists on this page */
   }
+}
+
+/** Fill coordination shared by followSteps and the manual button: one fill at a time per tab, one record of what was last filled. */
+interface StepState {
+  busy: boolean
+  lastSig: string
+}
+const stepStates = new WeakMap<Page, StepState>()
+function stepState(page: Page): StepState {
+  let st = stepStates.get(page)
+  if (!st) {
+    st = { busy: false, lastSig: '' }
+    stepStates.set(page, st)
+  }
+  return st
 }
 
 /** True while the tab is still on the site the application started on (or a known ATS). */
@@ -434,22 +478,25 @@ function followSteps(page: Page, item: JobItem, allowedHost: string, filledSig: 
   if (following.has(page)) return
   following.add(page)
   const allowed = allowedOn(page, allowedHost)
-  let lastSig = filledSig
+  const st = stepState(page)
+  st.lastSig = filledSig
   let pending = ''
-  let busy = false
   const timer = setInterval(async () => {
     if (page.isClosed()) {
       clearInterval(timer)
       return
     }
-    if (busy || !allowed()) return
-    busy = true
+    if (st.busy || !allowed()) return
+    st.busy = true
     try {
       await repaintBanner(page)
-      if (await detectLoginWall(page)) return
+      if (await detectLoginWall(page)) {
+        await nudgeSignIn(page)
+        return
+      }
       const frame = await formFrame(page)
       const sig = await formSignature(frame)
-      if (!sig || sig === lastSig) {
+      if (!sig || sig === st.lastSig) {
         pending = ''
         return
       }
@@ -461,7 +508,7 @@ function followSteps(page: Page, item: JobItem, allowedHost: string, filledSig: 
       pending = ''
       const report = await fillPage(frame, item, loadCandidate())
       // Conditional fields the fill revealed are part of this step now; don't treat them as a new one.
-      lastSig = await formSignature(frame).catch(() => sig)
+      st.lastSig = await formSignature(frame).catch(() => sig)
       if (report.filled.length + report.drafted.length + report.unfilled.length > 0 || report.resumeUploaded) {
         recordReport(item.id, report)
         await banner(page, { report, note: 'Review this page, press Next, and briefly fills the next one.' })
@@ -470,7 +517,7 @@ function followSteps(page: Page, item: JobItem, allowedHost: string, filledSig: 
     } catch {
       /* mid-navigation; try again next tick */
     } finally {
-      busy = false
+      st.busy = false
     }
   }, STEP_POLL_MS)
   page.on('close', () => clearInterval(timer))
