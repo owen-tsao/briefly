@@ -35,11 +35,12 @@ export function scanFormsScript(): FormField[] {
   const ATTR = 'data-briefly'
   const clean = (s: string | null | undefined): string => (s ?? '').replace(/\s+/g, ' ').replace(/[*✱]+/g, '').trim()
   const visible = (el: Element): boolean => {
+    // File inputs are routinely hidden behind a styled button or drop zone — Workday's is
+    // display:none — so they count regardless of how they are hidden; the filler sets them directly.
+    if ((el as HTMLInputElement).type === 'file') return true
     const r = (el as HTMLElement).getBoundingClientRect()
     const cs = getComputedStyle(el as HTMLElement)
     if (cs.display === 'none' || cs.visibility === 'hidden') return false
-    // File inputs are routinely hidden behind a styled button; keep them.
-    if ((el as HTMLInputElement).type === 'file') return true
     return r.width > 0 && r.height > 0
   }
   /** Text of `root` minus the control's own subtree, so a <label> wrapping a <select> doesn't read as "GenderSelect…MaleFemale". */

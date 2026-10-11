@@ -514,8 +514,10 @@ function followSteps(page: Page, item: JobItem, allowedHost: string, filledSig: 
         await banner(page, { report, note: 'Review this page, press Next, and briefly fills the next one.' })
         onChange?.()
       }
-    } catch {
-      /* mid-navigation; try again next tick */
+    } catch (err) {
+      // Mid-navigation evaluate failures are routine; anything else is worth a line in the log.
+      const msg = err instanceof Error ? err.message.split('\n')[0] : String(err)
+      if (!/navigat|destroyed|detached|closed|Target page/i.test(msg)) console.warn(`[apply] step follower on ${item.company}: ${msg.slice(0, 200)}`)
     } finally {
       st.busy = false
     }
