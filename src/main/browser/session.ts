@@ -18,16 +18,21 @@ export function browserProfileDir(): string {
   return join(homedir(), '.briefly', 'browser')
 }
 
-/** Playwright's own Chromium if downloaded, else the Google Chrome channel, else null. */
+/**
+ * Google Chrome when installed, else Playwright's own Chromium, else null. Chrome first because it
+ * is the only one that can sign in to a Google account: Google Password Manager (saved ATS
+ * passwords, synced from the user's main Chrome) and "Sign in with Google" on Workday depend on
+ * it. Playwright's Chromium has no Google API keys, so sync is simply absent there.
+ */
 export function availableBrowser(): { kind: 'chromium' | 'chrome'; path: string } | null {
+  const chrome = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+  if (existsSync(chrome)) return { kind: 'chrome', path: chrome }
   try {
     const p = chromium.executablePath()
     if (p && existsSync(p)) return { kind: 'chromium', path: p }
   } catch {
     /* fall through */
   }
-  const chrome = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
-  if (existsSync(chrome)) return { kind: 'chrome', path: chrome }
   return null
 }
 
@@ -57,8 +62,18 @@ export async function getContext(): Promise<BrowserContext> {
       headless: false,
       channel: which.kind === 'chrome' ? 'chrome' : undefined,
       viewport: null,
-      // Keep the window recognisable and out of the way of bot heuristics that key on automation flags.
-      ignoreDefaultArgs: ['--enable-automation', '--use-mock-keychain', '--password-store=basic'],
+      // Playwright's defaults turn this into a test browser; this one is the user's. Keep the
+      // sandbox on, keep account sync and its background networking (Google Password Manager),
+      // and drop the automation flags that bot heuristics key on.
+      chromiumSandbox: true,
+      ignoreDefaultArgs: [
+        '--enable-automation',
+        '--use-mock-keychain',
+        '--password-store=basic',
+        '--disable-sync',
+        '--disable-background-networking',
+        '--disable-component-update'
+      ],
       args: ['--window-size=1180,920', '--disable-blink-features=AutomationControlled']
     })
     // The context fires `close` when the user quits the window; drop our handle so the next call relaunches.
