@@ -14,7 +14,7 @@ import {
   WEEKDAY_LABELS
 } from '../../shared/school'
 import { getNotificationsEnabled, getSchoolConfig, getSchoolFeedUrl, llmConfigured } from '../settings'
-import { addTask, listTasks, removeTask, setTaskState, syncTaskFromSource } from '../taskStore'
+import { addTask, listTasks, removeTask, setTaskState, setTaskTrack, syncTaskFromSource } from '../taskStore'
 import { updateTrayCount } from '../tray'
 import { fetchText } from '../jobs/extract'
 import { classifyTitle, looksLikeRecurringEvent, MAX_ICS_BYTES, parseIcs } from './ics'
@@ -398,6 +398,66 @@ function taskText(i: SchoolItem): string {
 }
 
 /**
+ * Tasks → School. A task you put on the School track (or that Notes classified there) shows up in
+ * the ledger as your own row, linked both ways: done here is done there, and the row keeps the
+ * task's text and deadline. "STAT 390 reread ch. 3" lands under STAT 390; anything without a
+ * recognisable course goes under General. A task with no deadline floats on today until done.
+ */
+function adoptSchoolTasks(store: ReturnType<typeof load>, today: string): boolean {
+  const linked = new Set(store.items.map((i) => i.taskId).filter((x): x is string => Boolean(x)))
+  const known = store.courses.filter((c) => !c.hidden).map((c) => c.course)
+  let changed = false
+  for (const t of listTasks()) {
+    if (t.track !== 'school' || linked.has(t.id)) continue
+    if (t.state !== 'open' && t.state !== 'snoozed') continue
+    if (t.sourceNote === 'school') continue // the mirror's own task whose row was deleted; not a new one
+    const { course, title } = splitCourse(t.text, known)
+    const guessed = classifyTitle(title, true)
+    const kind: SchoolKind = guessed === 'assignment' && !/\b(hw|homework|assignment|pset|problem set|lab|worksheet)\b/i.test(title) ? 'study' : guessed
+    const now = new Date().toISOString()
+    store.items.push({
+      id: newId('task'),
+      source: 'manual',
+      fromTask: true,
+      course,
+      title,
+      kind,
+      due: t.deadline ?? today,
+      dueTime: null,
+      url: null,
+      seenAt: now,
+      lastSeenAt: now,
+      done: false,
+      doneAt: null,
+      hidden: false,
+      taskId: t.id,
+      satisfiedBy: null
+    })
+    linked.add(t.id)
+    changed = true
+  }
+  return changed
+}
+
+/**
+ * "STAT 390: reread ch. 3" / "stat390 hw 2" / "Rewatch EE 241 lecture 5" → the course and the rest.
+ * Known courses win however they are spaced or cased ("EE 241" is your "E E 241"); otherwise an
+ * upper-case code like "CSE 143" counts; anything else goes under General.
+ */
+export function splitCourse(text: string, known: string[]): { course: string; title: string } {
+  const squash = (s: string): string => s.replace(/\s+/g, '').toUpperCase()
+  const tidy = (s: string): string => s.replace(/^\s*[:\-–—]\s*/, '').replace(/\s*[:\-–—]\s*$/, '').replace(/\s+/g, ' ').trim() || text.trim()
+  const codes = [...text.matchAll(/\b([A-Za-z]{1,6}(?:\s[A-Za-z]{1,2})?\s?\d{3}[A-Za-z]?)\b/g)]
+  for (const m of codes) {
+    const hit = known.find((k) => squash(k) === squash(m[1]))
+    if (hit) return { course: hit, title: tidy(text.replace(m[0], ' ')) }
+  }
+  const upper = codes.find((m) => /^[A-Z]/.test(m[1]) && m[1] === m[1].toUpperCase())
+  if (upper) return { course: courseKey(upper[1]), title: tidy(text.replace(upper[0], ' ')) }
+  return { course: 'General', title: text.trim() }
+}
+
+/**
  * Two-way mirror. School → Tasks: every visible, undone deadline within the horizon has a task
  * with the right deadline. Tasks → School: completing the task completes the item; dismissing it
  * hides the item. Removing a task is only done while it is untouched (removeTask's own guard).
@@ -410,18 +470,44 @@ export function syncTasks(): void {
   // already handed in (the ICS feed carries the whole term and no submission state). Yesterday's
   // misses still surface; older ones stay in the School ledger only.
   const floor = addDays(localDay(), -TASK_LOOKBACK_DAYS)
+  const today = localDay()
+  let changed = adoptSchoolTasks(store, today)
   const tasks = new Map(listTasks().map((t) => [t.id, t]))
-  let changed = false
   for (const item of store.items) {
     const t = item.taskId ? tasks.get(item.taskId) : undefined
     if (item.taskId && !t) {
       item.taskId = null
       changed = true
+      if (item.fromTask && !item.done) {
+        // The task it came from was deleted outright; its row goes too.
+        item.hidden = true
+      }
+    }
+    if (t && item.fromTask) {
+      // The task owns a task-born row. Text, deadline and track all flow this way.
+      const want = t.deadline ?? today
+      if (!item.done && item.due !== want) {
+        item.due = want
+        changed = true
+      }
+      const { course, title } = splitCourse(t.text, store.courses.filter((c) => !c.hidden).map((c) => c.course))
+      if (item.title !== title || item.course !== course) {
+        item.title = title
+        item.course = course
+        changed = true
+      }
+      if (t.track !== 'school' && !item.hidden) {
+        item.hidden = true
+        changed = true
+      } else if (t.track === 'school' && item.hidden && t.state !== 'dismissed' && t.state !== 'archived') {
+        item.hidden = false
+        changed = true
+      }
     }
     if (t) {
       // The mirror owns this task. An older build's Notes reconcile relabelled some as note-sourced
       // ("Courses", "Work"), which blocked cleanup and risked an auto-complete; take them back.
-      if (t.sourceNote !== 'school') syncTaskFromSource(t.id, { sourceNote: 'school' })
+      if (!item.fromTask && t.sourceNote !== 'school') syncTaskFromSource(t.id, { sourceNote: 'school' })
       if (t.state === 'done' && !item.done) {
         item.done = true
         item.doneAt = t.updatedAt
@@ -441,14 +527,16 @@ export function syncTasks(): void {
           item.doneAt = null
           changed = true
         }
-      } else if (!item.done && t.deadline !== item.due) {
+      } else if (!item.done && !item.fromTask && t.deadline !== item.due) {
         syncTaskFromSource(t.id, { deadline: item.due })
       }
       // Keep the title in step with the source while the task is still untouched by the user.
-      if (!item.done && t.text !== taskText(item) && t.updatedAt === t.createdAt && (t.state === 'open' || t.state === 'snoozed')) {
+      if (!item.fromTask && !item.done && t.text !== taskText(item) && t.updatedAt === t.createdAt && (t.state === 'open' || t.state === 'snoozed')) {
         syncTaskFromSource(t.id, { text: taskText(item) })
       }
     }
+    // Task-born rows are the task's; the mirror window never creates or removes their task.
+    if (item.fromTask) continue
     // Horizon 0 means "never mirror". Otherwise a deadline inside the window gets a task; one that
     // has slipped outside it (the window was shrunk) loses its task again, but only while untouched
     // (removeTask's guard), so anything you edited or snoozed stays on the list.
@@ -672,23 +760,36 @@ export function setDone(id: string, done: boolean): void {
   pushView()
 }
 
+/**
+ * A task-born row is owned by its task: syncTasks would undo a bare `hidden` flip on the next
+ * tick. Hiding one means "this isn't school work" — move the task off the School track (it stays
+ * in Tasks); unhiding puts it back. Feed rows just flip the flag.
+ */
 export function setHidden(id: string, hidden: boolean): void {
   const store = load()
   const item = store.items.find((i) => i.id === id)
   if (!item) return
   item.hidden = hidden
   save(store)
+  if (item.fromTask && item.taskId) setTaskTrack(item.taskId, hidden ? 'other' : 'school')
   syncTasks()
   pushView()
 }
 
-/** Remove for good. The id is remembered so a feed re-send doesn't resurrect it. */
+/**
+ * Remove for good. The id is remembered so a feed re-send doesn't resurrect it. A task-born row
+ * comes back through adoptSchoolTasks as long as its task is on the School track, so the task is
+ * moved off the track (deleting it outright would lose the user's own task).
+ */
 export function deleteItem(id: string): void {
   const store = load()
   const idx = store.items.findIndex((i) => i.id === id)
   if (idx === -1) return
   const [item] = store.items.splice(idx, 1)
-  if (item.taskId) removeTask(item.taskId, { sourceText: taskText(item) })
+  if (item.taskId) {
+    if (item.fromTask) setTaskTrack(item.taskId, 'other')
+    else removeTask(item.taskId, { sourceText: taskText(item) })
+  }
   if (!store.deletedIds.includes(id)) store.deletedIds.push(id)
   if (store.deletedIds.length > 2000) store.deletedIds = store.deletedIds.slice(-2000)
   save(store)

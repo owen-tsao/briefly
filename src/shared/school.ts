@@ -41,6 +41,11 @@ export interface SchoolItem {
   taskId: string | null
   /** For rule instances: the id of a real (canvas/gradescope) item that satisfied this slot. */
   satisfiedBy: string | null
+  /**
+   * Born in Tasks (a task you put on the School track) rather than here. The task owns its text and
+   * deadline; this row follows it, and is never taken off the board by the mirror window.
+   */
+  fromTask?: boolean
 }
 
 export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6
