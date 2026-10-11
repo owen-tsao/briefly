@@ -298,6 +298,18 @@ export function setTaskPinned(id: string, pinned: boolean): void {
   if (!task) return
   task.pinned = pinned
   task.pinnedAt = pinned ? new Date().toISOString() : null
+  if (!pinned) delete task.pinOrder
+  save(store)
+}
+
+/** Rank pinned tasks by dragging: ids in the order you want them, top first. Unknown or unpinned ids are ignored. */
+export function reorderPinned(ids: string[]): void {
+  const store = load()
+  let rank = 0
+  for (const id of ids) {
+    const task = store.tasks.find((t) => t.id === id && t.pinned)
+    if (task) task.pinOrder = rank++
+  }
   save(store)
 }
 

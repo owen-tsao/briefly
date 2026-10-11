@@ -143,6 +143,10 @@ export function App(): React.JSX.Element {
     setState(await window.briefly.setTaskPinned(id, pinned))
   }, [])
 
+  const handleReorderPinned = useCallback(async (ids: string[]) => {
+    setState(await window.briefly.reorderPinned(ids))
+  }, [])
+
   const handleOpenNote = useCallback((title: string) => {
     void window.briefly.openNote(title)
   }, [])
@@ -258,6 +262,7 @@ export function App(): React.JSX.Element {
             onTaskTrack={handleTaskTrack}
             onTaskPriority={handleTaskPriority}
             onTaskPin={handleTaskPin}
+            onReorderPinned={handleReorderPinned}
             onOpenNote={handleOpenNote}
             onEndDay={handleEndDay}
             onOpenSettings={() => setTab('settings')}

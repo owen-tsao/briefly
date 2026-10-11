@@ -65,6 +65,8 @@ export interface BrieflyApi extends SchoolApi {
   setTaskPriority: (id: string, priority: Priority) => Promise<AppState>
   /** Pin/unpin a task as a must-finish for today; shown in the pinned box on the Tasks tab. */
   setTaskPinned: (id: string, pinned: boolean) => Promise<AppState>
+  /** Persist the order of pinned tasks after a drag; top of the list is the one to focus on. */
+  reorderPinned: (ids: string[]) => Promise<AppState>
   dismissTodayItem: (text: string) => Promise<AppState>
   endDay: () => Promise<AppState>
   reopenDay: () => Promise<AppState>
@@ -127,6 +129,7 @@ const api: BrieflyApi = {
   setTaskTrack: (id, track) => ipcRenderer.invoke('task:setTrack', id, track),
   setTaskPriority: (id, priority) => ipcRenderer.invoke('task:setPriority', id, priority),
   setTaskPinned: (id, pinned) => ipcRenderer.invoke('task:setPinned', id, pinned),
+  reorderPinned: (ids) => ipcRenderer.invoke('task:reorderPinned', ids),
   dismissTodayItem: (text) => ipcRenderer.invoke('today:dismiss', text),
   endDay: () => ipcRenderer.invoke('day:end'),
   reopenDay: () => ipcRenderer.invoke('day:reopen'),

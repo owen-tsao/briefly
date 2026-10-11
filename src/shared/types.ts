@@ -46,6 +46,8 @@ export interface Task {
   /** Pinned = must-finish; stays until done or unpinned. Cleared pins drop off after the day they were finished. */
   pinned?: boolean
   pinnedAt?: string | null
+  /** Your rank among pinned tasks (0 = focus on this first). Unset pins sort after ranked ones, by pinnedAt. */
+  pinOrder?: number
   /** Verbatim note line this task was extracted from — provenance for reconcile. */
   sourceExcerpt?: string
   /** Last time code confirmed the source line still exists in Notes. Gate for auto-complete. */

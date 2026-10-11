@@ -27,6 +27,8 @@ interface Props {
   onTaskTrack: (id: string, track: Track) => void
   onTaskPriority: (id: string, priority: Priority) => void
   onTaskPin: (id: string, pinned: boolean) => void
+  /** Drag-ranked order of pinned tasks, top first. */
+  onReorderPinned: (ids: string[]) => void
   onOpenNote: (title: string) => void
   onEndDay: () => void
   onOpenSettings: () => void
@@ -70,12 +72,16 @@ export function TasksView({
   onTaskTrack,
   onTaskPriority,
   onTaskPin,
+  onReorderPinned,
   onOpenNote,
   onEndDay,
   onOpenSettings
 }: Props): React.JSX.Element {
   const [celebrating, setCelebrating] = useState(false)
   const wasAllDoneRef = useRef(false)
+  // Drag state for ranking pinned tasks: the id being dragged and the id it is currently over.
+  const [dragId, setDragId] = useState<string | null>(null)
+  const [overId, setOverId] = useState<string | null>(null)
 
   useEffect(() => {
     if (allDone && !wasAllDoneRef.current) {
@@ -120,9 +126,21 @@ export function TasksView({
     (t) => t.state === 'open' || (t.state === 'done' && workDayOf(t.updatedAt, state.day) === today)
   )
   // Pinned = must-finish. Stays until done or unpinned; done ones sit struck through until the day ends.
+  // Your drag order first (0 = focus on this now); pins you have not ranked follow in the order pinned.
   const pinned = visible
     .filter((t) => t.pinned)
-    .sort((a, b) => (a.pinnedAt ?? '').localeCompare(b.pinnedAt ?? ''))
+    .sort((a, b) => (a.pinOrder ?? Number.MAX_SAFE_INTEGER) - (b.pinOrder ?? Number.MAX_SAFE_INTEGER) || (a.pinnedAt ?? '').localeCompare(b.pinnedAt ?? ''))
+  const focusId = pinned.find((t) => t.state !== 'done')?.id ?? null
+  const dropOn = (targetId: string): void => {
+    if (!dragId || dragId === targetId) return
+    const ids = pinned.map((t) => t.id)
+    const from = ids.indexOf(dragId)
+    const to = ids.indexOf(targetId)
+    if (from < 0 || to < 0) return
+    ids.splice(from, 1)
+    ids.splice(to, 0, dragId)
+    onReorderPinned(ids)
+  }
 
   const strip = visible.length > 0 && (
     <section className="overflow-hidden rounded-xl border border-slate-200/80 bg-white/90 shadow-[0_1px_3px_rgba(0,0,0,0.04)] backdrop-blur dark:border-white/[0.08] dark:bg-ink-900/90">
@@ -142,11 +160,26 @@ export function TasksView({
             Pin the tasks you must finish — hover a task and press the pin. They stay here until done.
           </p>
         ) : (
-          <ul className="space-y-1">
+          <ul className="space-y-1" title={pinned.length > 1 ? 'Drag to rank — the top one is what to do now' : undefined}>
             {pinned.map((t) => (
               <PinnedItem
                 key={t.id}
                 task={t}
+                focus={t.id === focusId}
+                dragging={t.id === dragId}
+                over={t.id === overId && dragId !== null && dragId !== t.id}
+                draggable={pinned.length > 1}
+                onDragStart={() => setDragId(t.id)}
+                onDragOver={() => setOverId(t.id)}
+                onDrop={() => {
+                  dropOn(t.id)
+                  setDragId(null)
+                  setOverId(null)
+                }}
+                onDragEnd={() => {
+                  setDragId(null)
+                  setOverId(null)
+                }}
                 onToggle={() => onTaskState(t.id, t.state === 'done' ? 'open' : 'done')}
                 onUnpin={() => onTaskPin(t.id, false)}
               />
@@ -383,16 +416,56 @@ const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 }
 /** One line in the pinned box: checkbox, text, and an unpin that fades in on hover — no layout shift. */
 function PinnedItem({
   task,
+  focus,
+  dragging,
+  over,
+  draggable,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
   onToggle,
   onUnpin
 }: {
   task: Task
+  /** The one to do now: the top-ranked open pin. */
+  focus: boolean
+  dragging: boolean
+  over: boolean
+  draggable: boolean
+  onDragStart: () => void
+  onDragOver: () => void
+  onDrop: () => void
+  onDragEnd: () => void
   onToggle: () => void
   onUnpin: () => void
 }): React.JSX.Element {
   const done = task.state === 'done'
   return (
-    <li className="group/pin flex items-start gap-2 text-[13px] leading-relaxed">
+    <li
+      draggable={draggable}
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = 'move'
+        onDragStart()
+      }}
+      onDragOver={(e) => {
+        e.preventDefault()
+        e.dataTransfer.dropEffect = 'move'
+        onDragOver()
+      }}
+      onDrop={(e) => {
+        e.preventDefault()
+        onDrop()
+      }}
+      onDragEnd={onDragEnd}
+      className={cn(
+        'group/pin -mx-1.5 flex items-start gap-2 rounded-md px-1.5 text-[13px] leading-relaxed transition-[background-color,opacity,box-shadow] duration-150',
+        draggable && 'cursor-grab active:cursor-grabbing',
+        dragging && 'opacity-40',
+        over && 'shadow-[inset_0_2px_0_0_theme(colors.amber.500)]',
+        focus && !done && 'bg-amber-50/70 dark:bg-amber-400/[0.08]'
+      )}
+    >
       <button
         onClick={onToggle}
         title={done ? 'Mark open' : 'Mark done'}
@@ -421,6 +494,7 @@ function PinnedItem({
             : 'text-gray-800 decoration-transparent dark:text-zinc-200'
         )}
       >
+        {focus && !done && <span className="mr-1.5 rounded bg-amber-500 px-1 text-[9px] font-bold uppercase tracking-wide text-white align-middle">now</span>}
         {task.text}
       </span>
       <button

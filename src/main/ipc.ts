@@ -10,6 +10,7 @@ import {
   setTaskTrack,
   setTaskPriority,
   setTaskPinned,
+  reorderPinned,
   endDay,
   reopenDay
 } from './taskStore'
@@ -23,7 +24,7 @@ import { scheduleAutoRescan } from './scheduler'
 import { registerJobsIpc } from './jobs/ipc'
 import { scheduleJobsScan } from './jobs/pipeline'
 import { registerSchoolIpc } from './school/ipc'
-import { scheduleSchoolPoll } from './school/school'
+import { scheduleSchoolPoll, syncTasks } from './school/school'
 import type { Horizon, Priority, SettingsUpdate, TaskState, Track } from '../shared/types'
 import { HORIZONS, TRACKS } from '../shared/types'
 
@@ -82,7 +83,11 @@ export function registerIpc(): void {
   })
 
   ipcMain.handle('task:setTrack', (_event, id: string, track: Track) => {
-    if (typeof id === 'string' && TRACKS.includes(track)) setTaskTrack(id, track)
+    if (typeof id === 'string' && TRACKS.includes(track)) {
+      setTaskTrack(id, track)
+      // Moving a task onto (or off) the School track shows/hides its row in the School tab right away.
+      syncTasks()
+    }
     return getState(llmConfigured())
   })
 
@@ -93,6 +98,11 @@ export function registerIpc(): void {
 
   ipcMain.handle('task:setPinned', (_event, id: string, pinned: boolean) => {
     if (typeof id === 'string' && typeof pinned === 'boolean') setTaskPinned(id, pinned)
+    return getState(llmConfigured())
+  })
+
+  ipcMain.handle('task:reorderPinned', (_event, ids: unknown) => {
+    if (Array.isArray(ids) && ids.length <= 200 && ids.every((x) => typeof x === 'string')) reorderPinned(ids as string[])
     return getState(llmConfigured())
   })
 
