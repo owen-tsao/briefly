@@ -50,6 +50,71 @@ export interface Candidate {
   /** Every "- Q: A" line, for fuzzy matching custom questions. */
   qa: { q: string; a: string }[]
   resumePdf: string | null
+  /** Jobs from resume.md's Experience section, most recent first, bullets verbatim. */
+  experiences: Experience[]
+}
+
+export interface MonthYear {
+  month: number
+  year: number
+}
+
+export interface Experience {
+  company: string
+  title: string
+  location: string
+  start: MonthYear | null
+  /** null while `current`. */
+  end: MonthYear | null
+  current: boolean
+  /** The resume's own bullet points, word for word. */
+  bullets: string[]
+}
+
+const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
+
+export function parseMonthYear(s: string): MonthYear | null {
+  const m = s.trim().match(/^([A-Za-z]{3,9})\.?,?\s+(\d{4})$/)
+  if (!m) return null
+  const month = MONTHS.indexOf(m[1].slice(0, 3).toLowerCase()) + 1
+  return month ? { month, year: Number(m[2]) } : null
+}
+
+/**
+ * resume.md's "## Experience" section, in the shape it is written:
+ *   **Company** (aside), Location — Title, May 2026 – Oct 2026
+ *   - bullet
+ * A header that doesn't parse is skipped rather than guessed at. Projects and other sections are
+ * left alone: they are not jobs.
+ */
+export function parseExperiences(md: string): Experience[] {
+  const out: Experience[] = []
+  let inSection = false
+  let cur: Experience | null = null
+  for (const raw of md.split('\n')) {
+    const line = raw.trim()
+    if (/^##\s/.test(line)) {
+      inSection = /^##\s+(work |professional )?experience/i.test(line)
+      cur = null
+      continue
+    }
+    if (!inSection || !line) continue
+    const head = line.match(/^\*\*(.+?)\*\*(?:\s*\([^)]*\))?(?:,\s*([^—–]+?))?\s+[—–]\s+(.+?),\s+([A-Za-z]{3,9}\.?,? \d{4})\s*[–—-]\s*([A-Za-z]{3,9}\.?,? \d{4}|present|current|now)\s*$/i)
+    if (head) {
+      const endWord = head[5].toLowerCase()
+      const current = /^(present|current|now)$/.test(endWord)
+      cur = { company: head[1].trim(), location: (head[2] ?? '').trim(), title: head[3].trim(), start: parseMonthYear(head[4]), end: current ? null : parseMonthYear(head[5]), current, bullets: [] }
+      out.push(cur)
+      continue
+    }
+    // A bold header that didn't parse starts an entry we can't describe: its bullets belong to no job.
+    if (/^\*\*/.test(line)) {
+      cur = null
+      continue
+    }
+    if (cur && /^[-•*]\s+/.test(line)) cur.bullets.push(line.replace(/^[-•*]\s+/, '').trim())
+  }
+  return out
 }
 
 function pick(qa: { q: string; a: string }[], re: RegExp): string {
@@ -175,6 +240,7 @@ export function loadCandidate(): Candidate {
     howHeard: pick(qa, /hear about/i),
     salary: pick(qa, /salary|compensation/i),
     qa,
-    resumePdf: resolveResumePdf(qa)
+    resumePdf: resolveResumePdf(qa),
+    experiences: parseExperiences(readProfileFile('resume.md'))
   }
 }

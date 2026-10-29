@@ -8,6 +8,8 @@ import { readVoice } from '../apply'
 import type { Candidate } from './candidate'
 import { BRIEFLY_ATTR, scanFormsScript, type FormField } from './forms'
 import { researchForDrafts, type Research } from './research'
+import { degreeMatcher, fillWorkdaySections } from './workday'
+import { basename } from 'node:path'
 
 /**
  * Decide-and-fill. For every control the scanner found: map the label to a profile field, or to
@@ -320,6 +322,12 @@ export function chooseOption(f: FormField, want: string): FormField['options'][n
     ['bachelor', /bachelor|\bb\.?s\.?\b|\bb\.?a\.?\b/i],
     ['master', /master|\bm\.?s\.?\b/i]
   ]
+  if (/^(b\.?[sa]\.?|m\.?[sa]\.?|bachelor|master)\b/.test(w)) {
+    // Degree levels: "B.S." → "Bachelor of Science" (or a generic "Bachelor's"), never "Bachelor of Arts".
+    const score = degreeMatcher(w)
+    const ranked = opts.map((o) => ({ o, s: score(o.label) })).filter((x) => x.s > 0).sort((a, b) => b.s - a.s)
+    if (ranked.length) return ranked[0].o
+  }
   for (const [k, re] of synonyms) {
     if (new RegExp(`\\b${k}\\b`).test(w) || (k === 'bachelor' && /^b\.?s\.?\b/.test(w))) {
       const hit = opts.find((o) => re.test(o.label))
@@ -549,9 +557,23 @@ async function uploadResume(frame: Frame, fields: FormField[], resumePdf: string
   if (!target) return false
   const loc = frame.locator(sel(target.idx)).first()
   if ((await loc.count()) === 0) return false
+  // Already on the page (Workday carries the file forward between steps): attaching again duplicates it.
+  const name = basename(resumePdf)
+  if ((await frame.getByText(name, { exact: false }).count().catch(() => 0)) > 0) return true
   await loc.setInputFiles(resumePdf, { timeout: 10_000 })
   await frame.waitForTimeout(1500)
   return true
+}
+
+/**
+ * Workday's first step, "Autofill with Resume": a lone drop zone whose only job is to parse the PDF.
+ * The URL keeps that path on later steps too, so it only counts together with the heading or a
+ * page that has nothing to fill but the file.
+ */
+async function isResumeParserStep(frame: Frame, fields: FormField[]): Promise<boolean> {
+  if ((await frame.locator('h1:visible, h2:visible, h3:visible').filter({ hasText: /autofill with resume/i }).count().catch(() => 0)) > 0) return true
+  if (!/autofillWithResume/i.test(frame.url())) return false
+  return fields.some((f) => f.kind === 'file') && fields.every((f) => f.kind === 'file' || f.kind === 'combobox')
 }
 
 // ---------------------------------------------------------------------------
@@ -692,7 +714,30 @@ export interface FillOptions {
 
 export async function fillPage(frame: Frame, item: JobItem, c: Candidate, opts: FillOptions = {}): Promise<FillReport> {
   const report: FillReport = { filled: [], drafted: [], unfilled: [], resumeUploaded: false }
-  const fields = await scanForm(frame)
+  let fields = await scanForm(frame)
+  // Workday's Work Experience / Education blocks are filled as blocks (see workday.ts); keep the
+  // flat pass away from them so it doesn't draft a "Role Description" that is then replaced.
+  const inBlocks = await frame
+    .evaluate(
+      (attr) =>
+        Array.from(document.querySelectorAll(`[${attr}]`))
+          .filter((el) => el.closest('[data-automation-id="workExperienceSection"], [data-automation-id="educationSection"]'))
+          .map((el) => Number(el.getAttribute(attr))),
+      BRIEFLY_ATTR
+    )
+    .catch(() => [] as number[])
+  if (inBlocks.length) fields = fields.filter((f) => !inBlocks.includes(f.idx))
+  {
+    const kinds = new Map<string, number>()
+    for (const f of fields) kinds.set(f.kind, (kinds.get(f.kind) ?? 0) + 1)
+    let host = ''
+    try {
+      host = new URL(frame.url()).hostname
+    } catch {
+      /* about:blank */
+    }
+    console.log(`[fill] ${host}: ${fields.length} field(s) ${[...kinds].map(([k, n]) => `${k}×${n}`).join(' ')}`)
+  }
   const textQuestions: { f: FormField; id: string }[] = []
   const ctx: FillContext = { usBased: isUsBased(item.location) }
   const fieldKey = (f: FormField): string => `${f.kind}|${f.label}|${f.name}|${f.id}`
@@ -794,7 +839,11 @@ export async function fillPage(frame: Frame, item: JobItem, c: Candidate, opts: 
     for (const p of choicePending) report.unfilled.push({ label: p.f.label.slice(0, 120), reason: p.reason })
   }
 
-  if (opts.resume !== false) {
+  if (opts.resume !== false && (await isResumeParserStep(frame, fields))) {
+    // Workday's "Autofill with Resume" guesses degrees and dates from the PDF and gets them wrong;
+    // the forms are filled from the profile instead and the PDF is attached on My Experience.
+    report.unfilled.push({ label: 'Resume', reason: 'skipped Workday’s resume parser on purpose — press Continue; briefly fills the forms from your profile and attaches the PDF on My Experience' })
+  } else if (opts.resume !== false) {
     try {
       report.resumeUploaded = await uploadResume(frame, fields, c.resumePdf)
     } catch (err) {
@@ -827,6 +876,12 @@ export async function fillPage(frame: Frame, item: JobItem, c: Candidate, opts: 
     }
   } else if (textQuestions.length) {
     for (const { f } of textQuestions) report.unfilled.push({ label: f.label.slice(0, 120), reason: 'free-text question' })
+  }
+
+  try {
+    await fillWorkdaySections(frame, c, report)
+  } catch (err) {
+    console.warn(`[fill] workday sections: ${err instanceof Error ? err.message.split('\n')[0].slice(0, 160) : String(err)}`)
   }
 
   await highlight(frame, report)

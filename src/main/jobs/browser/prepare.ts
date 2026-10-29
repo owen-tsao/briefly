@@ -1,6 +1,7 @@
 /// <reference lib="dom" />
 import { Notification } from 'electron'
-import type { Frame, Page } from 'playwright'
+import { randomInt } from 'node:crypto'
+import type { Frame, Locator, Page } from 'playwright'
 import type { JobItem, JobStatus, PreparedInfo } from '../../../shared/jobs'
 import { getNotificationsEnabled } from '../../settings'
 import { classifyUrl, type Ats } from '../normalize'
@@ -230,8 +231,8 @@ async function runPreparation(page: Page, item: JobItem, ats: FillRoute, previou
     const loginWall = await detectLoginWall(page)
     if (loginWall) {
       setPrepared(item.id, { finishedAt: new Date().toISOString(), error: loginWall })
-      await banner(page, { note: `${loginWall} Sign in here — briefly fills each page of the application as it appears.` })
-      await nudgeSignIn(page)
+      await banner(page, { note: `${loginWall} briefly signs in with the password Chrome has saved for this site (if Chrome shows a list, pick this site’s entry), or with Google; otherwise it creates the account. Each page of the application is filled as it appears.` })
+      // The follower's first tick takes the sign-in from here.
       await installRefill(page, item, startHost)
       followSteps(page, item, startHost, '')
       watchForSubmit(page, item)
@@ -357,23 +358,266 @@ async function detectClosedPosting(page: Page): Promise<string | null> {
   return null
 }
 
-const nudged = new WeakMap<Page, string>()
+interface SignInState {
+  url: string
+  /** What has been tried on this page, so each step happens at most once. */
+  clickedEmailChoice: boolean
+  nudged: boolean
+  submitted: boolean
+  triedGoogle: boolean
+  triedCreate: boolean
+  /** Sign-in was rejected (or anything else went wrong): hands off to the applicant for good on this tab. */
+  stopped: boolean
+  since: number
+}
+const signIns = new WeakMap<Page, SignInState>()
+
+/** Per-URL steps reset as the wall changes pages; `submitted` and `stopped` never do — one attempt per tab. */
+function signInState(page: Page): SignInState {
+  const url = page.url().split('#')[0]
+  let st = signIns.get(page)
+  if (!st || st.url !== url) {
+    st = { url, clickedEmailChoice: st?.clickedEmailChoice ?? false, nudged: false, submitted: st?.submitted ?? false, triedGoogle: st?.triedGoogle ?? false, triedCreate: st?.triedCreate ?? false, stopped: st?.stopped ?? false, since: Date.now() }
+    signIns.set(page, st)
+  }
+  return st
+}
+
+const AUTOFILL_WAIT_MS = 8000
 
 /**
- * On a sign-in page, put the cursor in the email/username box once so Chrome's own password
- * manager offers the saved credential for this site. Chrome does the filling and holds the
- * secret; briefly never reads or types a password. Once per URL so it doesn't fight the applicant.
+ * The first of several candidate locators that matches anything — in the order given. Playwright's
+ * `.or()` is a union ordered by DOM position, so `.or(...).first()` can pick a header "Sign In" link
+ * over the form's submit button; this keeps the preference explicit.
  */
-async function nudgeSignIn(page: Page): Promise<void> {
-  const url = page.url()
-  if (nudged.get(page) === url) return
-  nudged.set(page, url)
-  const box = page
-    .locator('input[type="email"]:visible, input[autocomplete="username"]:visible, input[name*="email" i]:visible, input[name*="user" i]:visible, input[type="text"]:visible')
-    .first()
-  if ((await box.count().catch(() => 0)) === 0) return
-  if (await box.inputValue().catch(() => '')) return
-  await box.click({ timeout: 2000 }).catch(() => undefined)
+async function firstOf(...cands: Locator[]): Promise<Locator | null> {
+  for (const c of cands) if ((await c.count().catch(() => 0)) > 0) return c.first()
+  return null
+}
+
+/**
+ * Get through a sign-in wall without ever reading or typing a password:
+ *  1. A chooser (Workday: "Sign in with Apple / Google / email") → click "Sign in with email" so
+ *     Chrome's password manager gets a form to act on.
+ *  2. The form: click into the email box (Chrome fills on a gesture). When the password box
+ *     reports `:autofill` — Chrome put a credential saved for this host there — press Sign in,
+ *     once. Nothing is read from the box; `:autofill` is a CSS state.
+ *  3. After pressing: an error ("invalid", "locked", "already have an account") stops automation
+ *     for this tab and tells the applicant — repeated attempts lock Workday accounts.
+ *  4. Nothing autofilled after a few seconds means no saved password for this host. Prefer
+ *     "Sign in with Google" when offered (no new password to keep; the Google session persists and
+ *     the account picker is a page briefly can click). Otherwise Create Account with the profile
+ *     email and a fresh strong password, which Chrome offers to save on submit.
+ * Everything else — a dropdown with several candidates, 2FA, a verification code — is left to the
+ * applicant; the follower resumes the moment the wall is gone.
+ */
+async function advanceSignIn(page: Page, email: string): Promise<void> {
+  const st = signInState(page)
+  if (st.stopped) return
+  const host = new URL(page.url()).hostname
+
+  // After pressing Sign in / Create: did the site reject it?
+  if (st.submitted) {
+    const err = await visibleError(page)
+    if (err) {
+      st.stopped = true
+      console.warn(`[apply] sign-in on ${host} rejected: "${err}"`)
+      await banner(page, { note: `${host} rejected the sign-in: “${err}”. Take over here — briefly continues once you are past it.` })
+    }
+    return
+  }
+
+  const pwBox = page.locator('input[type="password"]:visible').first()
+  const hasPw = (await pwBox.count().catch(() => 0)) > 0
+
+  if (!hasPw) {
+    // Chooser. Prefer the email route first so a saved password can do the work.
+    const emailChoice = st.clickedEmailChoice ? null : await firstOf(page.locator('[data-automation-id="SignInWithEmailButton"]'), page.getByRole('button', { name: /sign in with email|continue with email|use email/i }))
+    if (emailChoice) {
+      st.clickedEmailChoice = true
+      await emailChoice.click({ timeout: 3000 }).catch(() => undefined)
+      console.log(`[apply] sign-in on ${host}: chose email`)
+    }
+    return
+  }
+
+  // Password form. One gesture in the email box so Chrome's manager acts; then wait for :autofill.
+  const emailBox = page.locator('input[type="email"]:visible, input[autocomplete="username"]:visible, input[name*="email" i]:visible, input[name*="user" i]:visible, input[type="text"]:visible').first()
+  if (!st.nudged) {
+    st.nudged = true
+    st.since = Date.now()
+    if ((await emailBox.count().catch(() => 0)) > 0) await emailBox.click({ timeout: 2000 }).catch(() => undefined)
+    return
+  }
+  const isAutofilled = (loc: Locator): Promise<boolean> => loc.evaluate((el) => el.matches(':autofill') || el.matches(':-webkit-autofill')).catch(() => false)
+  if (await isAutofilled(pwBox)) {
+    // The form's own submit, never a header "Sign In" link: prefer Workday's id, then a submit button inside the password's form.
+    const form = pwBox.locator('xpath=ancestor::form[1]')
+    const submit = await firstOf(
+      page.locator('[data-automation-id="signInSubmitButton"]'),
+      form.locator('button[type="submit"]:visible'),
+      form.getByRole('button', { name: /^(sign in|log in|login|continue)$/i }),
+      page.locator('button[type="submit"]:visible').filter({ hasText: /sign in|log in|login|continue/i })
+    )
+    if (!submit) return
+    st.submitted = true
+    console.log(`[apply] sign-in on ${host}: Chrome autofilled a saved password; pressing Sign in`)
+    await banner(page, { note: `Signing in to ${host} with the password Chrome has saved for it…` })
+    await submit.click({ timeout: 3000 }).catch(() => undefined)
+    return
+  }
+  if (Date.now() - st.since < AUTOFILL_WAIT_MS) return
+  // The applicant is handling it themselves (a typed password, or an email they typed rather than
+  // Chrome filled, or Chrome's credential list is probably open): stay out of the way.
+  if (await pwBox.evaluate((el) => (el as HTMLInputElement).value.length > 0).catch(() => true)) return
+  if ((await emailBox.count().catch(() => 0)) > 0 && (await emailBox.inputValue().catch(() => '')) && !(await isAutofilled(emailBox))) return
+
+  // No saved password for this host.
+  if (!st.triedGoogle) {
+    st.triedGoogle = true
+    if (await signInWithGoogle(page, email)) return
+  }
+  if (!st.triedCreate) {
+    st.triedCreate = true
+    if (await createAccount(page, email)) return
+  }
+  if (!st.stopped) {
+    st.stopped = true
+    await banner(page, { note: `No password saved for ${host} and briefly could not use Google or create an account here. Sign in or create the account yourself — briefly continues once you are in. If Chrome lists passwords from other Workday sites, pick only one saved for this host.` })
+  }
+}
+
+/** An error message the site shows after a sign-in or account-creation attempt. */
+async function visibleError(page: Page): Promise<string | null> {
+  const loc = page.locator('[role="alert"]:visible, [class*="error" i]:visible, [data-automation-id*="error" i]:visible, [data-automation-id*="alert" i]:visible')
+  const texts = await loc.allInnerTexts().catch(() => [] as string[])
+  const hit = texts.map((t) => t.replace(/\s+/g, ' ').trim()).find((t) => /invalid|incorrect|wrong|locked|try again|already (exists|have an account|registered)|not recogni[sz]ed|does not match|unable to/i.test(t))
+  if (hit) return hit.slice(0, 160)
+  // Workday's auth gateway can land on a raw JSON error page.
+  const raw = await page.evaluate(() => (document.body?.innerText ?? '').slice(0, 400)).catch(() => '')
+  const json = raw.match(/"errorMessage"\s*:\s*"([^"]{5,200})"/)
+  return json ? json[1] : null
+}
+
+/**
+ * "Sign in with Google": the button opens Google's account picker (a popup page briefly can click).
+ * Picks the profile email, presses Continue if asked, then lets the site finish. True if the
+ * button existed and was pressed; the result is judged next tick like any other sign-in.
+ */
+async function signInWithGoogle(page: Page, email: string): Promise<boolean> {
+  const host = new URL(page.url()).hostname
+  let google = await googleButton(page)
+  if (!google) {
+    // The password form replaced the chooser briefly itself clicked through; Workday keeps it one
+    // Back away. Only go back over our own navigation, and never off the site.
+    if (!signInState(page).clickedEmailChoice) return false
+    await page.goBack({ waitUntil: 'domcontentloaded', timeout: 5000 }).catch(() => undefined)
+    await page.waitForTimeout(800)
+    if (new URL(page.url()).hostname !== host) {
+      await page.goForward({ waitUntil: 'domcontentloaded', timeout: 5000 }).catch(() => undefined)
+      return false
+    }
+    google = await googleButton(page)
+    if (!google) return false
+  }
+  console.log(`[apply] sign-in on ${host}: no saved password; using Google`)
+  await banner(page, { note: `No password saved for ${host} — signing in with Google (${email}).` })
+  const popupP = page.context().waitForEvent('page', { timeout: 8000 }).catch(() => null)
+  await google.click({ timeout: 3000 }).catch(() => undefined)
+  const popup = await popupP
+  const where = popup ?? page
+  // Google's chooser lists the accounts signed into this Chrome; pick ours.
+  const byAttr = where.locator(`[data-email="${email}" i]`)
+  await byAttr.first().waitFor({ state: 'visible', timeout: 15_000 }).catch(() => undefined)
+  const account = await firstOf(byAttr, where.getByText(email, { exact: false }))
+  if (!account) {
+    // Nothing to pick (not signed into Google here, or no chooser): this was not an attempt.
+    console.warn(`[apply] sign-in on ${host}: Google chooser did not offer ${email}`)
+    if (popup) await popup.close().catch(() => undefined)
+    return false
+  }
+  await account.click({ timeout: 3000 }).catch(() => undefined)
+  // Consent screen, if any.
+  const cont = where.getByRole('button', { name: /^(continue|allow|confirm)$/i }).first()
+  await cont.waitFor({ state: 'visible', timeout: 6000 }).catch(() => undefined)
+  if ((await cont.count().catch(() => 0)) > 0) await cont.click({ timeout: 3000 }).catch(() => undefined)
+  signInState(page).submitted = true
+  return true
+}
+
+/**
+ * Create Account with the profile email and a fresh strong password typed into the form.
+ * The password exists only in this function's memory; Chrome offers to save it on submit (the
+ * banner says to accept). True if a creation form was found and submitted.
+ */
+async function createAccount(page: Page, email: string): Promise<boolean> {
+  const link = await firstOf(
+    page.locator('[data-automation-id="createAccountLink"]'),
+    page.getByRole('link', { name: /create (an )?account|sign up|register/i }),
+    page.getByRole('button', { name: /create (an )?account|sign up|register/i })
+  )
+  if (!link) return false
+  await link.click({ timeout: 3000 }).catch(() => undefined)
+  const pws = page.locator('input[type="password"]:visible')
+  await pws.first().waitFor({ state: 'visible', timeout: 8000 }).catch(() => undefined)
+  const n = await pws.count().catch(() => 0)
+  if (n === 0) return false
+  const host = new URL(page.url()).hostname
+  console.log(`[apply] sign-in on ${host}: creating an account`)
+  const emailBox = page.locator('input[type="email"]:visible, [data-automation-id="email"]:visible, input[name*="email" i]:visible').first()
+  if ((await emailBox.count().catch(() => 0)) > 0 && !(await emailBox.inputValue().catch(() => ''))) await emailBox.fill(email).catch(() => undefined)
+  const password = freshPassword()
+  for (let i = 0; i < n; i++) await pws.nth(i).fill(password).catch(() => undefined)
+  // Only the terms / privacy acknowledgement — never marketing, job-alert or SMS opt-ins.
+  const terms = page.locator('[data-automation-id="createAccountCheckbox"]')
+  const candidates = (await terms.count().catch(() => 0)) > 0 ? [terms.first()] : await termsBoxes(page)
+  for (const b of candidates) if (!(await b.isChecked().catch(() => true))) await b.check({ timeout: 2000 }).catch(() => undefined)
+  await banner(page, { note: `Creating an account on ${host} as ${email}. When Chrome asks to save the new password, click Save — briefly does not keep it.` })
+  const submit = await firstOf(
+    page.locator('[data-automation-id="createAccountSubmitButton"]'),
+    pws.first().locator('xpath=ancestor::form[1]').locator('button[type="submit"]:visible'),
+    page.getByRole('button', { name: /^(create (an )?account|sign up|register|continue)$/i })
+  )
+  if (!submit) return false
+  signInState(page).submitted = true
+  await submit.click({ timeout: 3000 }).catch(() => undefined)
+  return true
+}
+
+function googleButton(page: Page): Promise<Locator | null> {
+  return firstOf(
+    page.locator('[data-automation-id="GoogleSignInButton"]'),
+    page.getByRole('button', { name: /sign in with google|continue with google/i }),
+    page.getByRole('link', { name: /sign in with google|continue with google/i })
+  )
+}
+
+/** Checkboxes whose label reads like terms/privacy consent, and not like an opt-in. */
+async function termsBoxes(page: Page): Promise<Locator[]> {
+  const boxes = page.locator('input[type="checkbox"]:visible')
+  const out: Locator[] = []
+  for (let i = 0; i < (await boxes.count().catch(() => 0)); i++) {
+    const b = boxes.nth(i)
+    const label = await b.evaluate((el) => {
+      const byFor = el.id ? document.querySelector(`label[for="${el.id}"]`)?.textContent : ''
+      return (el.closest('label')?.textContent ?? byFor ?? el.getAttribute('aria-label') ?? el.parentElement?.textContent ?? '').replace(/\s+/g, ' ').trim()
+    }).catch(() => '')
+    if (/terms|privacy|agree|consent|acknowledge|policy|conditions/i.test(label) && !/marketing|newsletter|alerts?|updates|sms|text message|promotions|remember me/i.test(label)) out.push(b)
+  }
+  return out
+}
+
+/** 20 characters, all four classes, from the OS CSPRNG. Lives only in memory for one form submit. */
+function freshPassword(): string {
+  const sets = ['ABCDEFGHJKLMNPQRSTUVWXYZ', 'abcdefghijkmnopqrstuvwxyz', '23456789', '!@#$%&*?']
+  const all = sets.join('')
+  const pick = (s: string): string => s[randomInt(s.length)]
+  const chars = [...sets.map(pick), ...Array.from({ length: 16 }, () => pick(all))]
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = randomInt(i + 1)
+    ;[chars[i], chars[j]] = [chars[j], chars[i]]
+  }
+  return chars.join('')
 }
 
 /**
@@ -423,7 +667,9 @@ async function installRefill(page: Page, item: JobItem, allowedHost: string): Pr
       st.busy = true
       try {
         const frame = await formFrame(page)
+        console.log(`[apply] refill button on ${new URL(page.url()).hostname} (${item.company})`)
         const report = await fillPage(frame, item, loadCandidate())
+        console.log(`[apply] refill: filled ${report.filled.length}, drafted ${report.drafted.length}, unfilled ${report.unfilled.length}, resume ${report.resumeUploaded}`)
         st.lastSig = await formSignature(frame).catch(() => st.lastSig)
         recordReport(item.id, report)
         await banner(page, { report })
@@ -491,7 +737,7 @@ function followSteps(page: Page, item: JobItem, allowedHost: string, filledSig: 
     try {
       await repaintBanner(page)
       if (await detectLoginWall(page)) {
-        await nudgeSignIn(page)
+        await advanceSignIn(page, loadCandidate().email)
         return
       }
       const frame = await formFrame(page)
@@ -506,7 +752,9 @@ function followSteps(page: Page, item: JobItem, allowedHost: string, filledSig: 
         return
       }
       pending = ''
+      console.log(`[apply] follower: new step on ${new URL(page.url()).hostname} (${item.company})`)
       const report = await fillPage(frame, item, loadCandidate())
+      console.log(`[apply] follower: filled ${report.filled.length}, drafted ${report.drafted.length}, unfilled ${report.unfilled.length}, resume ${report.resumeUploaded}`)
       // Conditional fields the fill revealed are part of this step now; don't treat them as a new one.
       st.lastSig = await formSignature(frame).catch(() => sig)
       if (report.filled.length + report.drafted.length + report.unfilled.length > 0 || report.resumeUploaded) {
