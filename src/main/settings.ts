@@ -156,16 +156,22 @@ function save(settings: StoredSettings): void {
 
 export function getSettingsView(): SettingsView {
   const s = load()
+  // Decrypt, don't just check that ciphertext exists: a key copied from another Mac (or a
+  // keychain that refuses) leaves apiKeyEnc set while getApiKey() returns null, and Settings
+  // used to show "set ✓" next to "No API key set" on the model list.
+  const apiKeyOk = Boolean(getApiKey())
+  const awsOk = Boolean(getBedrockCredentials())
+  const feedOk = Boolean(getSchoolFeedUrl())
   return {
     llmProvider: s.llmProvider,
     baseUrl: s.baseUrl,
     model: s.model,
-    hasApiKey: Boolean(s.apiKeyEnc) || Boolean(process.env.BRIEFLY_API_KEY),
+    hasApiKey: apiKeyOk,
     bedrock: {
       region: s.bedrock.region,
       model: s.bedrock.model,
-      hasCredentials: Boolean(s.bedrock.credentialsEnc),
-      accessKeyHint: s.bedrock.accessKeyHint
+      hasCredentials: awsOk,
+      accessKeyHint: awsOk ? s.bedrock.accessKeyHint : ''
     },
     autoRescanMinutes: s.autoRescanMinutes,
     notificationsEnabled: s.notificationsEnabled,
@@ -174,8 +180,8 @@ export function getSettingsView(): SettingsView {
     jobsScanMinutes: s.jobsScanMinutes,
     jobsInBadge: s.jobsInBadge,
     school: {
-      hasFeed: Boolean(s.school.feedUrlEnc),
-      feedHost: s.school.feedHost,
+      hasFeed: feedOk,
+      feedHost: feedOk ? s.school.feedHost : '',
       pollMinutes: s.school.pollMinutes,
       taskHorizonDays: s.school.taskHorizonDays
     }

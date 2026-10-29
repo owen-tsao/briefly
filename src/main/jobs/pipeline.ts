@@ -21,6 +21,7 @@ import {
   itemsNeedingScore,
   load,
   markScan,
+  save,
   resetRuleVerdictsIfRulesChanged,
   retireNonUS,
   samePosting,
@@ -340,6 +341,20 @@ let draining = false
 let scoreError: string | null = null
 let scoredThisSession = 0
 let ruledOutThisSession = 0
+
+/**
+ * Drop a sticky score error after the user changes provider or keys. The banner reads the last
+ * scan's saved errors, not this in-memory flag, so the "score:" line has to come off disk too.
+ */
+export function clearScoreError(): void {
+  scoreError = null
+  const store = load()
+  const next = store.lastErrors.filter((e) => !e.startsWith('score:'))
+  if (next.length === store.lastErrors.length) return
+  store.lastErrors = next
+  save(store)
+  pushView()
+}
 /** Wall-clock the provider told us to wait until (after a 429). */
 let backoffUntil = 0
 /** Postings whose chunk failed for a non-rate-limit reason; parked for this session so they can't head the queue forever. */

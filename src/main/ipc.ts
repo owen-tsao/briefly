@@ -22,7 +22,7 @@ import { testConnection } from './bedrock'
 import { updateTrayCount } from './tray'
 import { scheduleAutoRescan } from './scheduler'
 import { registerJobsIpc } from './jobs/ipc'
-import { scheduleJobsScan } from './jobs/pipeline'
+import { clearScoreError, scheduleJobsScan } from './jobs/pipeline'
 import { registerSchoolIpc } from './school/ipc'
 import { scheduleSchoolPoll, syncTasks } from './school/school'
 import type { Horizon, Priority, SettingsUpdate, TaskState, Track } from '../shared/types'
@@ -157,6 +157,15 @@ export function registerIpc(): void {
     if (!update || typeof update !== 'object') return { ok: false as const, error: 'Bad settings payload.', view: getSettingsView() }
     try {
       const view = saveSettings(update)
+      // Provider/key edits leave the last drain's error string on the jobs banner until a call
+      // succeeds; clear it so "No AWS credentials" doesn't stick after switching to Gemini.
+      if (
+        update.llmProvider !== undefined ||
+        update.apiKey !== undefined ||
+        update.bedrock !== undefined
+      ) {
+        clearScoreError()
+      }
       scheduleAutoRescan()
       scheduleJobsScan()
       scheduleSchoolPoll()
