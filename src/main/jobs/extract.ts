@@ -228,3 +228,22 @@ async function extractRaw(url: string, company: string): Promise<Extracted> {
   }
   return fromHtml(url)
 }
+
+/**
+ * The team a posting says the role joins, when it says so in the usual way: "The Envelopes
+ * Management team at Docusign…", "join the Builders & Partners organization", "on the Lambda team".
+ * Used when the LLM has not read the posting (fingerprint backfill). Null rather than a guess.
+ */
+export function teamFromText(text: string): string | null {
+  const head = text.slice(0, 4_000)
+  const name = String.raw`([A-Z][\w&'’.-]*(?:\s+(?:&|and|of|for|the)?\s*[A-Z][\w&'’.-]*){0,4})`
+  const re = new RegExp(String.raw`\b(?:[Tt]he|[Oo]ur|[Jj]oin(?:ing)?\s+the|[Oo]n\s+the|[Ww]ithin\s+the|[Pp]art\s+of\s+the|[Ii]n\s+the)\s+${name}\s+(?:[Tt]eam|[Oo]rg(?:anization)?|[Gg]roup)\b`, 'g')
+  for (const m of head.matchAll(re)) {
+    const t = m[1].replace(/\s+/g, ' ').trim()
+    // Generic phrasings, not names.
+    if (/^(?:Software|Engineering|Development|Product|Hiring|Recruiting|Intern(?:ship)?|Our|Right|Core|Whole|Entire|Global|Same|Best|Great)\b/.test(t) && t.split(' ').length <= 2) continue
+    if (t.length < 3 || t.length > 60) continue
+    return t
+  }
+  return null
+}

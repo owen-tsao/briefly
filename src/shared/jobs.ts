@@ -58,10 +58,29 @@ export interface JobItem {
   skipRules?: boolean
   /** Verdict was cleared on purpose (rules.md changed); re-score even if the posting is old. */
   rescore?: boolean
+  /**
+   * The ATS's own last-modified stamp for the posting, where the board feed exposes one (Greenhouse
+   * `updated_at`). A verdict is a reading of one version of the text; when this moves past the
+   * version we scored, the posting is re-read and re-judged.
+   */
+  sourceUpdatedAt?: string | null
   /** Description was read for a pay figure at least once; don't fetch it again just for that. */
   payChecked?: boolean
   /** Built-in text-rule revision this apply verdict was last re-checked against (see TEXT_RULES_REV). */
   textAuditRev?: number
+  /**
+   * Fingerprint of the posting's description (digits and punctuation stripped), set when the text
+   * was read. Two rows at the same company, title and city with the same fingerprint are the same
+   * posting under two requisition numbers and get folded into one card.
+   */
+  descriptionHash?: string | null
+  /** Set on a row folded into another (identical) posting's card; `active` is false while it holds. */
+  duplicateOf?: string
+  /**
+   * The team / org / product area the posting names ("Envelopes Management", "AWS Lambda"), so ten
+   * same-title reqs at one company can be told apart. null once the text was read and named none.
+   */
+  team?: string | null
 }
 
 /** Statuses the user can set. Absent entry means `new`. */
@@ -171,6 +190,8 @@ export interface JobRow {
   id: string
   item: JobItem | null
   state: JobUserState | null
+  /** Other requisitions of this exact posting that were folded into this card. */
+  duplicates?: { id: string; url: string; location: string | null }[]
 }
 
 export interface ProfileFile {

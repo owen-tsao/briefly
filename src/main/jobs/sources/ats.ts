@@ -25,7 +25,8 @@ async function greenhouse(b: Board, maxAgeDays: number): Promise<JobItem[]> {
         title: x.title,
         url: x.absolute_url,
         location: x.location?.name ?? null,
-        postedAt: x.updated_at ?? null
+        postedAt: x.updated_at ?? null,
+        sourceUpdatedAt: x.updated_at ?? null
       })
     )
 }

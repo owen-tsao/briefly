@@ -18,6 +18,7 @@ export interface RawPosting {
   active?: boolean
   sourceRef?: string | null
   kind?: JobItem['kind']
+  sourceUpdatedAt?: string | null
 }
 
 /** Feed text is untrusted: one line, bounded, so it can't smuggle instructions into prompts or overflow the UI. */
@@ -38,6 +39,7 @@ export function toItem(raw: RawPosting): JobItem {
     dcLink: raw.dcLink ?? false,
     referralNote: raw.referralNote ? line(raw.referralNote, 300) : null,
     postedAt: raw.postedAt ?? null,
+    ...(raw.sourceUpdatedAt ? { sourceUpdatedAt: raw.sourceUpdatedAt } : {}),
     deadline: raw.deadline ? line(raw.deadline, 60) : null,
     location: raw.location ? line(raw.location, 120) : null,
     pay: raw.pay ? line(raw.pay, 60) : null,

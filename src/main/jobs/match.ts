@@ -47,8 +47,12 @@ Pasted links. A block marked "Kind: posting (added by link)" has its company and
 from the URL and they may be wrong. Also return "company" and "title" exactly as the page states
 them ("" if the page does not say). Judge the role on the text, not on the guessed title.
 
+Every posting: also return "team" — the specific team, organization or product area the role sits
+in, as the posting names it, in 1-5 words ("Envelopes Management", "AWS Lambda", "Emerging Plays",
+"Tableau Research"). "" if the posting names none. Never invent one from the job title.
+
 Return only a JSON array with exactly one object per posting, in the same order, each shaped:
-{"index":0,"decision":"apply|flagged|skip","blockers":[],"flags":[],"matched":[],"missing":[],"summary":"","company":"","eventDate":"","title":""}
+{"index":0,"decision":"apply|flagged|skip","blockers":[],"flags":[],"matched":[],"missing":[],"summary":"","company":"","eventDate":"","title":"","team":""}
 Omit company, eventDate and title for ordinary postings.`
 
 const DECISIONS = new Set(['apply', 'flagged', 'skip'])
@@ -145,6 +149,8 @@ export interface PageFacts {
   company: string | null
   eventDate: string | null
   title: string | null
+  /** Team / org / product area named in the posting; null when none. */
+  team: string | null
 }
 
 export interface Scored {
@@ -158,7 +164,9 @@ function pageFacts(raw: Record<string, unknown> | undefined): PageFacts {
     return s || null
   }
   const date = typeof raw?.eventDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw.eventDate.trim()) ? raw.eventDate.trim() : ''
-  return { company: line(raw?.company), eventDate: date || null, title: line(raw?.title) }
+  const team = line(raw?.team)
+  // A "team" that is just the job title again tells the reader nothing.
+  return { company: line(raw?.company), eventDate: date || null, title: line(raw?.title), team: team && !/intern|engineer$/i.test(team) ? team.slice(0, 60) : null }
 }
 
 /**
@@ -194,7 +202,7 @@ export async function scoreBatch(
     const picked = byIndex ?? arr[i]
     return {
       verdict: normalize(picked, b.text.trim().length > 0),
-      page: b.item.kind === 'event' || b.item.source === 'manual' ? pageFacts(picked) : null
+      page: pageFacts(picked)
     }
   })
 }

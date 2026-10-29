@@ -43,6 +43,18 @@ function sectionOf(row: JobRow): Section | 'queue' {
 
 const LINK_RE = /^\s*https?:\/\/\S+/i
 
+/** "…/jobs/30480/software-engineer-intern/job" → "#30480"; otherwise the last meaningful path segment. */
+function reqLabel(url: string): string {
+  try {
+    const parts = new URL(url).pathname.split('/').filter(Boolean)
+    const num = parts.find((p) => /^\d{3,}$/.test(p)) ?? parts.find((p) => /\d{3,}/.test(p))?.match(/\d{3,}/)?.[0]
+    if (num) return `#${num}`
+    return parts[parts.length - 1]?.slice(0, 24) || url.replace(/^https?:\/\//, '').slice(0, 24)
+  } catch {
+    return url.slice(0, 24)
+  }
+}
+
 const STATUS_DOT: Record<JobStatus, string> = {
   new: 'bg-slate-400',
   saved: 'bg-sky-400',
@@ -848,7 +860,13 @@ function ApplyNow({
                     {it.dcLink && <Chip tone="teal">DC</Chip>}
                     {it.pay && <Chip tone="neutral">{it.pay}</Chip>}
                   </div>
-                  <div className="truncate text-[11.5px] text-gray-600 dark:text-zinc-300">{it.title}</div>
+                  <div className="truncate text-[11.5px] text-gray-600 dark:text-zinc-300">
+                    {it.title}
+                    {it.team && <span className="text-gray-400 dark:text-zinc-500" title="Team or product area named in the posting">{` · ${it.team}`}</span>}
+                    {row.duplicates && row.duplicates.length > 0 && (
+                      <span className="text-gray-400 dark:text-zinc-500" title={`Listed ${row.duplicates.length + 1} times with the identical description`}>{` ×${row.duplicates.length + 1}`}</span>
+                    )}
+                  </div>
                   <div className="mt-0.5 truncate text-[10.5px] text-gray-400 dark:text-zinc-500">
                     {[...why, event && it.deadline ? `on ${it.deadline}` : null, it.location].filter(Boolean).join(' · ')}
                   </div>
@@ -986,6 +1004,11 @@ function JobCard({
             {item?.kind === 'event' && <Chip tone="amber">Event</Chip>}
             {item?.dcLink && <Chip tone="teal">DC</Chip>}
             {item?.pay && <Chip tone="neutral">{item.pay}</Chip>}
+            {row.duplicates && row.duplicates.length > 0 && (
+              <Chip tone="neutral" title={`Listed ${row.duplicates.length + 1} times with the identical description (different requisition numbers). Expand for the other links.`}>
+                ×{row.duplicates.length + 1}
+              </Chip>
+            )}
             {verdict && (section === 'eligible' || section === 'flagged') && (
               <Chip tone={verdict.decision === 'apply' ? 'emerald' : verdict.decision === 'skip' ? 'rose' : 'amber'}>
                 {verdict.decision === 'apply' ? 'apply' : verdict.decision === 'skip' ? 'skip' : 'flagged'}
@@ -998,7 +1021,15 @@ function JobCard({
               </Chip>
             )}
           </div>
-          <div className="truncate text-[12px] text-gray-600 dark:text-zinc-300">{title}</div>
+          <div className="truncate text-[12px] text-gray-600 dark:text-zinc-300">
+            {title}
+            {item?.team && (
+              <span className="text-gray-400 dark:text-zinc-500" title="Team or product area named in the posting">
+                {' · '}
+                {item.team}
+              </span>
+            )}
+          </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-gray-400 dark:text-zinc-500">
             <MetaMenu
               title="Status"
@@ -1025,7 +1056,7 @@ function JobCard({
               </span>
             )}
             {pruned && <span className="italic">posting removed</span>}
-            {stale && <span className="italic">no longer listed</span>}
+            {stale && <span className="italic">{item.duplicateOf ? 'same posting as another card' : 'no longer listed'}</span>}
             {prepared ? (
               <span
                 className={cn(
@@ -1146,7 +1177,29 @@ function JobCard({
                 />
               )}
             </div>
-          )}          {verdict ? (
+          )}
+          {row.duplicates && row.duplicates.length > 0 && (
+            <div className="text-gray-500 dark:text-zinc-400">
+              <span className="text-[10px] font-bold uppercase tracking-[0.08em]">Also posted as</span>
+              <ul className="mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
+                {row.duplicates.map((d) => (
+                  <li key={d.id}>
+                    <button
+                      onClick={() => window.briefly.openUrl(d.url)}
+                      className="inline-flex items-center gap-1 text-gray-600 underline decoration-gray-300 underline-offset-2 hover:text-gray-900 dark:text-zinc-300 dark:decoration-zinc-600 dark:hover:text-zinc-100"
+                      title={d.url}
+                    >
+                      {reqLabel(d.url)}
+                      {d.location && d.location !== item?.location ? ` · ${d.location}` : ''}
+                      <ExternalLink size={10} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-0.5 text-[10.5px]">Same company, title, city and word-for-word description — one application covers it; the others are here if you want a specific req.</p>
+            </div>
+          )}
+          {verdict ? (
             <>
               <p className="text-gray-700 dark:text-zinc-200">{verdict.summary}</p>
               {verdict.rule && (

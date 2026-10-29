@@ -1,6 +1,7 @@
 import { app } from 'electron'
 import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { createHash } from 'node:crypto'
 import type {
   JobItem,
   JobRow,
@@ -208,8 +209,17 @@ export function getView(): JobsView {
   const byId = new Map(store.items.map((it) => [it.id, it]))
   const rows: JobRow[] = []
   const seen = new Set<string>()
+  const folded = new Map<string, JobRow['duplicates']>()
   for (const item of store.items) {
-    rows.push({ id: item.id, item, state: store.state[item.id] ?? null })
+    if (item.duplicateOf && !item.active) {
+      const list = folded.get(item.duplicateOf) ?? []
+      list.push({ id: item.id, url: item.url, location: item.location })
+      folded.set(item.duplicateOf, list)
+    }
+  }
+  for (const item of store.items) {
+    const duplicates = folded.get(item.id)
+    rows.push({ id: item.id, item, state: store.state[item.id] ?? null, ...(duplicates ? { duplicates } : {}) })
     seen.add(item.id)
   }
   // Acted-on items that were pruned still render from their snapshot.
@@ -232,14 +242,14 @@ export function getView(): JobsView {
 
 /** Write several rule verdicts in one load/save; returns how many items were actually marked. */
 export function setRuleVerdicts(
-  entries: { id: string; verdict: JobVerdict; title?: string | null; company?: string | null }[],
+  entries: { id: string; verdict: JobVerdict; title?: string | null; company?: string | null; descriptionHash?: string | null }[],
   profileVersion: string
 ): number {
   if (entries.length === 0) return 0
   const store = load()
   const byId = new Map(store.items.map((it) => [it.id, it]))
   let n = 0
-  for (const { id, verdict, title, company } of entries) {
+  for (const { id, verdict, title, company, descriptionHash } of entries) {
     const item = byId.get(id)
     if (!item) continue
     item.verdict = verdict
@@ -247,10 +257,110 @@ export function setRuleVerdicts(
     item.rescore = false
     if (title) item.title = title.replace(/\s+/g, ' ').trim().slice(0, 200)
     if (company) item.company = company.replace(/\s+/g, ' ').trim().slice(0, 120)
+    if (descriptionHash) item.descriptionHash = descriptionHash
     n++
   }
+  collapseIdenticalPostings(store)
   save(store)
   return n
+}
+
+/**
+ * Fingerprint of a posting's text for spotting the same posting under several requisition numbers.
+ * Digits go (req IDs, dates, salary figures that differ by cents), as does punctuation and case;
+ * what's left is the prose. Short texts (SPA shells, "apply via our site") never count.
+ */
+export function descriptionFingerprint(text: string): string | null {
+  const prose = text.toLowerCase().replace(/[0-9]+/g, '').replace(/[^a-z]+/g, ' ').trim()
+  if (prose.length < 400) return null
+  return createHash('sha1').update(prose.slice(0, 12_000)).digest('hex').slice(0, 20)
+}
+
+/** Fingerprints recorded outside a verdict (the backfill for rows that were scored before fingerprints existed). */
+export function setDescriptionHashes(entries: { id: string; descriptionHash: string | null; team?: string | null }[]): number {
+  if (entries.length === 0) return 0
+  const store = load()
+  const byId = new Map(store.items.map((it) => [it.id, it]))
+  let n = 0
+  for (const { id, descriptionHash, team } of entries) {
+    const item = byId.get(id)
+    if (!item) continue
+    // '' marks "read, nothing to fingerprint" so the backfill doesn't fetch it again.
+    item.descriptionHash = descriptionHash ?? ''
+    if (item.team === undefined || team) item.team = team ?? null
+    n++
+  }
+  const before = store.items.filter((it) => it.duplicateOf).length
+  collapseIdenticalPostings(store)
+  save(store)
+  return store.items.filter((it) => it.duplicateOf).length - before
+}
+
+/**
+ * Active direct-link rows that share company, title and city with another such row and have no
+ * fingerprint yet — the only rows a fingerprint could fold. The pipeline reads their text to fill it in.
+ */
+export function itemsNeedingFingerprint(limit: number): JobItem[] {
+  const store = load()
+  const groups = new Map<string, JobItem[]>()
+  for (const it of store.items) {
+    if (!it.active || it.source === 'jobright' || it.source === 'manual' || it.kind === 'event') continue
+    const k = `${pairKey(it)}|${cityOf(it.location)}`
+    const list = groups.get(k)
+    if (list) list.push(it)
+    else groups.set(k, [it])
+  }
+  const out: JobItem[] = []
+  for (const list of groups.values()) {
+    if (list.length < 2) continue
+    for (const it of list) if (it.descriptionHash === undefined || it.descriptionHash === null || it.team === undefined) out.push(it)
+  }
+  return out.sort((a, b) => b.seenAt.localeCompare(a.seenAt)).slice(0, limit)
+}
+
+/** How "acted on" a row is, for choosing which copy of a posting stays as the card. */
+function actionRank(st: JobUserState | undefined): number {
+  if (!st) return 0
+  const order: JobStatus[] = ['new', 'skipped', 'saved', 'applying', 'applied', 'rejected', 'oa', 'interview', 'offer']
+  return Math.max(0, order.indexOf(st.status))
+}
+
+/**
+ * Fold the same posting listed under several requisition numbers (Docusign posts one "Software
+ * Engineer Intern" per team, word for word) into one card. Same posting means: direct-link rows at
+ * the same company, same title, same city, with the same description fingerprint — a different
+ * description (Amazon's SDE Intern for cloud vs. databases) is a different posting and stays.
+ * The copy you acted on is the card; otherwise the earliest. Copies you acted on are never folded.
+ * Folded rows that lose their card (it went unlisted) come back so the next pass can re-pick.
+ */
+function collapseIdenticalPostings(store: StoreFile): void {
+  const byId = new Map(store.items.map((it) => [it.id, it]))
+  for (const it of store.items) {
+    if (!it.duplicateOf) continue
+    const owner = byId.get(it.duplicateOf)
+    if (!owner || !owner.active) {
+      delete it.duplicateOf
+      it.active = true
+    }
+  }
+  const groups = new Map<string, JobItem[]>()
+  for (const it of store.items) {
+    if (!it.active || !it.descriptionHash || it.source === 'jobright' || it.source === 'manual' || it.kind === 'event') continue
+    const k = `${pairKey(it)}|${cityOf(it.location)}|${it.descriptionHash}`
+    const list = groups.get(k)
+    if (list) list.push(it)
+    else groups.set(k, [it])
+  }
+  for (const list of groups.values()) {
+    if (list.length < 2) continue
+    const acted = (it: JobItem): number => actionRank(store.state[it.id])
+    const primary = list.slice().sort((a, b) => acted(b) - acted(a) || a.seenAt.localeCompare(b.seenAt))[0]
+    for (const it of list) {
+      if (it.id === primary.id || acted(it) > 0) continue
+      it.active = false
+      it.duplicateOf = primary.id
+    }
+  }
 }
 
 /**
@@ -309,6 +419,16 @@ export function addManualItem(
   store.items.push(item)
   save(store)
   return { id: item.id, existed: false, item }
+}
+
+/** A re-read found the same text the current verdict was based on: it stands for this profile version. */
+export function reaffirmVerdict(id: string, profileVersion: string): void {
+  const store = load()
+  const item = store.items.find((it) => it.id === id)
+  if (!item?.verdict) return
+  item.scoredWithProfileVersion = profileVersion
+  item.rescore = false
+  save(store)
 }
 
 /** "Score anyway": drop a rule verdict and let the LLM judge this posting from now on. */
@@ -607,6 +727,19 @@ export function upsertItems(incoming: JobItem[]): { added: string[]; changed: st
       cur.referralNote = inc.referralNote ?? cur.referralNote
     }
     if (cur.term === 'unknown' && inc.term !== 'unknown') cur.term = inc.term
+    if (inc.sourceUpdatedAt) {
+      // The ATS says the posting changed since the version we judged. Together AI published a role,
+      // then 56 minutes later rewrote its requirements to "Master's or Ph.D."; the verdict from the
+      // first read stayed "apply" for days. Rows the user has already acted on are left alone.
+      const judged = cur.sourceUpdatedAt ?? cur.seenAt
+      const untouched = !store.state[cur.id] || store.state[cur.id].status === 'new'
+      if (cur.verdict && untouched && Date.parse(inc.sourceUpdatedAt) > Date.parse(judged) + 60_000) {
+        cur.rescore = true
+        cur.scoredWithProfileVersion = null
+        changed.push(cur.id)
+      }
+      cur.sourceUpdatedAt = inc.sourceUpdatedAt
+    }
     if (!cur.descriptionAvailable && inc.descriptionAvailable) cur.descriptionAvailable = true
     // Feeds only carry open postings, so being listed again means it's still active.
     cur.active = true
@@ -619,6 +752,7 @@ export function upsertItems(incoming: JobItem[]): { added: string[]; changed: st
   // untouched rows get another look every upsert. Idempotent: a row with state is skipped.
   for (const it of store.items) if (it.active && !store.state[it.id]) inheritAppliedState(store, it)
   collapseIndirectDuplicates(store)
+  collapseIdenticalPostings(store)
   prune(store)
   save(store)
   return { added, changed }
@@ -792,6 +926,8 @@ export function setVerdict(
     pageTitle?: string | null
     /** Event start (YYYY-MM-DD); stored as the deadline so it sorts, shows and expires like one. */
     eventDate?: string | null
+    descriptionHash?: string | null
+    team?: string | null
   } = {}
 ): void {
   const store = load()
@@ -801,6 +937,10 @@ export function setVerdict(
   item.scoredWithProfileVersion = profileVersion
   item.rescore = false
   if (facts.descriptionAvailable !== undefined) item.descriptionAvailable = facts.descriptionAvailable
+  if (facts.descriptionAvailable) {
+    item.descriptionHash = facts.descriptionHash ?? ''
+    item.team = facts.team ?? null
+  }
   // Page-derived facts are untrusted like feed fields: one bounded line, and only a parseable date.
   const oneLine = (s: string): string => s.replace(/\s+/g, ' ').trim().slice(0, 120)
   const loc = facts.location ? oneLine(facts.location) : null
@@ -821,6 +961,7 @@ export function setVerdict(
   // counts as checked — an offline fetch shouldn't retire the posting from the backfill for good.
   if (!item.pay && facts.pay) item.pay = facts.pay.slice(0, 60)
   if (facts.descriptionAvailable) item.payChecked = true
+  if (item.descriptionHash) collapseIdenticalPostings(store)
   save(store)
 }
 

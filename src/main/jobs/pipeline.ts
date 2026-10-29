@@ -7,13 +7,15 @@ import { isLlmConfigError } from '../llmErrors'
 import { updateTrayCount } from '../tray'
 import { setPrepareListener } from './browser/prepare'
 import { autoWatchFromApplications } from './autowatch'
-import { extract } from './extract'
+import { extract, teamFromText } from './extract'
 import {
   appliedCountByCompany,
   applySignals,
   demoteApplyByTitleRules,
+  descriptionFingerprint,
   getSourceCursor,
   getView,
+  itemsNeedingFingerprint,
   itemsNeedingPay,
   itemsNeedingTextAudit,
   itemsNeedingScore,
@@ -22,8 +24,10 @@ import {
   resetRuleVerdictsIfRulesChanged,
   retireNonUS,
   samePosting,
+  setDescriptionHashes,
   setPayFacts,
   setTextAudit,
+  reaffirmVerdict,
   setRuleVerdicts,
   setSourceCursor,
   setVerdict,
@@ -207,6 +211,7 @@ export async function runJobsScan(opts: { force?: boolean } = {}): Promise<ScanR
     void drainScoreQueue()
     void backfillPay()
     void auditTextRules()
+    void backfillFingerprints()
     return { ok: true, added, scored: scoredThisSession, errors }
   } catch (err) {
     errors.push(err instanceof Error ? err.message : String(err))
@@ -254,6 +259,39 @@ async function backfillPay(): Promise<void> {
 }
 
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
+
+/**
+ * Rows scored before fingerprints existed that share company, title and city with another live
+ * row: read their text once so identical postings under several requisition numbers fold into one
+ * card. Page fetches only; no LLM.
+ */
+const FINGERPRINT_BATCH = 30
+const FINGERPRINT_BUDGET_MS = 60_000
+let fingerprinting = false
+async function backfillFingerprints(): Promise<void> {
+  if (fingerprinting) return
+  fingerprinting = true
+  try {
+    const todo = itemsNeedingFingerprint(FINGERPRINT_BATCH)
+    if (todo.length === 0) return
+    const started = Date.now()
+    const out: { id: string; descriptionHash: string | null; team: string | null }[] = []
+    for (const it of todo) {
+      if (Date.now() - started > FINGERPRINT_BUDGET_MS) break
+      const ex = await extract(it.url, it.company)
+      // Unreadable pages record '' via setDescriptionHashes so they are not fetched every tick.
+      out.push({ id: it.id, descriptionHash: ex.descriptionAvailable ? descriptionFingerprint(ex.text) : null, team: ex.descriptionAvailable ? teamFromText(ex.text) : null })
+      await sleep(700)
+    }
+    const folded = setDescriptionHashes(out)
+    if (folded > 0) console.log(`[jobs] folded ${folded} identical posting(s) into existing cards`)
+    pushView()
+  } catch (err) {
+    console.warn('[jobs] fingerprint backfill:', err instanceof Error ? err.message : String(err))
+  } finally {
+    fingerprinting = false
+  }
+}
 
 /** Apply rows re-read per tick against tightened built-in text rules. Page fetches only, no LLM. */
 const AUDIT_BATCH = 40
@@ -374,7 +412,7 @@ async function drainScoreQueue(): Promise<void> {
         chunk.map(async (item) => ({ item, ex: await extract(item.url, item.company) }))
       )
       const toScore: { item: JobItem; text: string; hints: string[] }[] = []
-      const textRuled: { id: string; verdict: JobVerdict; title?: string | null; company?: string | null }[] = []
+      const textRuled: { id: string; verdict: JobVerdict; title?: string | null; company?: string | null; descriptionHash?: string | null }[] = []
       for (const { item, ex } of extracted) {
         const text = ex.descriptionAvailable ? ex.text : ''
         // A pasted link's company/title were guessed from the URL; what the ATS states is authoritative
@@ -391,8 +429,22 @@ async function drainScoreQueue(): Promise<void> {
             id: item.id,
             verdict: ruleVerdict(tr.reject),
             title: pasted ? ex.title ?? null : null,
-            company: pasted ? ex.company ?? null : null
+            company: pasted ? ex.company ?? null : null,
+            descriptionHash: text ? descriptionFingerprint(text) : null
           })
+          continue
+        }
+        // Re-read because the ATS said the posting changed. If the prose is the same (Greenhouse
+        // bumps updated_at for any edit, including location or pay) and no text rule fires, the old
+        // verdict still describes this text — keep it, no LLM call.
+        if (
+          item.rescore &&
+          item.verdict &&
+          item.descriptionHash &&
+          text &&
+          descriptionFingerprint(text) === item.descriptionHash
+        ) {
+          reaffirmVerdict(item.id, version)
           continue
         }
         const f7 = item.kind === 'event' ? null : applicationCountHint(item.company, appliedBy)
@@ -420,7 +472,9 @@ async function drainScoreQueue(): Promise<void> {
             pay: ex.pay,
             pageCompany,
             pageTitle,
-            eventDate: page?.eventDate ?? null
+            eventDate: page?.eventDate ?? null,
+            descriptionHash: ex.descriptionAvailable ? descriptionFingerprint(ex.text) : null,
+            team: page?.team ?? (ex.descriptionAvailable ? teamFromText(ex.text) : null)
           })
           scoredThisSession++
           if (verdict.decision === 'apply' && !item.verdict) {
