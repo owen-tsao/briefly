@@ -14,7 +14,8 @@
     "build": "electron-vite build",
     "start": "electron-vite preview",
     "package": "electron-vite build && electron-builder --mac",
-    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json"
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "install:local": "scripts/install-local.sh"
   },
   "engines": {
     "node": ">=20"

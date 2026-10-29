@@ -7,9 +7,19 @@ import { initNotifications } from './notifications'
 import { initJobsScheduler } from './jobs/pipeline'
 import { initSchoolScheduler } from './school/school'
 import { closeBrowser } from './browser/session'
+import { installFileLog } from './log'
 
 const WINDOW_WIDTH = 400
 const WINDOW_HEIGHT = 580
+
+/**
+ * Stage mode, for screen recordings: BRIEFLY_STAGE=1 keeps the popover open when it loses focus
+ * (a recorder stealing focus would otherwise close it) and centers it on the primary display.
+ * BRIEFLY_USER_DATA points at a separate data folder so a curated copy can be shown without
+ * touching real data; BRIEFLY_THEME=light|dark forces the theme on load.
+ */
+const STAGE = process.env.BRIEFLY_STAGE === '1'
+if (process.env.BRIEFLY_USER_DATA) app.setPath('userData', process.env.BRIEFLY_USER_DATA)
 
 let tray: Tray | null = null
 let window: BrowserWindow | null = null
@@ -34,8 +44,28 @@ function createWindow(): BrowserWindow {
   })
 
   win.on('blur', () => {
-    if (!win.webContents.isDevToolsOpened()) win.hide()
+    if (!STAGE && !win.webContents.isDevToolsOpened()) win.hide()
   })
+  // BRIEFLY_TAB=1..6 opens that tab on load (same as ⌘1–⌘6), so a take can start on Jobs or School.
+  if (STAGE && /^[1-6]$/.test(process.env.BRIEFLY_TAB ?? '')) {
+    const key = process.env.BRIEFLY_TAB as string
+    win.webContents.on('did-finish-load', () => {
+      setTimeout(() => {
+        win.webContents.sendInputEvent({ type: 'keyDown', keyCode: key, modifiers: ['meta'] })
+        win.webContents.sendInputEvent({ type: 'keyUp', keyCode: key, modifiers: ['meta'] })
+      }, 800)
+    })
+  }
+  // On stage, the popover sits above everything so the recorder and other windows can't cover it.
+  if (STAGE) win.setAlwaysOnTop(true, 'floating')
+  if (process.env.BRIEFLY_THEME === 'light' || process.env.BRIEFLY_THEME === 'dark') {
+    const theme = process.env.BRIEFLY_THEME
+    win.webContents.on('did-finish-load', () => {
+      void win.webContents.executeJavaScript(
+        `if (localStorage.getItem('briefly-theme') !== '${theme}') { localStorage.setItem('briefly-theme', '${theme}'); location.reload() }`
+      )
+    })
+  }
 
   // The renderer only ever shows local UI: open links externally, never navigate in-app.
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -55,6 +85,11 @@ function createWindow(): BrowserWindow {
 }
 
 function positionWindow(win: BrowserWindow): void {
+  if (STAGE) {
+    const { x, y, width, height } = screen.getPrimaryDisplay().workArea
+    win.setPosition(Math.round(x + (width - WINDOW_WIDTH) / 2), Math.round(y + (height - WINDOW_HEIGHT) / 2), false)
+    return
+  }
   if (!tray) return
   const trayBounds = tray.getBounds()
   const display = screen.getDisplayNearestPoint({ x: trayBounds.x, y: trayBounds.y })
@@ -85,6 +120,7 @@ function trayIcon(): Electron.NativeImage {
 }
 
 app.whenReady().then(() => {
+  installFileLog()
   // Menu bar app: no dock icon.
   app.dock?.hide()
 
