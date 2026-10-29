@@ -21,6 +21,8 @@ export interface SchoolStore {
   /** Items the user has explicitly deleted; their ids are refused if the feed re-sends them. */
   deletedIds: string[]
   feedEtag: string | null
+  /** Reminder keys already fired (`<itemId>:1h`, `morning:<day>`), with when; pruned after two days. */
+  reminders?: Record<string, string>
 }
 
 function empty(): SchoolStore {
@@ -34,7 +36,8 @@ function empty(): SchoolStore {
     lastPollNew: 0,
     lastDigestAt: null,
     deletedIds: [],
-    feedEtag: null
+    feedEtag: null,
+    reminders: {}
   }
 }
 

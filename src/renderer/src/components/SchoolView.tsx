@@ -304,6 +304,8 @@ function Row({ item, onChange }: { item: SchoolItem; onChange: (v: View) => void
   const urgency = urgencyOf(item, localDay(), `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`)
   const hot = urgency === 'today' || urgency === 'passed'
   const time = clock12(item.dueTime)
+  // A deadline before 11 PM is the kind that gets missed by someone assuming "end of day".
+  const early = Boolean(item.dueTime && item.dueTime < '23:00' && item.kind !== 'event')
   return (
     <li
       className={cn(
@@ -343,8 +345,13 @@ function Row({ item, onChange }: { item: SchoolItem; onChange: (v: View) => void
         {item.title}
       </span>
       <span
-        className={cn('shrink-0 text-[10px] tabular-nums', hot ? 'font-semibold text-amber-700 dark:text-amber-300' : 'text-gray-400 dark:text-zinc-600')}
-        title={`From ${SOURCE_LABEL[item.source]}${time ? ` · ${time}` : ''}`}
+        className={cn(
+          'shrink-0 tabular-nums',
+          early && !item.done
+            ? cn('rounded px-1 text-[10.5px] font-semibold', hot ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' : 'bg-slate-100 text-gray-700 dark:bg-white/[0.06] dark:text-zinc-300')
+            : cn('text-[10px]', hot ? 'font-semibold text-amber-700 dark:text-amber-300' : 'text-gray-400 dark:text-zinc-600')
+        )}
+        title={early ? `Due at ${time} — before midnight (from ${SOURCE_LABEL[item.source]})` : `From ${SOURCE_LABEL[item.source]}${time ? ` · ${time}` : ''}`}
       >
         {time || SOURCE_LABEL[item.source]}
       </span>
@@ -419,18 +426,24 @@ function AnnouncementSuggestions({ items, onChange, onFlash }: { items: Announce
         {items.map((s) => (
           <li key={s.id} className="flex items-start gap-2 rounded-lg bg-white/80 px-2 py-1.5 dark:bg-ink-900/70">
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5 text-[12px]">
+              {/* Title alone owns the first line and truncates; the facts sit on the second line so a long
+                  announcement title can never push the kind/date under the buttons. */}
+              <div className="flex min-w-0 items-center gap-1.5 text-[12px]">
                 <span className="shrink-0 font-semibold text-gray-600 dark:text-zinc-400">{s.course}</span>
-                <span className="truncate font-medium">{s.title}</span>
-                <span className="shrink-0 rounded bg-slate-100 px-1 text-[9.5px] font-semibold text-gray-600 dark:bg-white/[0.06] dark:text-zinc-400">{KIND_LABEL[s.kind]}</span>
-                <span className="shrink-0 text-[11px] tabular-nums text-gray-500 dark:text-zinc-500">
-                  {s.due}
-                  {s.time ? ` ${clock12(s.time)}` : ''}
+                <span className="min-w-0 flex-1 truncate font-medium" title={s.title}>
+                  {s.title}
                 </span>
                 {s.confidence !== 'high' && <span className="shrink-0 text-[9.5px] uppercase tracking-wide text-amber-600 dark:text-amber-400">{s.confidence}</span>}
               </div>
-              <div className="truncate text-[10.5px] text-gray-400 dark:text-zinc-600" title={s.evidence}>
-                “{s.evidence || s.from}” · {s.from}
+              <div className="flex min-w-0 items-center gap-1.5 text-[10.5px] text-gray-400 dark:text-zinc-600">
+                <span className="shrink-0 rounded bg-slate-100 px-1 text-[9.5px] font-semibold text-gray-600 dark:bg-white/[0.06] dark:text-zinc-400">{KIND_LABEL[s.kind]}</span>
+                <span className="shrink-0 tabular-nums text-gray-500 dark:text-zinc-500">
+                  {s.due}
+                  {s.time ? ` ${clock12(s.time)}` : ''}
+                </span>
+                <span className="min-w-0 flex-1 truncate" title={s.evidence}>
+                  “{s.evidence || s.from}” · {s.from}
+                </span>
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-1">

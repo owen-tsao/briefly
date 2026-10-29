@@ -1,6 +1,7 @@
 import { Notification, powerMonitor, type BrowserWindow } from 'electron'
 import { addDays, localDay } from '../../shared/dates'
 import {
+  clock12,
   courseKey,
   weekOf,
   type QuickAddInput,
@@ -19,6 +20,7 @@ import { updateTrayCount } from '../tray'
 import { fetchText } from '../jobs/extract'
 import { classifyTitle, looksLikeRecurringEvent, MAX_ICS_BYTES, parseIcs } from './ics'
 import { ensureCourse, load, newId, save, type SchoolStore } from './store'
+import { checkReminders, initReminders } from './reminders'
 import { browserAvailable, getAnnouncementSuggestions, getLmsStatus, syncLmsIfDue } from './lms'
 
 /**
@@ -149,15 +151,24 @@ export async function pollFeed(force = false): Promise<{ ok: boolean; error?: st
     expandRules()
     syncTasks()
     if (!firstPoll) {
-      if (added.length) {
-        const first = added.sort((a, b) => a.due.localeCompare(b.due))[0]
+      // Judge "new" after reconciliation and against the calendar: a row the feed re-keyed for an
+      // assignment you already finished, or one whose date is already behind us, is not news.
+      const after = load()
+      const today = localDay()
+      const news = added
+        .map((a) => after.items.find((i) => i.id === a.id) ?? a)
+        .filter((i) => !i.done && !i.satisfiedBy && visible(after, i) && i.due >= today)
+      if (news.length) {
+        const first = news.sort((a, b) => a.due.localeCompare(b.due))[0]
+        const when = (i: SchoolItem): string => `${fmtDay(i.due)}${i.dueTime ? ` ${clock12(i.dueTime)}` : ''}`
         notify(
-          added.length === 1 ? `${first.course}: ${first.title}` : `${added.length} new deadlines on Canvas`,
-          added.length === 1 ? `Due ${fmtDay(first.due)}` : added.map((i) => `${i.course}: ${i.title} (${fmtDay(i.due)})`).slice(0, 4).join('\n')
+          news.length === 1 ? `${first.course}: ${first.title}` : `${news.length} new deadlines on Canvas`,
+          news.length === 1 ? `Due ${when(first)}` : news.map((i) => `${i.course}: ${i.title} (${when(i)})`).slice(0, 4).join('\n')
         )
       }
       for (const m of moved.slice(0, 3)) {
-        notify(`${m.item.course}: due date moved`, `${m.item.title}: ${fmtDay(m.from)} → ${fmtDay(m.item.due)}`)
+        if (m.item.due < today) continue
+        notify(`${m.item.course}: due date moved`, `${m.item.title}: ${fmtDay(m.from)} → ${fmtDay(m.item.due)}${m.item.dueTime ? ` ${clock12(m.item.dueTime)}` : ''}`)
       }
     }
     pushView()
@@ -349,11 +360,12 @@ export function titleKey(title: string): string {
     .trim()
 }
 
-/** "STAT 390 AD", "EE 241 A", "Section B", "AD", "Lec 2" — not "Ch. 3", "Week 2", "optional". */
+/** "STAT 390 AD", "E E 241 B", "EE 241 A", "Section B", "AD", "Lec 2" — not "Ch. 3", "Week 2", "optional". */
 function looksLikeSectionTag(inner: string): boolean {
   const s = inner.trim()
   if (!s) return true
-  if (/^[A-Z]{1,5}\s?\d{2,4}[A-Z]?(\s+[A-Z]{1,3}\d?)?$/.test(s)) return true // course code (+ section)
+  // Course code (+ section). UW writes some departments with spaces inside the letters: "E E", "A A".
+  if (/^[A-Z](?:\s?[A-Z]){0,4}\s?\d{2,4}[A-Z]?(\s+[A-Z]{1,3}\d?)?$/.test(s)) return true
   if (/^(section|sec|sect|lecture|lec|lab|quiz section)\s*[A-Z0-9]{1,3}$/i.test(s)) return true
   return /^[A-Z]{1,3}\d?$/.test(s) // bare section letters: "AD", "B", "A1"
 }
@@ -555,7 +567,9 @@ export function syncTasks(): void {
         item.taskId = id
         changed = true
       }
-    } else if (!shouldHaveTask && item.taskId && t && !item.done && (item.hidden || item.satisfiedBy || slippedOut)) {
+    } else if (!shouldHaveTask && item.taskId && t && !item.done && (!visible(store, item) || slippedOut)) {
+      // Covers the row being hidden, satisfied by a real assignment, or its whole course hidden —
+      // hiding a course you only observe must take its mirrored tasks off the board too.
       if (removeTask(item.taskId, { sourceText: taskText(item) })) {
         item.taskId = null
         changed = true
@@ -930,6 +944,19 @@ export function initSchoolScheduler(windowGetter: () => BrowserWindow | null, po
   powerMonitor.on('resume', () => setTimeout(() => void tick(), 40_000))
   scheduleSchoolPoll()
   setTimeout(() => void tick(), 60_000)
+  // Clock-time reminders (9:10 PM is not 11:59 PM): once a minute, and soon after waking.
+  initReminders(popoverOpener, visible)
+  setInterval(() => safeReminders(), 60_000)
+  setTimeout(safeReminders, 20_000)
+  powerMonitor.on('resume', () => setTimeout(safeReminders, 15_000))
+}
+
+function safeReminders(): void {
+  try {
+    checkReminders()
+  } catch (err) {
+    console.warn('[school] reminders', err instanceof Error ? err.message : String(err))
+  }
 }
 
 /** Re-armed whenever Settings change; the tick itself re-reads the interval. */
