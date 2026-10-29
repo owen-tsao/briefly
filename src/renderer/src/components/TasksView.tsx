@@ -182,6 +182,7 @@ export function TasksView({
                 }}
                 onToggle={() => onTaskState(t.id, t.state === 'done' ? 'open' : 'done')}
                 onUnpin={() => onTaskPin(t.id, false)}
+                onEdit={(text) => onTaskEdit(t.id, text)}
               />
             ))}
           </ul>
@@ -425,7 +426,8 @@ function PinnedItem({
   onDrop,
   onDragEnd,
   onToggle,
-  onUnpin
+  onUnpin,
+  onEdit
 }: {
   task: Task
   /** The one to do now: the top-ranked open pin. */
@@ -439,11 +441,15 @@ function PinnedItem({
   onDragEnd: () => void
   onToggle: () => void
   onUnpin: () => void
+  onEdit: (text: string) => void
 }): React.JSX.Element {
   const done = task.state === 'done'
+  // While the text has the caret, the row must not be draggable: a draggable parent swallows
+  // the mouse before the browser can place a selection. Armed on mousedown so it's off before any move.
+  const [editing, setEditing] = useState(false)
   return (
     <li
-      draggable={draggable}
+      draggable={draggable && !editing}
       onDragStart={(e) => {
         e.dataTransfer.effectAllowed = 'move'
         onDragStart()
@@ -486,16 +492,49 @@ function PinnedItem({
           <path d="M1 4.2L4 7L11 1" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
-      <span
-        className={cn(
-          'min-w-0 flex-1 line-through decoration-[1.2px] transition-[color,text-decoration-color] duration-300',
-          done
-            ? 'text-gray-400 decoration-gray-400/90 dark:text-zinc-500 dark:decoration-zinc-500/90'
-            : 'text-gray-800 decoration-transparent dark:text-zinc-200'
-        )}
-      >
-        {focus && !done && <span className="mr-1.5 rounded bg-amber-500 px-1 text-[9px] font-bold uppercase tracking-wide text-white align-middle">now</span>}
-        {task.text}
+      <span className="flex min-w-0 flex-1 items-baseline">
+        {focus && !done && <span className="mr-1.5 shrink-0 rounded bg-amber-500 px-1 text-[9px] font-bold uppercase tracking-wide text-white align-middle">now</span>}
+        {/* Edit-in-place, same as the rows below: the text itself is editable. */}
+        <span
+          contentEditable={!done}
+          suppressContentEditableWarning
+          spellCheck={false}
+          onMouseDown={() => !done && setEditing(true)}
+          onFocus={() => setEditing(true)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              e.currentTarget.blur()
+            }
+            if (e.key === 'Escape') {
+              e.currentTarget.innerText = task.text
+              e.currentTarget.blur()
+            }
+          }}
+          onPaste={(e) => {
+            e.preventDefault()
+            const text = e.clipboardData.getData('text/plain')
+            const sel = window.getSelection()
+            if (!sel || sel.rangeCount === 0) return
+            sel.deleteFromDocument()
+            sel.getRangeAt(0).insertNode(document.createTextNode(text))
+            sel.collapseToEnd()
+          }}
+          onBlur={(e) => {
+            setEditing(false)
+            const text = e.currentTarget.innerText.replace(/\s+/g, ' ').trim()
+            if (text && text !== task.text) onEdit(text)
+            else e.currentTarget.innerText = task.text
+          }}
+          className={cn(
+            'min-w-0 flex-1 select-text outline-none line-through decoration-[1.2px] transition-[color,text-decoration-color] duration-300',
+            done
+              ? 'text-gray-400 decoration-gray-400/90 dark:text-zinc-500 dark:decoration-zinc-500/90'
+              : 'cursor-text text-gray-800 decoration-transparent dark:text-zinc-200'
+          )}
+        >
+          {task.text}
+        </span>
       </span>
       <button
         title="Unpin"
@@ -578,6 +617,11 @@ function DayPulse({
 
 function byOrder(a: Task, b: Task): number {
   // Done tasks keep their slot — checking one must not make it jump within the zone.
+  // What you typed yourself leads the zone, newest first: a quick-add should surface where you
+  // can see it, not land wherever priority and deadline would file it among extracted tasks.
+  const qa = Number(b.sourceNote === 'quick add') - Number(a.sourceNote === 'quick add')
+  if (qa !== 0) return qa
+  if (a.sourceNote === 'quick add') return b.createdAt.localeCompare(a.createdAt)
   const p = PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]
   if (p !== 0) return p
   if (a.deadline && b.deadline) return a.deadline.localeCompare(b.deadline)

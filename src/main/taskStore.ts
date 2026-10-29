@@ -33,6 +33,8 @@ interface StoreFile {
   } | null
   /** Notes seen at the last reconcile; a sharp drop means a partial read, not mass deletion. */
   notesCountAtReconcile?: number
+  /** Set once unlinkDriftedSources has run against this store. */
+  driftRepairedAt?: string
 }
 
 export interface LlmTask {
@@ -155,6 +157,40 @@ function sweep(store: StoreFile): void {
   resetRecurring(store)
   expirePins(store)
   pruneOld(store)
+  unlinkDriftedSources(store)
+}
+
+/**
+ * One-time repair for the drift bug: earlier builds let the merge LLM re-home existing tasks onto
+ * guessed notes and let fuzzy reconcile hits become the task's anchor, so user-typed tasks ended up
+ * "from" unrelated notes ("Prep Stripe" → Shopping / "Rotisserie chicken"). For user-owned live tasks
+ * whose remembered line shares under half its words with the task, drop the link back to quick add.
+ * Links that still resemble the task are kept — they're at worst a related line the user renamed.
+ */
+function unlinkDriftedSources(store: StoreFile): void {
+  if (store.driftRepairedAt) return
+  for (const t of store.tasks) {
+    if (t.state !== 'open' && t.state !== 'snoozed') continue
+    if (!t.editedByUser || !t.sourceNote || t.sourceNote === 'quick add' || t.sourceNote === 'unknown') continue
+    if (APP_SOURCES.has(t.sourceNote)) continue
+    const text = tokenize(normalizeLine(t.text))
+    if (text.size === 0) continue
+    const anchors = [t.sourceExcerpt ?? '', t.sourceNote]
+      .map((a) => tokenize(normalizeLine(a)))
+      .filter((a) => a.size > 0)
+    // A link is real when the anchor is wholly inside the task ("Sentinel" → "Work on Sentinel") or
+    // the two share at least two words and half the task's wording. A single shared word is not
+    // evidence: "Prep Stripe" shared only "prep" with a rotisserie-chicken shopping line.
+    const vouches = (a: Set<string>): boolean => {
+      const common = [...text].filter((w) => a.has(w)).length
+      return common === a.size || (common >= 2 && common / text.size >= 0.5)
+    }
+    if (anchors.some(vouches)) continue
+    t.sourceNote = 'quick add'
+    delete t.sourceExcerpt
+    delete t.sourceVerifiedAt
+  }
+  store.driftRepairedAt = new Date().toISOString()
 }
 
 function normalizeTrack(value: string): Track {
@@ -234,6 +270,13 @@ export function setTaskState(id: string, state: TaskState, snoozedUntil?: string
   const store = load()
   const task = store.tasks.find((t) => t.id === id)
   if (!task) return
+  // Unchecking something Notes had closed is a verdict: the task outlives its note line. Drop the
+  // verification so the next scan can't re-complete it from the same missing line (it would, every
+  // scan, forever). If the line turns up again the scan re-verifies and the link is live once more.
+  if (state === 'open' && task.state === 'done' && task.completedVia === 'notes') {
+    delete task.completedVia
+    delete task.sourceVerifiedAt
+  }
   task.state = state
   task.snoozedUntil = state === 'snoozed' ? (snoozedUntil ?? defaultSnooze()) : null
   task.updatedAt = new Date().toISOString()
@@ -562,6 +605,11 @@ export function applyMerge(response: MergeResponse, options: { updateToday?: boo
     const excerpt =
       typeof item.sourceExcerpt === 'string' ? item.sourceExcerpt.trim().slice(0, 500) : ''
     const existing = item.id ? byId.get(item.id) : undefined
+    // An id we don't know is not a new task: the model is updating something that was removed while
+    // its call was in flight (the School mirror retired "STAT 390: Week 4 Lab Quiz" the moment Canvas
+    // published the real quiz; the model, mid-call, bumped its priority and it came back as a twin).
+    // Only a null id means "create".
+    if (item.id && !existing) continue
     if (existing) {
       if (existing.state === 'done' || existing.state === 'dismissed') continue
       // Anything the user set by hand is pinned — the LLM never overrides it.
@@ -570,8 +618,13 @@ export function applyMerge(response: MergeResponse, options: { updateToday?: boo
       if (!existing.priorityPinned) existing.priority = normalized.priority
       if (!existing.horizonPinned && item.horizon) existing.horizon = normalizeHorizon(item.horizon)
       existing.deadline = normalized.deadline
-      existing.sourceNote = normalized.sourceNote
-      if (excerpt) existing.sourceExcerpt = excerpt
+      // Provenance is fixed at creation. The model used to re-home existing tasks — including ones
+      // typed into briefly — onto whichever note it guessed, and the Notes reconciler then treated
+      // that guess as the task's source line (and completed the task when the unrelated line changed).
+      // Only fill a missing excerpt, and only when the model agrees on the note it belongs to.
+      if (excerpt && !existing.sourceExcerpt && existing.sourceNote === normalized.sourceNote) {
+        existing.sourceExcerpt = excerpt
+      }
       existing.updatedAt = now
     } else {
       // Guard against the model "recreating" something it was told about.
@@ -659,27 +712,28 @@ function prepare(note: Note): PreparedLine[] {
  * with the excerpt or the task text. Errs toward "present" — a false match only
  * means we don't auto-complete, never that we wrongly do.
  */
-function findLine(task: Task, note: Note): PreparedLine | null {
+function findLine(task: Task, note: Note): { line: PreparedLine; exact: boolean } | null {
   const lines = prepare(note)
   const excerpt = task.sourceExcerpt ? normalizeLine(task.sourceExcerpt) : ''
   if (excerpt) {
     const exact = lines.find(
       (l) => l.norm === excerpt || l.norm.includes(excerpt) || (l.norm.length >= 8 && excerpt.includes(l.norm))
     )
-    if (exact) return exact
+    if (exact) return { line: exact, exact: true }
   }
   const targets = [excerpt, normalizeLine(task.text)]
     .filter(Boolean)
     .map(tokenize)
     .filter((t) => t.size > 0)
   if (targets.length === 0) return null
-  return lines.find((l) => targets.some((t) => similarText(t, l.tokens))) ?? null
+  const fuzzy = lines.find((l) => targets.some((t) => similarText(t, l.tokens)))
+  return fuzzy ? { line: fuzzy, exact: false } : null
 }
 
-function locate(task: Task, notes: Note[]): { note: Note; line: PreparedLine } | null {
+function locate(task: Task, notes: Note[]): { note: Note; line: PreparedLine; exact: boolean } | null {
   for (const note of notes) {
-    const line = findLine(task, note)
-    if (line) return { note, line }
+    const found = findLine(task, note)
+    if (found) return { note, ...found }
   }
   return null
 }
@@ -714,15 +768,22 @@ export function reconcileWithNotes(notes: Note[]): AppState {
     if (task.recurrence === 'daily') continue
     if (!task.sourceNote || task.sourceNote === 'quick add' || task.sourceNote === 'unknown') continue
     if (APP_SOURCES.has(task.sourceNote)) continue
+    // Once the user has retitled a task, briefly owns it: its wording no longer mirrors any note
+    // line, so a line vanishing says nothing about whether the task is done. Only the user closes it.
+    if (task.editedByUser) continue
 
     const sources = byTitle.get(task.sourceNote) ?? []
     const found =
       locate(task, sources) ?? locate(task, notes.filter((n) => !sources.includes(n)))
 
-    if (found) {
+    if (found?.exact) {
+      // The remembered line still exists (possibly in a renamed note): re-point and re-verify.
       task.sourceNote = found.note.title
       task.sourceExcerpt = found.line.raw.slice(0, 500)
       task.sourceVerifiedAt = now
+    } else if (found) {
+      // Fuzzy word overlap is enough to say "still around, don't complete" — not enough to adopt
+      // that line as the task's source. Adopting fuzzy hits is how tasks drifted onto unrelated notes.
     } else if (task.sourceVerifiedAt && !partialRead) {
       task.state = 'done'
       task.completedVia = 'notes'
