@@ -679,7 +679,7 @@ function TaskRow({
   const [snoozeOpen, setSnoozeOpen] = useState(false)
   const recurring = task.recurrence === 'daily'
   const horizon = task.horizon ?? 'soon'
-  const hasSourceNote = Boolean(task.sourceNote) && !['quick add', 'unknown', 'jobs', 'school'].includes(task.sourceNote)
+  const hasSourceNote = Boolean(task.sourceNote) && !['quick add', 'unknown', 'jobs', 'school', 'email'].includes(task.sourceNote)
 
   return (
     <li

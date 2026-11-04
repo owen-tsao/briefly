@@ -14,6 +14,25 @@ import type {
 import type { JobStatus, JobsView, ProfileFile } from '../shared/jobs'
 import type { LmsKind, QuickAddInput, RuleInput, SchoolView, SyllabusParseResult, SyllabusSuggestion } from '../shared/school'
 
+export interface EmailImportOutcome {
+  ok: boolean
+  missing: boolean
+  error: string | null
+  read: number
+  skipped: number
+  matched: number
+  created: number
+  statusUpdated: number
+  ambiguous: number
+  manualKept: number
+  tasksCreated: number
+  tasksUpdated: number
+  tasksClosed: number
+  tasksChanged: boolean
+  warnings: string[]
+  view: JobsView
+}
+
 export interface JobsScanOutcome {
   ok: boolean
   added: number
@@ -111,6 +130,11 @@ export interface BrieflyApi extends SchoolApi {
   exportJobsCsv: () => Promise<string | null>
   /** Parses a MyGreenhouse "applications" paste from the clipboard and marks those postings applied. */
   importJobsClipboard: () => Promise<{ parsed: number; matched: number; created: number; skipped: number; view: JobsView }>
+  /**
+   * Read ~/.briefly/email-updates.json into the tracker and, for a future deadline, the task list.
+   * `ok` false means the file was rejected and jobs.json was not touched.
+   */
+  importEmailUpdates: () => Promise<EmailImportOutcome>
   scanJobsNow: () => Promise<JobsScanOutcome>
   /** Paste a posting URL: creates (or resurfaces) a card you can apply from; screened on the next drain. */
   addJobLink: (url: string) => Promise<{ id: string | null; existed: boolean; error: string | null; view: JobsView }>
@@ -168,6 +192,7 @@ const api: BrieflyApi = {
   unpromoteJob: (id) => ipcRenderer.invoke('jobs:unpromote', id),
   exportJobsCsv: () => ipcRenderer.invoke('jobs:exportCsv'),
   importJobsClipboard: () => ipcRenderer.invoke('jobs:importClipboard'),
+  importEmailUpdates: () => ipcRenderer.invoke('jobs:importEmail'),
   scanJobsNow: () => ipcRenderer.invoke('jobs:scanNow'),
   addJobLink: (url) => ipcRenderer.invoke('jobs:addLink', url),
   quit: () => ipcRenderer.invoke('app:quit'),

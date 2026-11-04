@@ -1,0 +1,3139 @@
+{
+  "version": 1,
+  "generatedAt": "2026-11-04T01:38:43.341Z",
+  "entries": [
+    {
+      "id": "csv:42dot:intern:2026-10-29",
+      "company": "42dot",
+      "role": "position Internship",
+      "status": "applied",
+      "eventAt": "2026-10-29",
+      "appliedAt": "2026-10-29",
+      "subject": "[42dot] Thank you for your interest in 42dot"
+    },
+    {
+      "id": "csv:a16zspeedrun:norole:2026-10-04",
+      "company": "a16z Speedrun",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-04",
+      "appliedAt": "2026-10-04",
+      "subject": "We received your speedrun application"
+    },
+    {
+      "id": "csv:abridge:applying to abridge we appreciate your interest in joining our team a:2026-10-15",
+      "company": "Abridge",
+      "role": "applying to Abridge! We appreciate your interest in joining our team a",
+      "status": "applied",
+      "eventAt": "2026-10-15",
+      "appliedAt": "2026-10-15",
+      "subject": "Owen Tsao, Thank You for Applying to Abridge!"
+    },
+    {
+      "id": "csv:adobe:intern machine learning engineer:2026-09-01",
+      "company": "Adobe",
+      "role": "R171519 2027 Intern - Machine Learning Engineer",
+      "status": "applied",
+      "eventAt": "2026-09-01",
+      "appliedAt": "2026-09-01",
+      "subject": "Thanks for Applying to Adobe"
+    },
+    {
+      "id": "csv:adobe:intern software engineer:2026-09-03",
+      "company": "Adobe",
+      "role": "R171666 2027 Intern - Software Engineer",
+      "status": "applied",
+      "eventAt": "2026-09-03",
+      "appliedAt": "2026-09-03",
+      "subject": "Thanks for Applying to Adobe"
+    },
+    {
+      "id": "csv:affirm:software engineer intern:2026-10-02",
+      "company": "Affirm",
+      "role": "Software Engineer (Machine Learning) Intern (Summer 2027)",
+      "status": "applied",
+      "eventAt": "2026-10-02",
+      "appliedAt": "2026-10-02",
+      "subject": "We’ve received your application for Software Engineer (Machine Learning) Intern (Summer 2027) at Affirm"
+    },
+    {
+      "id": "csv:affirm:software engineer intern:2026-10-02:06ac0367",
+      "company": "Affirm",
+      "role": "Software Engineer Intern (Summer 2027)",
+      "status": "applied",
+      "eventAt": "2026-10-02",
+      "appliedAt": "2026-10-02",
+      "subject": "We’ve received your application for Software Engineer Intern (Summer 2027) at Affirm"
+    },
+    {
+      "id": "csv:afterquery:software engineer intern:2026-09-05",
+      "company": "AfterQuery",
+      "role": "Software Engineering Intern",
+      "status": "rejected",
+      "eventAt": "2026-10-17",
+      "appliedAt": "2026-09-05",
+      "subject": "AfterQuery Application Update"
+    },
+    {
+      "id": "csv:amazon:software development engineer intern:2026-08-27",
+      "company": "Amazon",
+      "role": "Software Development Engineer Intern",
+      "status": "rejected",
+      "eventAt": "2026-10-07",
+      "appliedAt": "2026-08-27",
+      "subject": "Amazon application: Status update"
+    },
+    {
+      "id": "csv:amazon:security engineer intern:2026-09-23",
+      "company": "Amazon",
+      "role": "Security Engineer Internship – 2027 (US) (ID: 10557133)",
+      "status": "applied",
+      "eventAt": "2026-09-23",
+      "appliedAt": "2026-09-23",
+      "subject": "Thank you for Applying to Amazon!"
+    },
+    {
+      "id": "csv:amazon:applied science intern united states:2026-09-29",
+      "company": "Amazon",
+      "role": "2027 Applied Science Internship - United States",
+      "status": "applied",
+      "eventAt": "2026-09-29",
+      "appliedAt": "2026-09-29",
+      "subject": "Thank you for Applying to Amazon!"
+    },
+    {
+      "id": "csv:ambrook:software engineer intern:2026-08-30",
+      "company": "Ambrook",
+      "role": "Software Engineering Intern",
+      "status": "rejected",
+      "eventAt": "2026-09-08",
+      "appliedAt": "2026-08-30",
+      "subject": "Follow-up from Ambrook"
+    },
+    {
+      "id": "csv:amd:undergrad software engineer intern co op:2026-08-20",
+      "company": "AMD",
+      "role": "2027 Undergrad Software Engineer Intern/Co-op",
+      "status": "applied",
+      "eventAt": "2026-08-20",
+      "appliedAt": "2026-08-20",
+      "subject": "Thank You for Applying at AMD"
+    },
+    {
+      "id": "csv:americanexpress:intern software engineer:2026-08-18",
+      "company": "American Express",
+      "role": "Campus Undergraduate Summer Internship Program - 2027 Software Engineer",
+      "status": "applied",
+      "eventAt": "2026-08-18",
+      "appliedAt": "2026-08-18",
+      "subject": "Thank you for applying to Campus Undergraduate Summer Internship Program - 2027 AI Engineer, Enterprise Technology Services- New York, NY - 26011698"
+    },
+    {
+      "id": "csv:anduril:software engineer intern:2026-09-19",
+      "company": "Anduril",
+      "role": "2027 Software Engineer Intern",
+      "status": "rejected",
+      "eventAt": "2026-09-19",
+      "subject": "Your Application to Anduril"
+    },
+    {
+      "id": "csv:appian:software engineer intern:2026-08-20",
+      "company": "Appian",
+      "role": "Software Engineering Intern",
+      "status": "applied",
+      "eventAt": "2026-08-20",
+      "appliedAt": "2026-08-20",
+      "subject": "Thank you for applying to Appian!"
+    },
+    {
+      "id": "csv:aquaticcapitalmanagement:norole:2026-08-20",
+      "company": "Aquatic Capital Management",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-08-20",
+      "appliedAt": "2026-08-20",
+      "subject": "Thank you for applying to Aquatic Capital Management"
+    },
+    {
+      "id": "csv:arcesium:norole:2026-10-09",
+      "company": "Arcesium",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-09",
+      "appliedAt": "2026-10-09",
+      "subject": "Thank you for applying to Arcesium LLC"
+    },
+    {
+      "id": "csv:arm:intern engineering pathways:2026-09-01",
+      "company": "Arm",
+      "role": "Intern Program - Engineering Pathways",
+      "status": "rejected",
+      "eventAt": "2026-09-10",
+      "appliedAt": "2026-09-01",
+      "subject": "Thank you for your interest in Arm"
+    },
+    {
+      "id": "csv:astera:norole:2026-10-10",
+      "company": "Astera Labs",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-10",
+      "appliedAt": "2026-10-10",
+      "subject": "Thank you for applying to Astera Labs Early Career - North America 2027"
+    },
+    {
+      "id": "csv:atlassian:software engineer intern:2026-09-01",
+      "company": "Atlassian",
+      "role": "Software Engineer Intern",
+      "status": "applied",
+      "eventAt": "2026-10-07",
+      "appliedAt": "2026-09-01",
+      "subject": "Atlassian: Thanks for Completing Your Application"
+    },
+    {
+      "id": "csv:atoms:norole:2026-10-05",
+      "company": "Atoms",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-05",
+      "appliedAt": "2026-10-05",
+      "subject": "Thank you for applying to Atoms!"
+    },
+    {
+      "id": "csv:aurora:norole:2026-10-26",
+      "company": "Aurora",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-26",
+      "appliedAt": "2026-10-26",
+      "subject": "Thank you for applying to Aurora"
+    },
+    {
+      "id": "csv:aurora:norole:2026-10-27",
+      "company": "Aurora",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-27",
+      "appliedAt": "2026-10-27",
+      "subject": "Thank you for applying to Aurora"
+    },
+    {
+      "id": "csv:bain:ai engineering intern:2026-09-04",
+      "company": "Bain & Company",
+      "role": "AI Engineering Intern (Summer 2027)",
+      "status": "oa",
+      "eventAt": "2026-10-12",
+      "appliedAt": "2026-09-04",
+      "subject": "Your assessment was submitted, what's next?",
+      "deadline": {
+        "at": "2026-10-13",
+        "kind": "OA",
+        "display": "Oct 13",
+        "platform": "TestGorilla"
+      }
+    },
+    {
+      "id": "csv:bain:ai engineer intern:2026-10-26",
+      "company": "Bain & Company",
+      "role": "AI Eng Internship",
+      "status": "applied",
+      "eventAt": "2026-10-26",
+      "appliedAt": "2026-10-26",
+      "subject": "Bain & Company: Thank you for applying to the AI Eng Internship Role"
+    },
+    {
+      "id": "csv:barclays:technology developer intern:2026-09-24",
+      "company": "Barclays",
+      "role": "2027 Technology Developer Summer Internship (Whippany)",
+      "status": "oa",
+      "eventAt": "2026-09-24",
+      "subject": "Invitation to complete an online assessment",
+      "deadline": {
+        "at": "2026-09-29",
+        "kind": "OA",
+        "display": "5 days after 2026-09-24",
+        "platform": "Barclays Experience Platform"
+      }
+    },
+    {
+      "id": "csv:barclays:norole:2026-09-24",
+      "company": "Barclays",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-24",
+      "appliedAt": "2026-09-24",
+      "subject": "Barclays: We’ve received your application!"
+    },
+    {
+      "id": "csv:bedrockrobotics:intern behavior machine learning engineer:2026-09-16",
+      "company": "Bedrock Robotics",
+      "role": "Internship 2027 Behavior Machine Learning Engineer",
+      "status": "applied",
+      "eventAt": "2026-09-16",
+      "appliedAt": "2026-09-16",
+      "subject": "You’re In! Thanks For Applying To Bedrock Robotics Inc"
+    },
+    {
+      "id": "csv:bedrockrobotics:intern software engineer:2026-09-16",
+      "company": "Bedrock Robotics",
+      "role": "Internship 2027 Software Engineer",
+      "status": "applied",
+      "eventAt": "2026-09-16",
+      "appliedAt": "2026-09-16",
+      "subject": "You’re In! Thanks For Applying To Bedrock Robotics Inc"
+    },
+    {
+      "id": "csv:bedrockrobotics:intern evaluation engineer:2026-09-23",
+      "company": "Bedrock Robotics",
+      "role": "2027 Internship Evaluation Engineer",
+      "status": "applied",
+      "eventAt": "2026-09-23",
+      "appliedAt": "2026-09-23",
+      "subject": "You’re In! Thanks For Applying To Bedrock Robotics Inc"
+    },
+    {
+      "id": "csv:bedrockrobotics:intern evaluation engineer:2026-10-08",
+      "company": "Bedrock Robotics",
+      "role": "2027 Internship Evaluation Engineer",
+      "status": "applied",
+      "eventAt": "2026-10-08",
+      "appliedAt": "2026-10-08",
+      "subject": "Thank you for applying to 2027 Internship Evaluation Engineer, Metric Prototyping at Bedrock Robotics"
+    },
+    {
+      "id": "csv:belvederetrading:belvedere trading software engineer intern:2026-08-17",
+      "company": "Belvedere Trading",
+      "role": "Belvedere Trading - Software Engineer Intern - Summer 2027",
+      "status": "rejected",
+      "eventAt": "2026-10-01",
+      "appliedAt": "2026-08-17",
+      "subject": "Belvedere Trading Application Update - Software Engineer Intern - Summer 2027"
+    },
+    {
+      "id": "csv:blackstone:software engineer analyst:2026-08-21",
+      "company": "Blackstone",
+      "role": "Software Engineer Summer Analyst 2027",
+      "status": "oa",
+      "eventAt": "2026-08-21",
+      "appliedAt": "2026-08-21",
+      "subject": "Blackstone Application – Invitation to pymetrics Assessment",
+      "note": "OA pymetrics games + pymetrics digital interview"
+    },
+    {
+      "id": "csv:blackstone:data engineer analyst:2026-08-21",
+      "company": "Blackstone",
+      "role": "Data Engineer Summer Analyst 2027",
+      "status": "oa",
+      "eventAt": "2026-08-21",
+      "appliedAt": "2026-08-21",
+      "subject": "Blackstone Application – Invitation to pymetrics Assessment",
+      "note": "OA pymetrics games + pymetrics digital interview"
+    },
+    {
+      "id": "csv:blackstone:cybersecurity analyst:2026-08-21",
+      "company": "Blackstone",
+      "role": "Cybersecurity Summer Analyst 2027",
+      "status": "oa",
+      "eventAt": "2026-08-21",
+      "appliedAt": "2026-08-21",
+      "subject": "Blackstone Application – Invitation to pymetrics Assessment",
+      "note": "OA pymetrics games + pymetrics digital interview"
+    },
+    {
+      "id": "csv:braze:intern:2026-10-19",
+      "company": "Braze",
+      "role": "Intern",
+      "status": "applied",
+      "eventAt": "2026-10-19",
+      "appliedAt": "2026-10-19",
+      "subject": "Thank you for applying to Braze!"
+    },
+    {
+      "id": "csv:bytedance:software engineer intern:2026-08-04",
+      "company": "ByteDance",
+      "role": "Software Engineer Intern (TikTok-Agentic Creation-Effect Platform) - 2027 Summer",
+      "status": "applied",
+      "eventAt": "2026-08-04",
+      "appliedAt": "2026-08-04",
+      "subject": "Thank you for applying to ByteDance!"
+    },
+    {
+      "id": "csv:bytedance:agent evaluation evolution machine learning engineer intern summ:2026-09-14",
+      "company": "ByteDance",
+      "role": "Agent Evaluation & Evolution Machine Learning Engineer Intern (AML-Ark-US) - 2027 Summ",
+      "status": "oa",
+      "eventAt": "2026-10-16",
+      "appliedAt": "2026-09-14",
+      "subject": "Owen Tsao, You're invited! Assessment for Machine Learning Engineer Intern"
+    },
+    {
+      "id": "csv:c3ai:c3 ai applying to software engineer intern in:2026-08-31",
+      "company": "C3 AI",
+      "role": "C3 AI and for applying to the Software Engineer - Intern (Summer 2027) in",
+      "status": "interview",
+      "eventAt": "2026-10-27",
+      "appliedAt": "2026-08-31",
+      "subject": "Your interview for Forward Deployed Engineer - Intern  at C3.ai is complete"
+    },
+    {
+      "id": "csv:cadence:software engineer intern:2026-09-08",
+      "company": "Cadence",
+      "role": "Software Engineering Intern",
+      "status": "interview",
+      "eventAt": "2026-10-05",
+      "appliedAt": "2026-09-08",
+      "subject": "Next Steps with Cadence"
+    },
+    {
+      "id": "csv:capitalone:technology intern:2026-08-14",
+      "company": "Capital One",
+      "role": "Technology Internship Program - Summer 2027",
+      "status": "rejected",
+      "eventAt": "2026-08-14",
+      "subject": "Thank you for your interest",
+      "deadline": {
+        "at": "2026-08-13",
+        "kind": "OA",
+        "display": "Aug 13",
+        "platform": "CodeSignal"
+      }
+    },
+    {
+      "id": "csv:chartahealth:software engineer intern:2026-09-21",
+      "company": "Charta Health",
+      "role": "Software Engineer (FDE / Platform) - Intern",
+      "status": "applied",
+      "eventAt": "2026-09-21",
+      "appliedAt": "2026-09-21",
+      "subject": "Application Received – Thank You for Applying to Charta Health"
+    },
+    {
+      "id": "csv:cheiron:agent engineering intern:2026-09-24",
+      "company": "Cheiron",
+      "role": "Agent Engineering Intern (Los Altos)",
+      "status": "rejected",
+      "eventAt": "2026-09-24",
+      "subject": "[Cheiron | Careers] Application Update - Agent Engineering Intern (Los Altos)"
+    },
+    {
+      "id": "csv:chicagotrading:software engineer intern:2026-08-03",
+      "company": "Chicago Trading Company",
+      "role": "Software Engineering Internship - Summer 2027",
+      "status": "oa",
+      "eventAt": "2026-08-04",
+      "appliedAt": "2026-08-03",
+      "subject": "CTC invites you to complete a Criteria Assessment / test at Codility",
+      "note": "OA Criteria + Codility rolling"
+    },
+    {
+      "id": "csv:cisco:fy26 ai machine learning engineer i united states req:2026-07-20",
+      "company": "Cisco",
+      "role": "FY26 AI Machine Learning Engineer I (Intern) - United States (Req",
+      "status": "applied",
+      "eventAt": "2026-07-20",
+      "appliedAt": "2026-07-20",
+      "subject": "Entry-level Talent Recruiting - Cisco Application Status Update"
+    },
+    {
+      "id": "csv:citadel:norole:2026-08-18",
+      "company": "Citadel",
+      "role": "",
+      "status": "rejected",
+      "eventAt": "2026-08-18",
+      "subject": "Your Citadel | Citadel Securities Application"
+    },
+    {
+      "id": "csv:clockworkio:norole:2026-09-21",
+      "company": "Clockwork.io",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-21",
+      "appliedAt": "2026-09-21",
+      "subject": "Thank you for applying to Clockwork.io!"
+    },
+    {
+      "id": "csv:cloudflare:software engineer intern austin:2026-09-28",
+      "company": "Cloudflare",
+      "role": "Software Engineer Intern (2027) - Austin",
+      "status": "applied",
+      "eventAt": "2026-10-20",
+      "appliedAt": "2026-09-28",
+      "subject": "Thank You for Applying!"
+    },
+    {
+      "id": "csv:cloudflare:people team software engineer intern:2026-10-06",
+      "company": "Cloudflare",
+      "role": "People Team: Software Engineer Intern (Winter/Spring 2027)",
+      "status": "applied",
+      "eventAt": "2026-10-06",
+      "appliedAt": "2026-10-06",
+      "subject": "Cloudflare Recruiting | Application Received - People Team: Software Engineer Intern (Winter/Spring 2027)"
+    },
+    {
+      "id": "csv:cohere:machine learning intern:2026-07-20",
+      "company": "Cohere",
+      "role": "Machine Learning Intern (Fall",
+      "status": "applied",
+      "eventAt": "2026-09-06",
+      "appliedAt": "2026-07-20",
+      "subject": "Thanks for applying to Cohere!"
+    },
+    {
+      "id": "csv:cohere:software engineer intern:2026-07-20",
+      "company": "Cohere",
+      "role": "Software Engineer Intern (Fall/Winter",
+      "status": "applied",
+      "eventAt": "2026-09-06",
+      "appliedAt": "2026-07-20",
+      "subject": "Thanks for applying to Cohere!"
+    },
+    {
+      "id": "csv:cohesity:software engineer intern:2026-10-26",
+      "company": "Cohesity",
+      "role": "Software Engineering Intern (Summer 2027)",
+      "status": "applied",
+      "eventAt": "2026-10-26",
+      "appliedAt": "2026-10-26",
+      "subject": "Thank you for applying to Cohesity!"
+    },
+    {
+      "id": "csv:coinbase:norole:2026-09-08",
+      "company": "Coinbase",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-08",
+      "appliedAt": "2026-09-08",
+      "subject": "Thank you for applying to Coinbase"
+    },
+    {
+      "id": "csv:coinbase:norole:2026-09-08:650ffc91",
+      "company": "Coinbase",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-08",
+      "appliedAt": "2026-09-08",
+      "subject": "Thank you for applying to Coinbase"
+    },
+    {
+      "id": "csv:coinbase:norole:2026-09-08:650ffc91",
+      "company": "Coinbase",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-08",
+      "appliedAt": "2026-09-08",
+      "subject": "Thank you for applying to Coinbase"
+    },
+    {
+      "id": "csv:coinbase:norole:2026-10-09",
+      "company": "Coinbase",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-09",
+      "appliedAt": "2026-10-09",
+      "subject": "Thank you for applying to Coinbase"
+    },
+    {
+      "id": "csv:commure:software engineer intern:2026-09-11",
+      "company": "Commure",
+      "role": "Software Engineering Intern",
+      "status": "applied",
+      "eventAt": "2026-09-11",
+      "appliedAt": "2026-09-11",
+      "subject": "Thank you for applying to Software Engineering Intern, Summer 2027 at Commure"
+    },
+    {
+      "id": "csv:composio:intern:2026-08-14",
+      "company": "Composio",
+      "role": "Internship",
+      "status": "oa",
+      "eventAt": "2026-08-14",
+      "appliedAt": "2026-08-14",
+      "subject": "Submission received — Dep Graph",
+      "note": "OA Litmus (Dep Graph)"
+    },
+    {
+      "id": "csv:conductorai:software engineer intern:2026-09-08",
+      "company": "ConductorAI",
+      "role": "Software Engineer Intern",
+      "status": "rejected",
+      "eventAt": "2026-09-09",
+      "appliedAt": "2026-09-08",
+      "subject": "ConductorAI Application Update"
+    },
+    {
+      "id": "csv:constellationspace:software engineer intern:2026-10-07",
+      "company": "Constellation Space",
+      "role": "Software Engineering Intern (Winter/Spring)",
+      "status": "interview",
+      "eventAt": "2026-10-21",
+      "appliedAt": "2026-10-07",
+      "subject": "Reminder: Your Upcoming Interview with Constellation Space"
+    },
+    {
+      "id": "csv:cowboyspace:intern:2026-09-21",
+      "company": "Cowboy Space Corp",
+      "role": "Intern",
+      "status": "applied",
+      "eventAt": "2026-09-21",
+      "appliedAt": "2026-09-21",
+      "subject": "Thanks for applying to Cowboy Space Corp.!"
+    },
+    {
+      "id": "csv:ctgt:software engineer intern:2026-08-31",
+      "company": "CTGT",
+      "role": "Software Engineering Intern (Summer 2027)",
+      "status": "applied",
+      "eventAt": "2026-08-31",
+      "appliedAt": "2026-08-31",
+      "subject": "Thanks for applying to CTGT!"
+    },
+    {
+      "id": "csv:daice:norole:2026-10-13",
+      "company": "Daice Labs",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-13",
+      "appliedAt": "2026-10-13",
+      "subject": "Owen, your application was sent to Daice Labs"
+    },
+    {
+      "id": "csv:databricks:software engineer intern:2026-08-20",
+      "company": "Databricks",
+      "role": "Software Engineering Intern (2027 Start) - Winter",
+      "status": "applied",
+      "eventAt": "2026-10-12",
+      "appliedAt": "2026-08-20",
+      "subject": "Thank you for applying to Databricks!"
+    },
+    {
+      "id": "csv:datadog:software engineer intern:2026-08-17",
+      "company": "Datadog",
+      "role": "Software Engineering Intern (Winter)",
+      "status": "rejected",
+      "eventAt": "2026-09-29",
+      "appliedAt": "2026-08-17",
+      "subject": "Your application - Software Engineering Intern (Winter) at Datadog"
+    },
+    {
+      "id": "csv:decagon:norole:2026-09-16",
+      "company": "Decagon",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-16",
+      "appliedAt": "2026-09-16",
+      "subject": "Decagon: Application Confirmation"
+    },
+    {
+      "id": "csv:decagon:norole:2026-10-09",
+      "company": "Decagon",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-09",
+      "appliedAt": "2026-10-09",
+      "subject": "Decagon: Application Confirmation"
+    },
+    {
+      "id": "csv:dedalus:infrastructure engineer intern:2026-08-16",
+      "company": "Dedalus Labs",
+      "role": "Infrastructure Engineer Intern",
+      "status": "applied",
+      "eventAt": "2026-08-16",
+      "appliedAt": "2026-08-16",
+      "subject": "Thanks for applying to Dedalus Labs, Inc.!"
+    },
+    {
+      "id": "csv:deepgram:software engineer intern:2026-07-20",
+      "company": "Deepgram",
+      "role": "Software Engineering- Internship",
+      "status": "applied",
+      "eventAt": "2026-07-20",
+      "appliedAt": "2026-07-20",
+      "subject": "Thank you for applying to Deepgram!"
+    },
+    {
+      "id": "csv:docusign:software engineer intern self service directory diagnostics:2026-10-02",
+      "company": "Docusign",
+      "role": "Software Engineering Intern – Self-Service Directory Diagnostics",
+      "status": "applied",
+      "eventAt": "2026-10-02",
+      "appliedAt": "2026-10-02",
+      "subject": "Thank you for applying at Docusign"
+    },
+    {
+      "id": "csv:docusign:software engineer intern:2026-10-07",
+      "company": "Docusign",
+      "role": "Software Engineer Intern",
+      "status": "applied",
+      "eventAt": "2026-10-07",
+      "appliedAt": "2026-10-07",
+      "subject": "Thank you for applying at Docusign"
+    },
+    {
+      "id": "csv:docusign:job software engineer intern please follow this link to finish your:2026-10-09",
+      "company": "Docusign",
+      "role": "job: Software Engineer Intern Please follow this link to finish your",
+      "status": "applied",
+      "eventAt": "2026-10-09",
+      "appliedAt": "2026-10-09",
+      "subject": "Your job application is incomplete!"
+    },
+    {
+      "id": "csv:domino:norole:2026-09-09",
+      "company": "Domino",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-09",
+      "appliedAt": "2026-09-09",
+      "subject": "Thank you for applying to Domino"
+    },
+    {
+      "id": "csv:domino:norole:2026-09-09:de6834f4",
+      "company": "Domino",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-09",
+      "appliedAt": "2026-09-09",
+      "subject": "Thank you for applying to Domino"
+    },
+    {
+      "id": "csv:doordash:applying to doordash s software engineer intern us:2026-09-14",
+      "company": "DoorDash",
+      "role": "applying to DoorDash's Software Engineer, Intern (Summer 2027) - US",
+      "status": "applied",
+      "eventAt": "2026-10-12",
+      "appliedAt": "2026-09-14",
+      "subject": "Thank you for applying to DoorDash"
+    },
+    {
+      "id": "csv:draftkings:software engineer intern:2026-09-01",
+      "company": "DraftKings",
+      "role": "Software Engineer Intern (Summer 2027)",
+      "status": "rejected",
+      "eventAt": "2026-09-02",
+      "appliedAt": "2026-09-01",
+      "subject": "Update on your Software Engineer Intern (Summer 2027) Application at DraftKings"
+    },
+    {
+      "id": "csv:dropbox:norole:2026-09-07",
+      "company": "Dropbox",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-07",
+      "appliedAt": "2026-09-07",
+      "subject": "Thanks for applying, Owen!"
+    },
+    {
+      "id": "csv:drw:software developer intern:2026-09-09",
+      "company": "DRW",
+      "role": "Software Developer Intern",
+      "status": "rejected",
+      "eventAt": "2026-10-02",
+      "appliedAt": "2026-09-09",
+      "subject": "DRW - Application Update"
+    },
+    {
+      "id": "csv:drw:norole:2026-09-29",
+      "company": "DRW",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-29",
+      "appliedAt": "2026-09-29",
+      "subject": "Thank you for applying to DRW - University Jobs"
+    },
+    {
+      "id": "csv:duolingo:applying to duolingo this email is to confirm your application has:2026-09-15",
+      "company": "Duolingo",
+      "role": "applying to Duolingo! This email is to confirm your application has",
+      "status": "rejected",
+      "eventAt": "2026-09-18",
+      "appliedAt": "2026-09-15",
+      "subject": "Update on your Duolingo Application"
+    },
+    {
+      "id": "csv:epicgames:gameplay programmer intern:2026-08-17",
+      "company": "Epic Games",
+      "role": "Gameplay Programmer Intern",
+      "status": "rejected",
+      "eventAt": "2026-08-20",
+      "appliedAt": "2026-08-17",
+      "subject": "Update from Epic Games"
+    },
+    {
+      "id": "csv:etched:etched taking to apply to supercomputing intern:2026-09-01",
+      "company": "Etched",
+      "role": "Etched and for taking the time to apply to the Supercomputing Intern",
+      "status": "applied",
+      "eventAt": "2026-09-01",
+      "appliedAt": "2026-09-01",
+      "subject": "Thanks for your interest in Etched!"
+    },
+    {
+      "id": "csv:etched:core engineering intern:2026-09-15",
+      "company": "Etched",
+      "role": "Core Engineering Intern",
+      "status": "applied",
+      "eventAt": "2026-09-15",
+      "appliedAt": "2026-09-15",
+      "subject": "Thank you for applying to Etched!"
+    },
+    {
+      "id": "csv:exa:norole:2026-08-28",
+      "company": "Exa",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-08-28",
+      "appliedAt": "2026-08-28",
+      "subject": "Thanks for applying to Exa 🚀"
+    },
+    {
+      "id": "csv:expedia:software development engineering intern austin:2026-10-13",
+      "company": "Expedia",
+      "role": "Software Development Engineering Intern - 2027 - Austin",
+      "status": "oa",
+      "eventAt": "2026-10-13",
+      "appliedAt": "2026-10-13",
+      "subject": "Expedia Group Online Assessment - Feedback Report",
+      "note": "OA Cappfinity strengths assessment"
+    },
+    {
+      "id": "csv:figma:software engineer intern:2026-08-10",
+      "company": "Figma",
+      "role": "Software Engineer Intern (Winter 2027)",
+      "status": "rejected",
+      "eventAt": "2026-09-14",
+      "appliedAt": "2026-08-10",
+      "subject": "Update from Figma"
+    },
+    {
+      "id": "csv:figma:data engineer intern:2026-09-23",
+      "company": "Figma",
+      "role": "Data Engineer Intern (2027)",
+      "status": "applied",
+      "eventAt": "2026-09-23",
+      "appliedAt": "2026-09-23",
+      "subject": "Thank you for your application to Figma"
+    },
+    {
+      "id": "csv:figure:norole:2026-10-06",
+      "company": "Figure",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-06",
+      "appliedAt": "2026-10-06",
+      "subject": "Thank you for applying to Figure"
+    },
+    {
+      "id": "csv:fiverings:norole:2026-09-09",
+      "company": "Five Rings",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-09",
+      "appliedAt": "2026-09-09",
+      "subject": "Regarding the LINK 2027: Software Development Intensive Program role at Five Rings"
+    },
+    {
+      "id": "csv:fiverings:intern software developer:2026-09-19",
+      "company": "Five Rings",
+      "role": "Summer Intern 2027 - Software Developer",
+      "status": "applied",
+      "eventAt": "2026-09-19",
+      "appliedAt": "2026-09-19",
+      "subject": "Regarding the Summer Intern 2027 - Software Developer role at Five Rings"
+    },
+    {
+      "id": "csv:gresearch:norole:2026-09-22",
+      "company": "G-Research",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-22",
+      "appliedAt": "2026-09-22",
+      "subject": "G-Research Spring into Quant Finance - Your Application"
+    },
+    {
+      "id": "csv:gardacapitalpartners:norole:2026-08-19",
+      "company": "Garda Capital Partners",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-08-19",
+      "appliedAt": "2026-08-19",
+      "subject": "Thank you for applying to Garda Capital Partners"
+    },
+    {
+      "id": "csv:geckorobotics:ai machine learning engineering intern:2026-09-16",
+      "company": "Gecko Robotics",
+      "role": "AI/Machine Learning Engineering Intern",
+      "status": "applied",
+      "eventAt": "2026-09-16",
+      "appliedAt": "2026-09-16",
+      "subject": "Gecko Robotics | Your Application"
+    },
+    {
+      "id": "csv:geckorobotics:stack software engineer intern:2026-09-16",
+      "company": "Gecko Robotics",
+      "role": "Full Stack Software Engineering Intern",
+      "status": "applied",
+      "eventAt": "2026-09-16",
+      "appliedAt": "2026-09-16",
+      "subject": "Gecko Robotics | Your Application"
+    },
+    {
+      "id": "csv:gemini:software engineer intern:2026-09-20",
+      "company": "Gemini",
+      "role": "Software Engineering Intern (Winter 2027)",
+      "status": "applied",
+      "eventAt": "2026-09-20",
+      "appliedAt": "2026-09-20",
+      "subject": "Thank you for applying to Gemini!"
+    },
+    {
+      "id": "csv:generalintuitionmedal:norole:2026-08-28",
+      "company": "General Intuition & Medal",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-08-28",
+      "appliedAt": "2026-08-28",
+      "subject": "Thanks for your Application"
+    },
+    {
+      "id": "csv:generalmatter:norole:2026-08-27",
+      "company": "General Matter",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-08-27",
+      "appliedAt": "2026-08-27",
+      "subject": "Thank you for applying to General Matter"
+    },
+    {
+      "id": "csv:generalmatter:norole:2026-09-09",
+      "company": "General Matter",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-09",
+      "appliedAt": "2026-09-09",
+      "subject": "Thank you for applying to General Matter"
+    },
+    {
+      "id": "csv:generalmotors:intern ai machine learning engineer autonomous vehicle machine learning infrastructure is:2026-10-29",
+      "company": "General Motors",
+      "role": "2027 Intern - AI/ML Engineer, Autonomous Vehicle ML Infrastructure is",
+      "status": "applied",
+      "eventAt": "2026-10-29",
+      "appliedAt": "2026-10-29",
+      "subject": "Your application to 2027 Intern - AI/ML Engineer, Autonomous Vehicle ML Infrastructure is in!"
+    },
+    {
+      "id": "csv:genesismolecularai:machine learning research intern bs ms:2026-09-24",
+      "company": "Genesis Molecular AI",
+      "role": "ML Research Intern – BS/MS (2027)",
+      "status": "applied",
+      "eventAt": "2026-09-24",
+      "appliedAt": "2026-09-24",
+      "subject": "Thank You for Applying to Genesis Molecular AI!"
+    },
+    {
+      "id": "csv:genevatrading:norole:2026-09-18",
+      "company": "Geneva Trading",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-18",
+      "appliedAt": "2026-09-18",
+      "subject": "Thank you for applying to Geneva Trading"
+    },
+    {
+      "id": "csv:genevatrading:norole:2026-09-22",
+      "company": "Geneva Trading",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-22",
+      "appliedAt": "2026-09-22",
+      "subject": "Thank you for applying to Geneva Trading"
+    },
+    {
+      "id": "csv:geniusai:norole:2026-08-27",
+      "company": "Genius AI",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-08-27",
+      "appliedAt": "2026-08-27",
+      "subject": "Thank you for applying to Genius AI"
+    },
+    {
+      "id": "csv:geniusai:engineering intern:2026-09-29",
+      "company": "Genius AI",
+      "role": "Engineering Intern (Summer 2027)",
+      "status": "applied",
+      "eventAt": "2026-09-29",
+      "appliedAt": "2026-09-29",
+      "subject": "Update from Genius AI -- Engineering Intern (Summer 2027)"
+    },
+    {
+      "id": "csv:geniusai:software engineer intern:2026-10-29",
+      "company": "Genius AI",
+      "role": "Software Engineer Intern Summer 2027",
+      "status": "applied",
+      "eventAt": "2026-10-29",
+      "appliedAt": "2026-10-29",
+      "subject": "Thank You for Applying to Genius AI"
+    },
+    {
+      "id": "csv:glean:interest in glean we wanted to let you know we received your:2026-10-01",
+      "company": "Glean",
+      "role": "interest in Glean! We wanted to let you know we received your",
+      "status": "applied",
+      "eventAt": "2026-10-27",
+      "appliedAt": "2026-10-01",
+      "subject": "Thank you for applying to Glean"
+    },
+    {
+      "id": "csv:godaddyai4all:ai4all intern:2026-09-05",
+      "company": "GoDaddy (AI4All)",
+      "role": "AI4All - Summer 2027 Internships",
+      "status": "applied",
+      "eventAt": "2026-09-05",
+      "appliedAt": "2026-09-05",
+      "subject": "Thank you for applying to Events/University Recruiting"
+    },
+    {
+      "id": "csv:google:norole:2026-07-21",
+      "company": "Google",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-07-21",
+      "appliedAt": "2026-07-21",
+      "subject": "Thanks for applying to Google!"
+    },
+    {
+      "id": "csv:google:norole:2026-08-31",
+      "company": "Google",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-08-31",
+      "appliedAt": "2026-08-31",
+      "subject": "Thanks for applying to Google"
+    },
+    {
+      "id": "csv:google:norole:2026-09-14",
+      "company": "Google",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-14",
+      "appliedAt": "2026-09-14",
+      "subject": "Thanks for applying to Google"
+    },
+    {
+      "id": "csv:google:norole:2026-09-14:f69cc157",
+      "company": "Google",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-14",
+      "appliedAt": "2026-09-14",
+      "subject": "Thanks for applying to Google"
+    },
+    {
+      "id": "csv:google:norole:2026-10-12",
+      "company": "Google",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-12",
+      "appliedAt": "2026-10-12",
+      "subject": "Thanks for applying to Google"
+    },
+    {
+      "id": "csv:grahamcapitalmanagement:graham capital intern ct nyc:2026-09-19",
+      "company": "Graham Capital Management",
+      "role": "2027 Graham Capital Summer Internship – CT / NYC",
+      "status": "applied",
+      "eventAt": "2026-09-19",
+      "appliedAt": "2026-09-19",
+      "subject": "Thank you for applying to Graham Capital Management, L.P."
+    },
+    {
+      "id": "csv:graphcore:machine learning data science engineering intern:2026-10-02",
+      "company": "Graphcore",
+      "role": "Machine Learning and Data Science Engineering Intern",
+      "status": "applied",
+      "eventAt": "2026-10-02",
+      "appliedAt": "2026-10-02",
+      "subject": "Thank you for applying to Graphcore"
+    },
+    {
+      "id": "csv:onetrading:norole:2026-09-09",
+      "company": "Group One Trading",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-09",
+      "appliedAt": "2026-09-09",
+      "subject": "Thank you for applying with Group One Trading"
+    },
+    {
+      "id": "csv:growtherapy:to apply to grow therapy intern:2026-09-29",
+      "company": "Grow Therapy",
+      "role": "time to apply to the Grow Therapy internship program",
+      "status": "rejected",
+      "eventAt": "2026-11-02",
+      "appliedAt": "2026-09-29",
+      "subject": "Thank you for your interest in Grow Therapy"
+    },
+    {
+      "id": "csv:growtherapy:norole:2026-10-09",
+      "company": "Grow Therapy",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-09",
+      "appliedAt": "2026-10-09",
+      "subject": "Your application to Grow: What to expect next"
+    },
+    {
+      "id": "csv:hadrian:norole:2026-09-10",
+      "company": "Hadrian",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-10",
+      "appliedAt": "2026-09-10",
+      "subject": "Thank You for your interest in Hadrian!"
+    },
+    {
+      "id": "csv:harvey:taking to apply to software engineer intern:2026-10-02",
+      "company": "Harvey",
+      "role": "taking the time to apply to the Software Engineering Intern (Summer 2027)",
+      "status": "applied",
+      "eventAt": "2026-10-02",
+      "appliedAt": "2026-10-02",
+      "subject": "Thank You for Applying to Harvey"
+    },
+    {
+      "id": "csv:headlandstech:norole:2026-09-21",
+      "company": "Headlands Tech",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-28",
+      "appliedAt": "2026-09-21",
+      "subject": "Thank you for applying to Headlands Tech"
+    },
+    {
+      "id": "csv:hex:product engineer intern:2026-09-09",
+      "company": "Hex",
+      "role": "Product Engineer Intern",
+      "status": "applied",
+      "eventAt": "2026-09-09",
+      "appliedAt": "2026-09-09",
+      "subject": "Your application to Hex has been received"
+    },
+    {
+      "id": "csv:hex:product engineer intern:2026-09-12",
+      "company": "Hex",
+      "role": "Product Engineer Intern",
+      "status": "applied",
+      "eventAt": "2026-09-12",
+      "appliedAt": "2026-09-12",
+      "subject": "Following up from Hex"
+    },
+    {
+      "id": "csv:hpiq:software engineer intern:2026-09-02",
+      "company": "HP IQ",
+      "role": "Software Engineering Intern",
+      "status": "applied",
+      "eventAt": "2026-09-03",
+      "appliedAt": "2026-09-02",
+      "subject": "Thank you for your application to HP IQ (Formerly Humane)"
+    },
+    {
+      "id": "csv:hudsonrivertrading:hudson river trading s intern:2026-08-04",
+      "company": "Hudson River Trading",
+      "role": "Hudson River Trading's 2027 Summer Internship Program",
+      "status": "rejected",
+      "eventAt": "2026-08-16",
+      "appliedAt": "2026-08-04",
+      "subject": "HRT Application Status - Software Engineering Intern - Owen Tsao"
+    },
+    {
+      "id": "csv:ibm:software developer intern dear owen tsao we are excited to see that you have applied:2026-08-11",
+      "company": "IBM",
+      "role": "Software Developer Intern 2027 Dear Owen Tsao, We are excited to see that you have applied",
+      "status": "interview",
+      "eventAt": "2026-10-14",
+      "appliedAt": "2026-08-11",
+      "subject": "Action Required:IBM Assessments for completion Owen Tsao - 131307 AI Foundations - Software Engineer - Research Internship 2027"
+    },
+    {
+      "id": "csv:ibm:software developer intern:2026-08-28",
+      "company": "IBM",
+      "role": "Software Developer Intern 2027",
+      "status": "oa",
+      "eventAt": "2026-09-11",
+      "appliedAt": "2026-08-28",
+      "subject": "Action Required:IBM Assessments for completion - 131307",
+      "deadline": {
+        "at": "2026-08-20",
+        "kind": "OA",
+        "display": "7 days after 2026-08-13",
+        "platform": "IBM coding assessment + recorded competency interview"
+      }
+    },
+    {
+      "id": "csv:ibm:ai software engineer intern:2026-10-23",
+      "company": "IBM",
+      "role": "AI Software Engineer Intern 2027",
+      "status": "oa",
+      "eventAt": "2026-10-23",
+      "appliedAt": "2026-10-23",
+      "subject": "Action Required:IBM Assessments for completion - 131988"
+    },
+    {
+      "id": "csv:idme:norole:2026-09-07",
+      "company": "ID.me",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-07",
+      "appliedAt": "2026-09-07",
+      "subject": "Thank you for applying to ID.me"
+    },
+    {
+      "id": "csv:iex:software engineer intern:2026-09-09",
+      "company": "IEX",
+      "role": "Software Engineer Intern",
+      "status": "applied",
+      "eventAt": "2026-09-09",
+      "appliedAt": "2026-09-09",
+      "subject": "Thank you for applying to IEX"
+    },
+    {
+      "id": "csv:imctrading:performance engineer intern:2026-08-31",
+      "company": "IMC Trading",
+      "role": "Performance Engineer Intern - Summer 2027",
+      "status": "rejected",
+      "eventAt": "2026-09-02",
+      "appliedAt": "2026-08-31",
+      "subject": "IMC Trading| Application Update for Performance Engineer Intern - Summer 2027"
+    },
+    {
+      "id": "csv:imctrading:software engineer intern:2026-08-31",
+      "company": "IMC Trading",
+      "role": "Software Engineer Intern - Summer 2027",
+      "status": "rejected",
+      "eventAt": "2026-09-02",
+      "appliedAt": "2026-08-31",
+      "subject": "IMC Trading| Application Update for Software Engineer Intern - Summer 2027"
+    },
+    {
+      "id": "csv:imctrading:machine learning engineer intern:2026-10-08",
+      "company": "IMC Trading",
+      "role": "Machine Learning Engineer Intern - Summer 2027",
+      "status": "rejected",
+      "eventAt": "2026-10-10",
+      "appliedAt": "2026-10-08",
+      "subject": "IMC Trading| Application Update for Machine Learning Engineer Intern - Summer 2027"
+    },
+    {
+      "id": "csv:intel:at intel software engineeri:2026-09-05",
+      "company": "Intel",
+      "role": "position at Intel: Position: Software Engineeri",
+      "status": "applied",
+      "eventAt": "2026-09-05",
+      "appliedAt": "2026-09-05",
+      "subject": "Thank You for Applying for a Job at Intel"
+    },
+    {
+      "id": "csv:intuit:intern:2026-08-18",
+      "company": "Intuit",
+      "role": "Intern",
+      "status": "applied",
+      "eventAt": "2026-08-18",
+      "appliedAt": "2026-08-18",
+      "subject": "Application Received! Thanks for applying to the Intern, Software Engineering Role at Intuit"
+    },
+    {
+      "id": "csv:intuit:software engineer intern cybersecurity:2026-09-14",
+      "company": "Intuit",
+      "role": "Summer 2027: Software Engineering Intern - Cybersecurity",
+      "status": "applied",
+      "eventAt": "2026-09-14",
+      "appliedAt": "2026-09-14",
+      "subject": "Application Received! Thanks for applying to the Summer 2027: Software Engineering Intern - Cybersecurity Role at Intuit"
+    },
+    {
+      "id": "csv:intuit:software engineer intern stack:2026-09-14",
+      "company": "Intuit",
+      "role": "Summer 2027: Software Engineering Intern - Full Stack",
+      "status": "applied",
+      "eventAt": "2026-09-14",
+      "appliedAt": "2026-09-14",
+      "subject": "Application Received! Thanks for applying to the Summer 2027: Software Engineering Intern - Full Stack Role at Intuit"
+    },
+    {
+      "id": "csv:itron:intern embedded systems artificial intelligence:2026-09-14",
+      "company": "Itron",
+      "role": "Intern - Embedded Systems & Artificial Intelligence",
+      "status": "rejected",
+      "eventAt": "2026-09-14",
+      "subject": "Update on Your Application for Intern - Embedded Systems & Artificial Intelligence , JR102573 at Itron"
+    },
+    {
+      "id": "csv:janestreet:norole:2026-08-20",
+      "company": "Jane Street",
+      "role": "",
+      "status": "rejected",
+      "eventAt": "2026-08-25",
+      "appliedAt": "2026-08-20",
+      "subject": "Thank you for applying to Jane Street"
+    },
+    {
+      "id": "csv:jpmorganchase:norole:2026-08-03",
+      "company": "JPMorgan Chase",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-08-03",
+      "appliedAt": "2026-08-03",
+      "subject": "We received your job application (Job Number: 210773759)",
+      "note": "OA HackerRank"
+    },
+    {
+      "id": "csv:jpmorganchase:good hackathon intern application:2026-08-31",
+      "company": "JPMorgan Chase",
+      "role": "Good Hackathon - 2027 Summer Internship Application",
+      "status": "applied",
+      "eventAt": "2026-09-21",
+      "appliedAt": "2026-08-31",
+      "subject": "Update on your Code for Good Hackathon - 2027 Summer Internship Application"
+    },
+    {
+      "id": "csv:jpmorganchase:good hackathon software engineer intern united stat:2026-10-11",
+      "company": "JPMorganChase",
+      "role": "Good Hackathon - Software Engineer Program - 2027 Summer Internship – United Stat",
+      "status": "rejected",
+      "eventAt": "2026-10-11",
+      "subject": "Your job application status (Job number: 210773759)"
+    },
+    {
+      "id": "csv:jumptrading:norole:2026-09-29",
+      "company": "Jump Trading",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-29",
+      "appliedAt": "2026-09-29",
+      "subject": "Thank you for applying to Jump Trading!"
+    },
+    {
+      "id": "csv:jumptrading:norole:2026-10-05",
+      "company": "Jump Trading",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-05",
+      "appliedAt": "2026-10-05",
+      "subject": "Thank you for applying to Jump Trading!"
+    },
+    {
+      "id": "csv:kensho:software engineer intern:2026-09-09",
+      "company": "Kensho",
+      "role": "Software Engineer - Summer Intern 2027",
+      "status": "rejected",
+      "eventAt": "2026-09-11",
+      "appliedAt": "2026-09-09",
+      "subject": "Thank you for your interest in Software Engineer - Summer Intern 2027"
+    },
+    {
+      "id": "csv:kensho:machine learning engineer intern:2026-09-09",
+      "company": "Kensho",
+      "role": "Machine Learning Engineer - Summer Intern 2027",
+      "status": "rejected",
+      "eventAt": "2026-09-11",
+      "appliedAt": "2026-09-09",
+      "subject": "Thank you for your interest in Machine Learning Engineer - Summer Intern 2027"
+    },
+    {
+      "id": "csv:khanacademy:software engineer intern khan academy:2026-10-05",
+      "company": "Khan Academy",
+      "role": "Software Engineer Intern (Summer 2027) - Khan Academy",
+      "status": "rejected",
+      "eventAt": "2026-10-14",
+      "appliedAt": "2026-10-05",
+      "subject": "Application for Software Engineer Intern (Summer 2027) - Khan Academy"
+    },
+    {
+      "id": "csv:klaviyo:software engineer intern:2026-09-14",
+      "company": "Klaviyo",
+      "role": "Software Engineer Intern (Summer 2027)",
+      "status": "applied",
+      "eventAt": "2026-09-24",
+      "appliedAt": "2026-09-14",
+      "subject": "Thank you for applying to Klaviyo"
+    },
+    {
+      "id": "csv:lazard:software engineer intern:2026-09-19",
+      "company": "Lazard",
+      "role": "2027 Software Engineer Summer Internship",
+      "status": "applied",
+      "eventAt": "2026-09-19",
+      "appliedAt": "2026-09-19",
+      "subject": "Lazard Application Confirmation - 2027 Software Engineer Summer Internship"
+    },
+    {
+      "id": "csv:lazard:data engineer intern:2026-09-21",
+      "company": "Lazard",
+      "role": "2027 Data Engineer Summer Internship",
+      "status": "applied",
+      "eventAt": "2026-09-21",
+      "appliedAt": "2026-09-21",
+      "subject": "Lazard Application Confirmation - 2027 Data Engineer Summer Internship"
+    },
+    {
+      "id": "csv:lazard:ai engineer intern:2026-09-21",
+      "company": "Lazard",
+      "role": "2027 AI Engineer Summer Internship",
+      "status": "applied",
+      "eventAt": "2026-09-21",
+      "appliedAt": "2026-09-21",
+      "subject": "Lazard Application Confirmation - 2027 AI Engineer Summer Internship"
+    },
+    {
+      "id": "csv:lindy:software engineer intern:2026-08-31",
+      "company": "Lindy",
+      "role": "Software Engineer Internship",
+      "status": "applied",
+      "eventAt": "2026-08-31",
+      "appliedAt": "2026-08-31",
+      "subject": "Thanks for applying to Lindy!"
+    },
+    {
+      "id": "csv:linkedin:software engineer intern:2026-10-19",
+      "company": "LinkedIn",
+      "role": "Software Engineer Intern",
+      "status": "applied",
+      "eventAt": "2026-10-19",
+      "appliedAt": "2026-10-19",
+      "subject": "Your Application for Software Engineer Intern, Undergraduate - Summer 2027 (Mountain View, CA) at LinkedIn"
+    },
+    {
+      "id": "csv:linkedin:software engineer intern mountain view:2026-10-28",
+      "company": "LinkedIn",
+      "role": "Software Engineer Intern (First Play) - Summer 2027 (Mountain View",
+      "status": "applied",
+      "eventAt": "2026-10-28",
+      "appliedAt": "2026-10-28",
+      "subject": "Your Application for Software Engineer Intern (First Play)  - Summer 2027 (Mountain View, CA)  at LinkedIn"
+    },
+    {
+      "id": "csv:lyft:nyc based software engineer intern:2026-09-18",
+      "company": "Lyft",
+      "role": "NYC-based Software Engineer Intern",
+      "status": "applied",
+      "eventAt": "2026-09-18",
+      "appliedAt": "2026-09-18",
+      "subject": "Lyft Update - Software Engineer Intern, Fullstack (Summer 2027 - NYC) - Owen Tsao"
+    },
+    {
+      "id": "csv:marvell:firmware engineer intern:2026-09-09",
+      "company": "Marvell",
+      "role": "Firmware Engineer Intern",
+      "status": "rejected",
+      "eventAt": "2026-10-05",
+      "appliedAt": "2026-09-09",
+      "subject": "Marvell | Firmware Engineer Intern, BS - Summer 2027"
+    },
+    {
+      "id": "csv:mastercard:norole:2026-08-24",
+      "company": "Mastercard",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-08-24",
+      "appliedAt": "2026-08-24",
+      "subject": "Thank you for your application!"
+    },
+    {
+      "id": "csv:maxar:following ai engineer intern:2026-09-23",
+      "company": "Maxar",
+      "role": "following position: R24605 AI Engineer Intern",
+      "status": "applied",
+      "eventAt": "2026-09-23",
+      "appliedAt": "2026-09-23",
+      "subject": "Successful Application Submission"
+    },
+    {
+      "id": "csv:maxar:following ai engineer intern your application will be reviewed:2026-09-23",
+      "company": "Maxar",
+      "role": "following position: R24605 AI Engineer Intern Your application will be reviewed",
+      "status": "applied",
+      "eventAt": "2026-09-23",
+      "appliedAt": "2026-09-23",
+      "subject": "Successful Application Submission"
+    },
+    {
+      "id": "csv:mercor:software engineer intern:2026-10-27",
+      "company": "Mercor",
+      "role": "Software Engineer Intern",
+      "status": "applied",
+      "eventAt": "2026-10-27",
+      "appliedAt": "2026-10-27",
+      "subject": "Thanks for applying to Mercor!"
+    },
+    {
+      "id": "csv:mercury:norole:2026-09-21",
+      "company": "Mercury",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-21",
+      "appliedAt": "2026-09-21",
+      "subject": "Thank you for applying to Mercury"
+    },
+    {
+      "id": "csv:meta:product security engineer intern here:2026-10-06",
+      "company": "Meta",
+      "role": "Product Security Engineer Summer 2027 Internship here",
+      "status": "interview",
+      "eventAt": "2026-10-31",
+      "appliedAt": "2026-10-06",
+      "subject": "Meta Interview Confirmation - Owen Tingan Tsao"
+    },
+    {
+      "id": "csv:meta:norole:2026-10-20",
+      "company": "Meta",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-20",
+      "appliedAt": "2026-10-20",
+      "subject": "Thank you for applying to Meta"
+    },
+    {
+      "id": "csv:meta:norole:2026-10-30",
+      "company": "Meta",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-30",
+      "appliedAt": "2026-10-30",
+      "subject": "Action required: U.S. work authorization form for Meta"
+    },
+    {
+      "id": "csv:micron:intern software engineer:2026-09-08",
+      "company": "Micron",
+      "role": "Intern - Software Engineer",
+      "status": "rejected",
+      "eventAt": "2026-10-13",
+      "appliedAt": "2026-09-08",
+      "subject": "Application Status Update for Intern - Software Engineer-JR108550 -"
+    },
+    {
+      "id": "csv:microsoft:software engineer security identity inte:2026-08-03",
+      "company": "Microsoft",
+      "role": "Software Engineer: Security & Identity Inte",
+      "status": "rejected",
+      "eventAt": "2026-10-16",
+      "appliedAt": "2026-08-03",
+      "subject": "Thank you for your interest in Microsoft"
+    },
+    {
+      "id": "csv:microsoft:software engineer fullstack product web:2026-08-03",
+      "company": "Microsoft",
+      "role": "Software Engineer: Fullstack Product (Web +",
+      "status": "rejected",
+      "eventAt": "2026-08-31",
+      "appliedAt": "2026-08-03",
+      "subject": "Thank you for your interest in Microsoft"
+    },
+    {
+      "id": "csv:microsoft:software engineer cloud distributed back:2026-08-03",
+      "company": "Microsoft",
+      "role": "Software Engineer: Cloud & Distributed Back",
+      "status": "rejected",
+      "eventAt": "2026-09-01",
+      "appliedAt": "2026-08-03",
+      "subject": "Thank you for your interest in Microsoft"
+    },
+    {
+      "id": "csv:microsoft:software engineer ai machine learning llm intern oppor:2026-08-03",
+      "company": "Microsoft",
+      "role": "Software Engineer: AI/ML & LLM Intern Oppor",
+      "status": "rejected",
+      "eventAt": "2026-09-01",
+      "appliedAt": "2026-08-03",
+      "subject": "Thank you for your interest in Microsoft"
+    },
+    {
+      "id": "csv:microsoft:ai software engineer intern job number:2026-08-19",
+      "company": "Microsoft",
+      "role": "AI Software Engineering Intern (Job number:",
+      "status": "applied",
+      "eventAt": "2026-08-25",
+      "appliedAt": "2026-08-19",
+      "subject": "Thank you for your application!"
+    },
+    {
+      "id": "csv:microsoft:data science intern opportunities re:2026-09-02",
+      "company": "Microsoft",
+      "role": "Data Science: Internship Opportunities - Re",
+      "status": "applied",
+      "eventAt": "2026-09-02",
+      "appliedAt": "2026-09-02",
+      "subject": "Thank you for your application!"
+    },
+    {
+      "id": "csv:microsoft:software engineer intern 6 month pr:2026-09-18",
+      "company": "Microsoft",
+      "role": "Software Engineering Internship (6-month Pr",
+      "status": "applied",
+      "eventAt": "2026-09-18",
+      "appliedAt": "2026-09-18",
+      "subject": "Thank you for your application!"
+    },
+    {
+      "id": "csv:microsoft:explore engineering intern oppo:2026-10-01",
+      "company": "Microsoft",
+      "role": "Explore Program Engineering Internship Oppo",
+      "status": "rejected",
+      "eventAt": "2026-10-29",
+      "appliedAt": "2026-10-01",
+      "subject": "Thank you for your interest in Microsoft"
+    },
+    {
+      "id": "csv:microsoft:norole:2026-10-01",
+      "company": "Microsoft",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-01",
+      "appliedAt": "2026-10-01",
+      "subject": "Thank you for your application!"
+    },
+    {
+      "id": "csv:microsoft:cloud network engineering intern oportu:2026-10-12",
+      "company": "Microsoft",
+      "role": "Cloud Network Engineering Internship Oportu",
+      "status": "applied",
+      "eventAt": "2026-10-12",
+      "appliedAt": "2026-10-12",
+      "subject": "Thank you for your application!"
+    },
+    {
+      "id": "csv:millennium:quantitative developer intern:2026-08-03",
+      "company": "Millennium",
+      "role": "2027 Quantitative Developer Intern",
+      "status": "rejected",
+      "eventAt": "2026-08-14",
+      "appliedAt": "2026-08-03",
+      "subject": "An Update on Your Internship Application| Millennium Management",
+      "note": "OA HackerRank"
+    },
+    {
+      "id": "csv:millennium:applied ai engineer intern:2026-08-03",
+      "company": "Millennium",
+      "role": "2027 Applied AI Engineer Intern",
+      "status": "rejected",
+      "eventAt": "2026-08-14",
+      "appliedAt": "2026-08-03",
+      "subject": "An Update on Your Internship Application| Millennium Management",
+      "note": "OA HackerRank"
+    },
+    {
+      "id": "csv:mongodb:norole:2026-10-23",
+      "company": "MongoDB",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-23",
+      "appliedAt": "2026-10-23",
+      "subject": "Thanks for applying to MongoDB!"
+    },
+    {
+      "id": "csv:netflix:netflix software engineer intern:2026-10-19",
+      "company": "Netflix",
+      "role": "Netflix Software Engineering Internship",
+      "status": "applied",
+      "eventAt": "2026-10-19",
+      "appliedAt": "2026-10-19",
+      "subject": "Complete Your Netflix Software Engineering Internship Application | Next Steps 🍿"
+    },
+    {
+      "id": "csv:netflix:software engineer intern:2026-10-19",
+      "company": "Netflix",
+      "role": "Software Engineer Intern - Summer 2027",
+      "status": "applied",
+      "eventAt": "2026-10-19",
+      "appliedAt": "2026-10-19",
+      "subject": "Owen, we have received your application for Software Engineer Intern - Summer 2027"
+    },
+    {
+      "id": "csv:neuralink:norole:2026-09-05",
+      "company": "Neuralink",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-05",
+      "appliedAt": "2026-09-05",
+      "subject": "Thank you for applying to Neuralink"
+    },
+    {
+      "id": "csv:neuralink:norole:2026-09-05:a8c65c4e",
+      "company": "Neuralink",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-05",
+      "appliedAt": "2026-09-05",
+      "subject": "Thank you for applying to Neuralink"
+    },
+    {
+      "id": "csv:neuralink:norole:2026-09-08",
+      "company": "Neuralink",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-08",
+      "appliedAt": "2026-09-08",
+      "subject": "Thank you for applying to Neuralink"
+    },
+    {
+      "id": "csv:nianticspatial:software engineer intern:2026-10-06",
+      "company": "Niantic Spatial",
+      "role": "Software Engineering Intern (Summer 2027)",
+      "status": "applied",
+      "eventAt": "2026-10-06",
+      "appliedAt": "2026-10-06",
+      "subject": "Thanks for applying to Niantic Spatial!"
+    },
+    {
+      "id": "csv:nominal:software engineer intern:2026-09-11",
+      "company": "Nominal",
+      "role": "Software Engineer - Internship (Summer 2027)",
+      "status": "applied",
+      "eventAt": "2026-09-11",
+      "appliedAt": "2026-09-11",
+      "subject": "Thank you for applying to Nominal"
+    },
+    {
+      "id": "csv:notion:software engineer intern:2026-08-14",
+      "company": "Notion",
+      "role": "Software Engineer Intern (Summer 2027)",
+      "status": "applied",
+      "eventAt": "2026-09-09",
+      "appliedAt": "2026-08-14",
+      "subject": "Thank you for your application to Notion, Owen!"
+    },
+    {
+      "id": "csv:nuro:intern:2026-07-20",
+      "company": "Nuro",
+      "role": "Intern",
+      "status": "rejected",
+      "eventAt": "2026-07-31",
+      "appliedAt": "2026-07-20",
+      "subject": "Update from Nuro"
+    },
+    {
+      "id": "csv:nuro:norole:2026-10-25",
+      "company": "Nuro",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-25",
+      "appliedAt": "2026-10-25",
+      "subject": "Thank you for applying to Nuro"
+    },
+    {
+      "id": "csv:nutanix:software engineer intern ai:2026-10-25",
+      "company": "Nutanix",
+      "role": "Software Engineer Intern - AI (Spring 2027)",
+      "status": "rejected",
+      "eventAt": "2026-10-25",
+      "subject": "Your application for Software Engineer Intern (Summer 2027) at Nutanix"
+    },
+    {
+      "id": "csv:nvidia:jr2019414 cloud software intern:2026-07-06",
+      "company": "NVIDIA",
+      "role": "JR2019414 Cloud Software Intern",
+      "status": "applied",
+      "eventAt": "2026-07-06",
+      "appliedAt": "2026-07-06",
+      "subject": "Thank you from NVIDIA"
+    },
+    {
+      "id": "csv:nvidia:interest in at nvidia our intern recruiting season is:2026-07-15",
+      "company": "NVIDIA",
+      "role": "interest in careers at NVIDIA. Our intern recruiting season is",
+      "status": "applied",
+      "eventAt": "2026-07-15",
+      "appliedAt": "2026-07-15",
+      "subject": "Thank you for your interest in NVIDIA"
+    },
+    {
+      "id": "csv:nvidia:jr2022295 software engineer intern:2026-08-06",
+      "company": "NVIDIA",
+      "role": "JR2022295 Software Engineering Intern",
+      "status": "applied",
+      "eventAt": "2026-10-13",
+      "appliedAt": "2026-08-06",
+      "subject": "Thank you from NVIDIA"
+    },
+    {
+      "id": "csv:nvidia:jr2023495 nvidia intern software engineer:2026-08-19",
+      "company": "NVIDIA",
+      "role": "JR2023495 NVIDIA 2027 Internships: Software Engineering",
+      "status": "applied",
+      "eventAt": "2026-08-19",
+      "appliedAt": "2026-08-19",
+      "subject": "Thank you for your interest in NVIDIA"
+    },
+    {
+      "id": "csv:nvidia:jr2023497 nvidia intern deep learning:2026-08-19",
+      "company": "NVIDIA",
+      "role": "JR2023497 NVIDIA 2027 Internships: Deep Learning",
+      "status": "applied",
+      "eventAt": "2026-08-19",
+      "appliedAt": "2026-08-19",
+      "subject": "Thank you for your interest in NVIDIA"
+    },
+    {
+      "id": "csv:nvidia:jr2023492 nvidia intern systems software engineer:2026-08-19",
+      "company": "NVIDIA",
+      "role": "JR2023492 NVIDIA 2027 Internships: Systems Software Engineering",
+      "status": "applied",
+      "eventAt": "2026-08-19",
+      "appliedAt": "2026-08-19",
+      "subject": "Thank you for your interest in NVIDIA"
+    },
+    {
+      "id": "csv:nvidia:jr2027170 ai systems software engineer intern:2026-10-29",
+      "company": "NVIDIA",
+      "role": "JR2027170 AI Systems Software Engineering Intern – Summer 2027",
+      "status": "applied",
+      "eventAt": "2026-10-29",
+      "appliedAt": "2026-10-29",
+      "subject": "Thank you for your interest in NVIDIA"
+    },
+    {
+      "id": "csv:openartai:adopter product builder intern:2026-10-23",
+      "company": "OpenArt AI",
+      "role": "Early Adopter & Product Builder Intern",
+      "status": "applied",
+      "eventAt": "2026-10-23",
+      "appliedAt": "2026-10-23",
+      "subject": "Thanks for applying to OpenArt AI!"
+    },
+    {
+      "id": "csv:optiver:software engineer intern:2026-10-14",
+      "company": "Optiver",
+      "role": "Software Engineer Intern (Summer 2027 - Austin)",
+      "status": "rejected",
+      "eventAt": "2026-10-14",
+      "subject": "Thank you for completing Optiver assessments",
+      "note": "OA Optiver assessment portal"
+    },
+    {
+      "id": "csv:optiver:optiver taking to start our application process:2026-10-12",
+      "company": "Optiver",
+      "role": "Optiver and for taking the time to start our application process for the",
+      "status": "applied",
+      "eventAt": "2026-10-12",
+      "appliedAt": "2026-10-12",
+      "subject": "Thank You from Optiver"
+    },
+    {
+      "id": "csv:palantir:submitting your application to be a software engineer intern a:2026-07-25",
+      "company": "Palantir",
+      "role": "submitting your application to be a Software Engineer, Internship a",
+      "status": "interview",
+      "eventAt": "2026-11-02",
+      "appliedAt": "2026-07-25",
+      "subject": "Palantir - Software Engineer, Internship - Owen Tsao - Interview Confirmation"
+    },
+    {
+      "id": "csv:palantir:norole:2026-07-27",
+      "company": "Palantir",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-07-27",
+      "appliedAt": "2026-07-27",
+      "subject": "[Next Steps] Palantir Application",
+      "note": "OA HackerRank"
+    },
+    {
+      "id": "csv:patreon:norole:2026-10-19",
+      "company": "Patreon",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-19",
+      "appliedAt": "2026-10-19",
+      "subject": "Thanks for applying to Patreon!"
+    },
+    {
+      "id": "csv:patreon:norole:2026-10-19:a0796d93",
+      "company": "Patreon",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-19",
+      "appliedAt": "2026-10-19",
+      "subject": "Thanks for applying to Patreon!"
+    },
+    {
+      "id": "csv:paypal:software engineer intern:2026-09-04",
+      "company": "PayPal",
+      "role": "Software Engineer Intern",
+      "status": "applied",
+      "eventAt": "2026-09-04",
+      "appliedAt": "2026-09-04",
+      "subject": "Owen, we have received your application"
+    },
+    {
+      "id": "csv:paypal:software engineer:2026-10-02",
+      "company": "PayPal",
+      "role": "position: Software Engineer",
+      "status": "applied",
+      "eventAt": "2026-10-02",
+      "appliedAt": "2026-10-02",
+      "subject": "Thanks for your interest in career opportunities at PayPal"
+    },
+    {
+      "id": "csv:pdtpartners:our software engineer intern:2026-08-03",
+      "company": "PDT Partners",
+      "role": "our Summer 2027 Software Engineering Intern",
+      "status": "applied",
+      "eventAt": "2026-08-03",
+      "appliedAt": "2026-08-03",
+      "subject": "Thank you for applying to PDT Partners"
+    },
+    {
+      "id": "csv:persona:interest in persona we wanted to let you know that we receive:2026-09-16",
+      "company": "Persona",
+      "role": "interest in Persona! We wanted to let you know that we receive",
+      "status": "oa",
+      "eventAt": "2026-10-14",
+      "appliedAt": "2026-09-16",
+      "subject": "Completed: Persona - Summer SWE, Intern (2027) Assessment"
+    },
+    {
+      "id": "csv:pinterest:software engineer intern:2026-10-01",
+      "company": "Pinterest",
+      "role": "Software Engineer Intern 2027 (USA)",
+      "status": "applied",
+      "eventAt": "2026-10-01",
+      "appliedAt": "2026-10-01",
+      "subject": "Your application for Software Engineer Intern 2027 (USA) at Pinterest"
+    },
+    {
+      "id": "csv:pinterest:solutions engineer intern:2026-10-15",
+      "company": "Pinterest",
+      "role": "Solutions Engineer Intern 2027 (USA)",
+      "status": "applied",
+      "eventAt": "2026-10-15",
+      "appliedAt": "2026-10-15",
+      "subject": "Your application for Solutions Engineer Intern 2027 (USA) at Pinterest"
+    },
+    {
+      "id": "csv:plaid:norole:2026-08-12",
+      "company": "Plaid",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-08-12",
+      "appliedAt": "2026-08-12",
+      "subject": "We received your consent to share your account info with Plaid"
+    },
+    {
+      "id": "csv:plaid:software engineer intern:2026-09-16",
+      "company": "Plaid",
+      "role": "Software Engineering Intern",
+      "status": "applied",
+      "eventAt": "2026-09-16",
+      "appliedAt": "2026-09-16",
+      "subject": "Thank you for applying to Software Engineering Intern, Summer 2027 at Plaid"
+    },
+    {
+      "id": "csv:point72:norole:2026-10-07",
+      "company": "Point72",
+      "role": "",
+      "status": "rejected",
+      "eventAt": "2026-10-07",
+      "subject": "Point72 Employment Application Update - Owen Tsao"
+    },
+    {
+      "id": "csv:prizepicks:software engineer intern:2026-09-21",
+      "company": "PrizePicks",
+      "role": "Software Engineering Internship - Summer 2027",
+      "status": "applied",
+      "eventAt": "2026-09-21",
+      "appliedAt": "2026-09-21",
+      "subject": "Thanks for Applying – Stay Tuned!"
+    },
+    {
+      "id": "csv:quadrillion:software engineer intern:2026-10-22",
+      "company": "Quadrillion",
+      "role": "Software Engineering Intern (Summer 2027)",
+      "status": "rejected",
+      "eventAt": "2026-10-22",
+      "subject": "Quadrillion Application Update"
+    },
+    {
+      "id": "csv:qualcomm:machine learning artificial intelligence engineering intern 20:2026-09-18",
+      "company": "Qualcomm",
+      "role": "position Machine Learning & Artificial Intelligence Engineering Internship – Summer 20",
+      "status": "applied",
+      "eventAt": "2026-09-18",
+      "appliedAt": "2026-09-18",
+      "subject": "Successfully submitted application for Owen Tsao"
+    },
+    {
+      "id": "csv:qualcomm:software engineer intern:2026-09-18",
+      "company": "Qualcomm",
+      "role": "position Software Engineering Internship - Summer 2027 - 3095748",
+      "status": "applied",
+      "eventAt": "2026-09-18",
+      "appliedAt": "2026-09-18",
+      "subject": "Successfully submitted application for Owen Tsao"
+    },
+    {
+      "id": "csv:qualcomm:choosing qualcomm we have received your application p:2026-09-21",
+      "company": "Qualcomm",
+      "role": "choosing Qualcomm. We have received your application for the p",
+      "status": "applied",
+      "eventAt": "2026-09-21",
+      "appliedAt": "2026-09-21",
+      "subject": "Successfully submitted application for Owen Tsao"
+    },
+    {
+      "id": "csv:qualcomm:it infrastructure cloud engineering intern:2026-09-21",
+      "company": "Qualcomm",
+      "role": "position IT Infrastructure & Cloud Engineering Internship – Summer 2027 - 3095760",
+      "status": "applied",
+      "eventAt": "2026-09-21",
+      "appliedAt": "2026-09-21",
+      "subject": "Successfully submitted application for Owen Tsao"
+    },
+    {
+      "id": "csv:quantbot:norole:2026-08-20",
+      "company": "Quantbot",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-08-20",
+      "appliedAt": "2026-08-20",
+      "subject": "Thank you for applying to Quantbot"
+    },
+    {
+      "id": "csv:qumulo:software development engineer intern:2026-09-23",
+      "company": "Qumulo",
+      "role": "Software Development Engineer Internship - 2027",
+      "status": "applied",
+      "eventAt": "2026-09-23",
+      "appliedAt": "2026-09-23",
+      "subject": "Your application to Qumulo has been received"
+    },
+    {
+      "id": "csv:ramp:software engineer intern:2026-09-24",
+      "company": "Ramp",
+      "role": "Software Engineer Intern",
+      "status": "oa",
+      "eventAt": "2026-09-24",
+      "subject": "Assessment completed: Ramp 2025 Coding Assessment / Frontend Challenge",
+      "note": "OA CodeSignal (coding + frontend challenge)"
+    },
+    {
+      "id": "csv:rbc:norole:2026-09-19",
+      "company": "RBC",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-19",
+      "appliedAt": "2026-09-19",
+      "subject": "Thank You For Applying!"
+    },
+    {
+      "id": "csv:rendezvousrobotics:software engineer intern:2026-09-16",
+      "company": "Rendezvous Robotics",
+      "role": "Software Engineering Intern (Summer 2027)",
+      "status": "rejected",
+      "eventAt": "2026-09-25",
+      "appliedAt": "2026-09-16",
+      "subject": "Important information about your application to Rendezvous Robotics"
+    },
+    {
+      "id": "csv:replit:software engineer intern:2026-08-15",
+      "company": "Replit",
+      "role": "Software Engineering Intern (Summer 2027)",
+      "status": "applied",
+      "eventAt": "2026-08-15",
+      "appliedAt": "2026-08-15",
+      "subject": "Thank you for your application to Replit"
+    },
+    {
+      "id": "csv:replit:software engineer intern:2026-10-08",
+      "company": "Replit",
+      "role": "Software Engineering Intern – Winter 2027 (US Based)",
+      "status": "applied",
+      "eventAt": "2026-10-08",
+      "appliedAt": "2026-10-08",
+      "subject": "Thank you for your application to Replit"
+    },
+    {
+      "id": "csv:retellai:forward deployed engineer intern:2026-09-08",
+      "company": "Retell AI",
+      "role": "Forward Deployed Engineer Intern",
+      "status": "interview",
+      "eventAt": "2026-09-10",
+      "appliedAt": "2026-09-08",
+      "subject": "Retell AI - Interview -  Forward Deployed Engineer Intern",
+      "note": "OA CodeSignal"
+    },
+    {
+      "id": "csv:revel:intern forward deployed engineer:2026-09-08",
+      "company": "Revel",
+      "role": "Internship: Forward Deployed Engineer",
+      "status": "applied",
+      "eventAt": "2026-09-08",
+      "appliedAt": "2026-09-08",
+      "subject": "Thanks for applying to Revel!"
+    },
+    {
+      "id": "csv:revel:intern software engineer:2026-09-08",
+      "company": "Revel",
+      "role": "Internship: Software Engineer",
+      "status": "applied",
+      "eventAt": "2026-09-08",
+      "appliedAt": "2026-09-08",
+      "subject": "Thanks for applying to Revel!"
+    },
+    {
+      "id": "csv:riotgames:applying software engineer intern:2026-10-01",
+      "company": "Riot Games",
+      "role": "applying - Software Engineering Intern - Summer 2027 (Remote)",
+      "status": "applied",
+      "eventAt": "2026-10-01",
+      "appliedAt": "2026-10-01",
+      "subject": "[RIOT GAMES] Thank you for applying -  Software Engineering Intern - Summer 2027 (Remote)"
+    },
+    {
+      "id": "csv:rippling:stack software engineer intern will review it promptly:2026-07-26",
+      "company": "Rippling",
+      "role": "Full Stack Software Engineer Intern - Winter 2027 and will review it promptly",
+      "status": "rejected",
+      "eventAt": "2026-10-14",
+      "appliedAt": "2026-07-26",
+      "subject": "Thank you for applying to Rippling - Software Engineer Intern - Backend Focused - Summer 2027"
+    },
+    {
+      "id": "csv:rivian:intern:2026-10-15",
+      "company": "Rivian",
+      "role": "Summer 2027 Internships",
+      "status": "applied",
+      "eventAt": "2026-10-15",
+      "appliedAt": "2026-10-15",
+      "subject": "Thank You for Applying at Rivian Automotive, LLC"
+    },
+    {
+      "id": "csv:rivian:our software engineer intern:2026-10-15",
+      "company": "Rivian",
+      "role": "our Software Engineering - Summer 2027 Internships",
+      "status": "applied",
+      "eventAt": "2026-10-15",
+      "appliedAt": "2026-10-15",
+      "subject": "Thank You for Applying at Rivian Automotive, LLC"
+    },
+    {
+      "id": "csv:rivian:norole:2026-10-15",
+      "company": "Rivian",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-15",
+      "appliedAt": "2026-10-15",
+      "subject": "User account with Rivian Automotive, LLC"
+    },
+    {
+      "id": "csv:rivian:norole:2026-10-29",
+      "company": "Rivian",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-29",
+      "appliedAt": "2026-10-29",
+      "subject": "Thank you for applying to Rivian and Volkswagen Group Technologies!"
+    },
+    {
+      "id": "csv:robinhood:norole:2026-09-14",
+      "company": "Robinhood",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-14",
+      "appliedAt": "2026-09-14",
+      "subject": "Thank you for applying to Robinhood"
+    },
+    {
+      "id": "csv:robinhood:norole:2026-09-14:97b1e235",
+      "company": "Robinhood",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-14",
+      "appliedAt": "2026-09-14",
+      "subject": "Thank you for applying to Robinhood"
+    },
+    {
+      "id": "csv:robinhood:norole:2026-09-18",
+      "company": "Robinhood",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-18",
+      "appliedAt": "2026-09-18",
+      "subject": "Thank you for applying to Robinhood"
+    },
+    {
+      "id": "csv:roblox:software engineer intern:2026-08-06",
+      "company": "Roblox",
+      "role": "[Summer 2027] Software Engineer Intern",
+      "status": "oa",
+      "eventAt": "2026-08-06",
+      "appliedAt": "2026-08-06",
+      "subject": "[Confirmation] You've completed the Roblox Assessments!",
+      "note": "OA CodeSignal (Roblox Assessments)"
+    },
+    {
+      "id": "csv:roku:sw engineer intern:2026-11-01",
+      "company": "Roku",
+      "role": "SW Engineer Intern",
+      "status": "applied",
+      "eventAt": "2026-11-01",
+      "appliedAt": "2026-11-01",
+      "subject": "Thank you for applying to Roku"
+    },
+    {
+      "id": "csv:roku:norole:2026-11-01",
+      "company": "Roku",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-11-01",
+      "appliedAt": "2026-11-01",
+      "subject": "Owen, your application was sent to Roku"
+    },
+    {
+      "id": "csv:rubrik:norole:2026-09-18",
+      "company": "Rubrik",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-18",
+      "appliedAt": "2026-09-18",
+      "subject": "Thank you for applying to Rubrik"
+    },
+    {
+      "id": "csv:sage:taking to apply to sage software engineer intern:2026-08-25",
+      "company": "Sage",
+      "role": "taking the time to apply to Sage and the Software Engineering Intern (Full Stack) – Summer",
+      "status": "applied",
+      "eventAt": "2026-08-25",
+      "appliedAt": "2026-08-25",
+      "subject": "Thanks for applying to Sage!"
+    },
+    {
+      "id": "csv:salesforce:intern software engineer:2026-08-28",
+      "company": "Salesforce",
+      "role": "Summer 2027 Intern - Software Engineer",
+      "status": "oa",
+      "eventAt": "2026-10-31",
+      "appliedAt": "2026-08-28",
+      "subject": "Thanks for taking the Futureforce Emerging Talent Coding Assessment",
+      "deadline": {
+        "at": "2026-11-06T11:48:00-08:00",
+        "kind": "OA",
+        "display": "Nov 6, 11:48 AM PT",
+        "platform": "HackerRank (Futureforce)"
+      }
+    },
+    {
+      "id": "csv:salesforce:intern software engineer:2026-10-20",
+      "company": "Salesforce",
+      "role": "Summer 2027 Intern - Software Engineer (Security/Government)",
+      "status": "applied",
+      "eventAt": "2026-10-20",
+      "appliedAt": "2026-10-20",
+      "subject": "Great News! We’ve Received Your Application for the Summer 2027 Intern - Software Engineer (Security/Government) Position"
+    },
+    {
+      "id": "csv:salesforce:intern ai research:2026-10-20",
+      "company": "Salesforce",
+      "role": "Summer 2027 Intern - AI Research",
+      "status": "applied",
+      "eventAt": "2026-10-20",
+      "appliedAt": "2026-10-20",
+      "subject": "Great News! We’ve Received Your Application for the Summer 2027 Intern - AI Research Position"
+    },
+    {
+      "id": "csv:salesforce:ai labs intern:2026-10-30",
+      "company": "Salesforce",
+      "role": "AI Labs Summer Internship",
+      "status": "oa",
+      "eventAt": "2026-10-31",
+      "appliedAt": "2026-10-30",
+      "subject": "You completed The Salesforce HackerRank Assessment .... Now What?"
+    },
+    {
+      "id": "csv:samsara:software engineer intern san francisco:2026-09-05",
+      "company": "Samsara",
+      "role": "Software Engineering Internship - San Francisco",
+      "status": "applied",
+      "eventAt": "2026-09-05",
+      "appliedAt": "2026-09-05",
+      "subject": "Thank you for applying to Samsara"
+    },
+    {
+      "id": "csv:samsungresearchamerica:samsung research america intern:2026-11-03",
+      "company": "Samsung Research America",
+      "role": "Samsung Research America Internship",
+      "status": "applied",
+      "eventAt": "2026-11-03",
+      "appliedAt": "2026-11-03",
+      "subject": "Thank you for applying to Samsung Research America Internship"
+    },
+    {
+      "id": "csv:sap:sap applying to sap ixp intern stack ai developer id:2026-09-24",
+      "company": "SAP",
+      "role": "SAP and for applying to the SAP iXp Intern - Full-Stack AI Developer (ID:",
+      "status": "rejected",
+      "eventAt": "2026-09-29",
+      "appliedAt": "2026-09-24",
+      "subject": "Your Application for SAP iXp Intern - Full-Stack AI Developer 457749"
+    },
+    {
+      "id": "csv:scaleai:norole:2026-09-04",
+      "company": "Scale AI",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-04",
+      "appliedAt": "2026-09-04",
+      "subject": "Thank you for applying to Scale AI"
+    },
+    {
+      "id": "csv:scaleai:norole:2026-10-19",
+      "company": "Scale AI",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-19",
+      "appliedAt": "2026-10-19",
+      "subject": "Thank you for applying to Scale AI"
+    },
+    {
+      "id": "csv:schonfeld:enterprise ai intern:2026-10-28",
+      "company": "Schonfeld",
+      "role": "2027 Enterprise AI Intern",
+      "status": "applied",
+      "eventAt": "2026-10-28",
+      "appliedAt": "2026-10-28",
+      "subject": "Thank you for applying to Schonfeld"
+    },
+    {
+      "id": "csv:scoutai:ai engineer intern fury team:2026-10-23",
+      "company": "Scout AI",
+      "role": "AI Engineer Intern - Fury Team (Summer 2027)",
+      "status": "applied",
+      "eventAt": "2026-10-23",
+      "appliedAt": "2026-10-23",
+      "subject": "Thanks for applying to Scout AI!"
+    },
+    {
+      "id": "csv:seatgeek:software engineer intern:2026-09-23",
+      "company": "SeatGeek",
+      "role": "Software Engineer - Internship",
+      "status": "applied",
+      "eventAt": "2026-09-23",
+      "appliedAt": "2026-09-23",
+      "subject": "Thank you for applying to SeatGeek"
+    },
+    {
+      "id": "csv:sentry:software engineer intern:2026-08-11",
+      "company": "Sentry",
+      "role": "Software Engineer, Intern (Summer 2027) and",
+      "status": "applied",
+      "eventAt": "2026-08-11",
+      "appliedAt": "2026-08-11",
+      "subject": "Thank you for applying to become a Sentaur!"
+    },
+    {
+      "id": "csv:serval:software engineer intern:2026-09-05",
+      "company": "Serval",
+      "role": "Software Engineer Intern",
+      "status": "applied",
+      "eventAt": "2026-09-05",
+      "appliedAt": "2026-09-05",
+      "subject": "Thanks for applying to Serval!"
+    },
+    {
+      "id": "csv:servicenow:ai engineering assoc software engineer intern:2026-10-13",
+      "company": "ServiceNow",
+      "role": "AI Engineering - Assoc Software Engineer Internships - Summer 2027 (Bachelors)",
+      "status": "applied",
+      "eventAt": "2026-10-13",
+      "appliedAt": "2026-10-13",
+      "subject": "Thank You for Applying to ServiceNow!"
+    },
+    {
+      "id": "csv:servicenow:norole:2026-10-16",
+      "company": "ServiceNow",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-16",
+      "appliedAt": "2026-10-16",
+      "subject": "ServiceNow - Thank you for your application"
+    },
+    {
+      "id": "csv:shieldai:software engineer intern:2026-09-10",
+      "company": "Shield AI",
+      "role": "Summer 2027 - Software Engineer Intern",
+      "status": "applied",
+      "eventAt": "2026-09-10",
+      "appliedAt": "2026-09-10",
+      "subject": "Thank you for your application to Shield AI, Owen!"
+    },
+    {
+      "id": "csv:shopify:an intern:2026-08-06",
+      "company": "Shopify",
+      "role": "an Internship",
+      "status": "applied",
+      "eventAt": "2026-09-28",
+      "appliedAt": "2026-08-06",
+      "subject": "Thank you for your Application to Shopify!"
+    },
+    {
+      "id": "csv:shopify:norole:2026-09-03",
+      "company": "Shopify",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-03",
+      "appliedAt": "2026-09-03",
+      "subject": "Shopify Application Update"
+    },
+    {
+      "id": "csv:sigmacomputing:software engineer intern:2026-10-06",
+      "company": "Sigma Computing",
+      "role": "Software Engineering Intern (Summer 2027)",
+      "status": "rejected",
+      "eventAt": "2026-10-12",
+      "appliedAt": "2026-10-06",
+      "subject": "Important information about your application to Sigma Computing"
+    },
+    {
+      "id": "csv:sigmacomputing:norole:2026-10-06",
+      "company": "Sigma Computing",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-06",
+      "appliedAt": "2026-10-06",
+      "subject": "Thank you for applying to Sigma Computing"
+    },
+    {
+      "id": "csv:singlestore:norole:2026-09-14",
+      "company": "SingleStore",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-14",
+      "appliedAt": "2026-09-14",
+      "subject": "Thank you for applying to SingleStore!"
+    },
+    {
+      "id": "csv:skydio:autonomy engineer intern:2026-09-05",
+      "company": "Skydio",
+      "role": "Autonomy Engineer Intern",
+      "status": "applied",
+      "eventAt": "2026-10-28",
+      "appliedAt": "2026-09-05",
+      "subject": "Thank you for applying to Skydio!"
+    },
+    {
+      "id": "csv:snowflake:hackerrank core engineering infrastructure security intern test invitat:2026-10-04",
+      "company": "Snowflake",
+      "role": "HackerRank [Spring 2027] Core Engineering/Infrastructure/Security Intern Test Invitat",
+      "status": "oa",
+      "eventAt": "2026-10-04",
+      "subject": "Thanks for taking the [Spring 2027] AI/ML SWE Intern Coding Test"
+    },
+    {
+      "id": "csv:snowflake:software engineer intern core:2026-09-24",
+      "company": "Snowflake",
+      "role": "Software Engineer Intern (Core",
+      "status": "oa",
+      "eventAt": "2026-09-25",
+      "appliedAt": "2026-09-24",
+      "subject": "Thanks for taking the [Spring 2027] Core Engineering/Infrastructure/Security Intern Test"
+    },
+    {
+      "id": "csv:snowflake:software engineer intern:2026-09-24",
+      "company": "Snowflake",
+      "role": "Software Engineer Intern (Database Engineering) - Spring 2027",
+      "status": "rejected",
+      "eventAt": "2026-10-16",
+      "appliedAt": "2026-09-24",
+      "subject": "Snowflake | Update regarding your application for the Software Engineer Intern (Database Engineering) - Spring 2027 role",
+      "note": "OA HackerRank"
+    },
+    {
+      "id": "csv:snowflake:software engineer intern:2026-09-24:9a272837",
+      "company": "Snowflake",
+      "role": "Software Engineer Intern (AI / ML) - Spring 2027",
+      "status": "applied",
+      "eventAt": "2026-09-24",
+      "appliedAt": "2026-09-24",
+      "subject": "Thank you for applying to Snowflake | Software Engineer Intern (AI / ML) - Spring 2027",
+      "note": "OA HackerRank + Chakra screening round"
+    },
+    {
+      "id": "csv:spacex:software engineer intern co op:2026-08-18",
+      "company": "SpaceX",
+      "role": "Summer 2027 Software Engineering Internship/Co-op",
+      "status": "applied",
+      "eventAt": "2026-08-22",
+      "appliedAt": "2026-08-18",
+      "subject": "Thank you for applying to SpaceX"
+    },
+    {
+      "id": "csv:spacex:norole:2026-10-02",
+      "company": "SpaceX",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-02",
+      "appliedAt": "2026-10-02",
+      "subject": "Thank you for applying to SpaceXAI"
+    },
+    {
+      "id": "csv:spacex:norole:2026-10-02:fecf51e9",
+      "company": "SpaceX",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-02",
+      "appliedAt": "2026-10-02",
+      "subject": "Thank you for applying to SpaceXAI"
+    },
+    {
+      "id": "csv:spotify:colm intern:2026-09-24",
+      "company": "Spotify",
+      "role": "CoLM 2026 — Intern",
+      "status": "applied",
+      "eventAt": "2026-09-24",
+      "appliedAt": "2026-09-24",
+      "subject": "Thanks for your application to Spotify!"
+    },
+    {
+      "id": "csv:spotify:recsys intern:2026-09-24",
+      "company": "Spotify",
+      "role": "RecSys 2026 — Intern",
+      "status": "applied",
+      "eventAt": "2026-09-24",
+      "appliedAt": "2026-09-24",
+      "subject": "Thanks for your application to Spotify!"
+    },
+    {
+      "id": "csv:spotify:recsys intern:2026-10-06",
+      "company": "Spotify",
+      "role": "RecSys 2026 — Intern",
+      "status": "applied",
+      "eventAt": "2026-10-06",
+      "appliedAt": "2026-10-06",
+      "subject": "Thanks for your interest in Spotify, Owen"
+    },
+    {
+      "id": "csv:stripe:applying software engineer intern:2026-08-31",
+      "company": "Stripe",
+      "role": "applying for the Software Engineer, Intern (Summer or Winter)",
+      "status": "interview",
+      "eventAt": "2026-10-12",
+      "appliedAt": "2026-08-31",
+      "subject": "Next Steps with Stripe - Team Screen Interview"
+    },
+    {
+      "id": "csv:superhuman:software engineer intern:2026-09-15",
+      "company": "Superhuman",
+      "role": "Software Engineering Intern - Summer 2027",
+      "status": "rejected",
+      "eventAt": "2026-10-08",
+      "appliedAt": "2026-09-15",
+      "subject": "Update from Superhuman",
+      "note": "OA HackerRank take-home"
+    },
+    {
+      "id": "csv:susquehanna:trading system engineering intern:2026-10-04",
+      "company": "Susquehanna",
+      "role": "Trading System Engineering Internship: Summer 2027",
+      "status": "oa",
+      "eventAt": "2026-10-04",
+      "subject": "Susquehanna invited you to take Susquehanna Coding Assessment",
+      "deadline": {
+        "at": "2026-12-03T14:58:00-08:00",
+        "kind": "OA",
+        "display": "Dec 3, 2:58 PM PT",
+        "platform": "CodeSignal (must use C++)"
+      }
+    },
+    {
+      "id": "csv:susquehanna:norole:2026-10-30",
+      "company": "Susquehanna",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-30",
+      "appliedAt": "2026-10-30",
+      "subject": "Reset your password"
+    },
+    {
+      "id": "csv:sycamore:norole:2026-10-15",
+      "company": "Sycamore",
+      "role": "",
+      "status": "rejected",
+      "eventAt": "2026-10-15",
+      "subject": "Your Application to Sycamore"
+    },
+    {
+      "id": "csv:tmobile:applying to:2026-10-20",
+      "company": "T-Mobile",
+      "role": "applying to the REQ368",
+      "status": "applied",
+      "eventAt": "2026-10-20",
+      "appliedAt": "2026-10-20",
+      "subject": "Got it! Application received for: REQ368322 Summer 2027 Software Engineering Intern"
+    },
+    {
+      "id": "csv:talos:norole:2026-09-08",
+      "company": "Talos",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-08",
+      "appliedAt": "2026-09-08",
+      "subject": "Talos | Thank You for Applying"
+    },
+    {
+      "id": "csv:tenstorrent:norole:2026-10-07",
+      "company": "Tenstorrent",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-07",
+      "appliedAt": "2026-10-07",
+      "subject": "Thank you for applying to Tenstorrent"
+    },
+    {
+      "id": "csv:tenstorrent:norole:2026-10-07:897ece25",
+      "company": "Tenstorrent",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-07",
+      "appliedAt": "2026-10-07",
+      "subject": "Thank you for applying to Tenstorrent"
+    },
+    {
+      "id": "csv:tessera:applying stack engineer intern:2026-10-14",
+      "company": "Tessera Labs",
+      "role": "applying for the Full Stack Engineer, Intern",
+      "status": "applied",
+      "eventAt": "2026-10-14",
+      "appliedAt": "2026-10-14",
+      "subject": "We got your application, Owen 🎉"
+    },
+    {
+      "id": "csv:thetradedesk:north america software engineer intern:2026-08-20",
+      "company": "The Trade Desk",
+      "role": "2027 North America Software Engineering Internship",
+      "status": "applied",
+      "eventAt": "2026-08-20",
+      "appliedAt": "2026-08-20",
+      "subject": "Thank You for Applying to The Trade Desk, Owen!"
+    },
+    {
+      "id": "csv:thetradedesk:north america software engineer intern:2026-08-20:fb8311da",
+      "company": "The Trade Desk",
+      "role": "2027 North America Software Engineering Internship",
+      "status": "rejected",
+      "eventAt": "2026-09-04",
+      "appliedAt": "2026-08-20",
+      "subject": "Important information about your application to The Trade Desk"
+    },
+    {
+      "id": "csv:thevoleon:software engineer intern:2026-08-26",
+      "company": "The Voleon Group",
+      "role": "Software Engineer Intern - (Summer 2027)",
+      "status": "applied",
+      "eventAt": "2026-08-26",
+      "appliedAt": "2026-08-26",
+      "subject": "Thank you for applying to The Voleon Group"
+    },
+    {
+      "id": "csv:tiktok:norole:2026-08-09",
+      "company": "TikTok",
+      "role": "",
+      "status": "rejected",
+      "eventAt": "2026-08-09",
+      "subject": "Update on your TikTok application"
+    },
+    {
+      "id": "csv:togetherai:norole:2026-09-19",
+      "company": "Together AI",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-19",
+      "appliedAt": "2026-09-19",
+      "subject": "Thank you for applying to Together AI"
+    },
+    {
+      "id": "csv:togetherai:norole:2026-10-05",
+      "company": "Together AI",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-05",
+      "appliedAt": "2026-10-05",
+      "subject": "Thank you for applying to Together AI"
+    },
+    {
+      "id": "csv:towerresearchcapital:norole:2026-09-17",
+      "company": "Tower Research Capital",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-17",
+      "appliedAt": "2026-09-17",
+      "subject": "Tower Research Capital: Application Received"
+    },
+    {
+      "id": "csv:twitch:norole:2026-10-22",
+      "company": "Twitch",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-22",
+      "appliedAt": "2026-10-22",
+      "subject": "Thank you for applying to Twitch"
+    },
+    {
+      "id": "csv:twosigma:following software engineer intern what happens now ov:2026-09-08",
+      "company": "Two Sigma",
+      "role": "following position: Software Engineering Internship (Summer 2027) What happens now? Ov",
+      "status": "applied",
+      "eventAt": "2026-09-08",
+      "appliedAt": "2026-09-08",
+      "subject": "Thank you for your interest in Two Sigma"
+    },
+    {
+      "id": "csv:twosigma:norole:2026-09-23",
+      "company": "Two Sigma",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-09-23",
+      "appliedAt": "2026-09-23",
+      "subject": "Thank you for your interest in Two Sigma!"
+    },
+    {
+      "id": "csv:twosigma:norole:2026-10-08",
+      "company": "Two Sigma",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-08",
+      "appliedAt": "2026-10-08",
+      "subject": "Thank you for your interest in Two Sigma!"
+    },
+    {
+      "id": "csv:twosigma:norole:2026-10-23",
+      "company": "Two Sigma",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-23",
+      "appliedAt": "2026-10-23",
+      "subject": "Thank you for your interest in Two Sigma!"
+    },
+    {
+      "id": "csv:ubs:intern asset management ai transformation ny chi:2026-09-02",
+      "company": "UBS",
+      "role": "2027 Summer Internship – Asset Management AI Transformation – NY / CHI (343038BR)",
+      "status": "applied",
+      "eventAt": "2026-09-10",
+      "appliedAt": "2026-09-02",
+      "subject": "Your application for the role of 2027 Summer Internship – Asset Management AI Transformation – NY / CHI (343038BR)"
+    },
+    {
+      "id": "csv:unity:machine learning engineer intern:2026-09-23",
+      "company": "Unity",
+      "role": "Machine Learning Engineer-Internship",
+      "status": "applied",
+      "eventAt": "2026-09-23",
+      "appliedAt": "2026-09-23",
+      "subject": "Thank you for applying to Unity!"
+    },
+    {
+      "id": "csv:unknowngreenhouse:software engineer intern:2026-09-11",
+      "company": "Unknown (Greenhouse)",
+      "role": "Software Engineer Intern",
+      "status": "applied",
+      "eventAt": "2026-09-11",
+      "appliedAt": "2026-09-11",
+      "subject": "Thank you for your application for Software Engineer Intern, Fullstack (Summer 2027)!"
+    },
+    {
+      "id": "csv:unknowngreenhouse:norole:2026-10-16",
+      "company": "Unknown (Greenhouse)",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-16",
+      "appliedAt": "2026-10-16",
+      "subject": "Thank You for Your Interest, Owen"
+    },
+    {
+      "id": "csv:vantor:ai engineer intern:2026-10-05",
+      "company": "Vantor",
+      "role": "R24605 AI Engineer Intern",
+      "status": "applied",
+      "eventAt": "2026-10-05",
+      "appliedAt": "2026-10-05",
+      "subject": "Thank you for applying at Vantor"
+    },
+    {
+      "id": "csv:veeam:interest in platform security ai engineering intern:2026-09-11",
+      "company": "Veeam",
+      "role": "interest in the Platform, Security & AI Engineering Intern",
+      "status": "applied",
+      "eventAt": "2026-09-11",
+      "appliedAt": "2026-09-11",
+      "subject": "Thank you for applying to Veeam!"
+    },
+    {
+      "id": "csv:veeam:software engineer intern:2026-09-11",
+      "company": "Veeam",
+      "role": "Software Engineering Intern - Summer 2027",
+      "status": "applied",
+      "eventAt": "2026-09-11",
+      "appliedAt": "2026-09-11",
+      "subject": "Thank you for applying to Veeam!"
+    },
+    {
+      "id": "csv:vercel:software engineer intern 27:2026-09-08",
+      "company": "Vercel",
+      "role": "Software Engineering Intern - Winter '27",
+      "status": "applied",
+      "eventAt": "2026-09-08",
+      "appliedAt": "2026-09-08",
+      "subject": "Thank you for applying to Vercel!"
+    },
+    {
+      "id": "csv:verition:appropriate teams internally:2026-08-19",
+      "company": "Verition",
+      "role": "appropriate teams internally",
+      "status": "applied",
+      "eventAt": "2026-08-19",
+      "appliedAt": "2026-08-19",
+      "subject": "Thank you for applying to Verition Group LLC"
+    },
+    {
+      "id": "csv:verkada:frontend software engineer intern:2026-07-07",
+      "company": "Verkada",
+      "role": "Frontend Software Engineering Intern - Fall 2026",
+      "status": "rejected",
+      "eventAt": "2026-07-07",
+      "subject": "Thank you for your interest in Verkada, Owen"
+    },
+    {
+      "id": "csv:verkada:security software engineer intern:2026-08-25",
+      "company": "Verkada",
+      "role": "Security Software Engineering Intern 2027",
+      "status": "applied",
+      "eventAt": "2026-10-28",
+      "appliedAt": "2026-08-25",
+      "subject": "Thank you for applying to Verkada"
+    },
+    {
+      "id": "csv:viam:norole:2026-10-22",
+      "company": "Viam",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-10-22",
+      "appliedAt": "2026-10-22",
+      "subject": "Thank you for applying to Viam"
+    },
+    {
+      "id": "csv:virtufinancial:norole:2026-07-31",
+      "company": "Virtu Financial",
+      "role": "",
+      "status": "applied",
+      "eventAt": "2026-07-31",
+      "appliedAt": "2026-07-31",
+      "subject": "Thank you for applying to Virtu Financial!"
+    },
+    {
+      "id": "csv:visa:interest in software engineer intern foster city:2026-09-17",
+      "company": "Visa",
+      "role": "interest in the Software Engineer, Intern - Foster City 2027",
+      "status": "rejected",
+      "eventAt": "2026-10-29",
+      "appliedAt": "2026-09-17",
+      "subject": "Visa - Application Update"
+    },
+    {
+      "id": "csv:visa:visa intern applications closing soon:2026-11-01",
+      "company": "Visa",
+      "role": "Visa Internship Applications Closing Soon!",
+      "status": "rejected",
+      "eventAt": "2026-11-01",
+      "appliedAt": "2026-11-01",
+      "subject": "Visa Internship Applications Closing Soon!"
+    },
+    {
+      "id": "csv:waabi:research intern co op:2026-09-08",
+      "company": "Waabi",
+      "role": "Research Internship/Co-op",
+      "status": "applied",
+      "eventAt": "2026-09-08",
+      "appliedAt": "2026-09-08",
+      "subject": "Thank you for your application to Waabi"
+    },
+    {
+      "id": "csv:waymo:intern:2026-09-03",
+      "company": "Waymo",
+      "role": "2027 Summer Intern",
+      "status": "applied",
+      "eventAt": "2026-09-17",
+      "appliedAt": "2026-09-03",
+      "subject": "Thank You for Applying to Waymo!"
+    },
+    {
+      "id": "csv:wellsfargo:following r technology intern softwa:2026-09-15",
+      "company": "Wells Fargo",
+      "role": "following position: R-574294 2027 Technology Summer Internship – Early Careers (Softwa",
+      "status": "oa",
+      "eventAt": "2026-09-21",
+      "appliedAt": "2026-09-15",
+      "subject": "Thanks for taking the Early Careers Global Technology Assessment"
+    },
+    {
+      "id": "csv:whatnot:software engineer intern:2026-08-31",
+      "company": "Whatnot",
+      "role": "Software Engineer Intern (Summer 2027)",
+      "status": "applied",
+      "eventAt": "2026-08-31",
+      "appliedAt": "2026-08-31",
+      "subject": "👋 Thank you for applying to Whatnot!"
+    },
+    {
+      "id": "csv:wing:software engineer intern:2026-10-13",
+      "company": "Wing",
+      "role": "Software Engineering Intern",
+      "status": "applied",
+      "eventAt": "2026-10-13",
+      "appliedAt": "2026-10-13",
+      "subject": "Thanks for applying to Wing!"
+    },
+    {
+      "id": "csv:workday:of software development engineer intern:2026-10-11",
+      "company": "Workday",
+      "role": "role of Software Development Engineer Intern",
+      "status": "applied",
+      "eventAt": "2026-10-13",
+      "appliedAt": "2026-10-11",
+      "subject": "Thanks for applying for the role of Software Application Development Engineer Intern at Workday"
+    },
+    {
+      "id": "csv:workday:of machine learning engineer intern:2026-10-13",
+      "company": "Workday",
+      "role": "role of Machine Learning Engineer Intern",
+      "status": "applied",
+      "eventAt": "2026-10-13",
+      "appliedAt": "2026-10-13",
+      "subject": "Thanks for applying for the role of Machine Learning Engineer Intern at Workday"
+    },
+    {
+      "id": "csv:workiva:intern machine learning engineering:2026-09-07",
+      "company": "Workiva",
+      "role": "Summer 2027 Intern - Machine Learning Engineering",
+      "status": "applied",
+      "eventAt": "2026-09-07",
+      "appliedAt": "2026-09-07",
+      "subject": "Workiva Careers: Application for Summer 2027 Intern - Machine Learning Engineering has been Received!"
+    },
+    {
+      "id": "csv:workiva:intern software engineer:2026-09-07",
+      "company": "Workiva",
+      "role": "Summer 2027 Intern - Software Engineering",
+      "status": "rejected",
+      "eventAt": "2026-11-01",
+      "appliedAt": "2026-09-07",
+      "subject": "Your Application for Summer 2027 Intern - Software Engineering with Workiva"
+    },
+    {
+      "id": "csv:xantium:quantitative developer intern:2026-08-18",
+      "company": "Xantium",
+      "role": "Quantitative Developer Intern",
+      "status": "rejected",
+      "eventAt": "2026-08-20",
+      "appliedAt": "2026-08-18",
+      "subject": "Xantium - Application Follow-Up"
+    },
+    {
+      "id": "csv:zillow:software development engineer intern:2026-10-21",
+      "company": "Zillow",
+      "role": "Software Development Engineer - Intern",
+      "status": "applied",
+      "eventAt": "2026-10-21",
+      "appliedAt": "2026-10-21",
+      "subject": "Thank you for your application!"
+    },
+    {
+      "id": "csv:zip:applying to our software engineer intern:2026-10-16",
+      "company": "Zip",
+      "role": "applying to our Software Engineer Intern (Summer 2027)",
+      "status": "applied",
+      "eventAt": "2026-10-16",
+      "appliedAt": "2026-10-16",
+      "subject": "Thank you for applying to Zip!"
+    },
+    {
+      "id": "csv:zipline:software engineer intern:2026-08-07",
+      "company": "Zipline",
+      "role": "Software Engineer Intern (Fall 2026)",
+      "status": "rejected",
+      "eventAt": "2026-08-07",
+      "subject": "Update on your Zipline application"
+    },
+    {
+      "id": "csv:zipline:software engineer intern:2026-08-20",
+      "company": "Zipline",
+      "role": "Software Engineer Intern (Spring 2027)",
+      "status": "applied",
+      "eventAt": "2026-08-27",
+      "appliedAt": "2026-08-20",
+      "subject": "Thank you for applying to Zipline"
+    },
+    {
+      "id": "csv:zipline:aircraft software integration intern:2026-09-05",
+      "company": "Zipline",
+      "role": "Aircraft Software Integration Intern (Summer 2027)",
+      "status": "applied",
+      "eventAt": "2026-09-05",
+      "appliedAt": "2026-09-05",
+      "subject": "Thank you for applying to Zipline"
+    },
+    {
+      "id": "csv:ziprecruiter:intern:2026-10-09",
+      "company": "ZipRecruiter",
+      "role": "Intern",
+      "status": "rejected",
+      "eventAt": "2026-10-09",
+      "subject": "Thank You From ZipRecruiter - Software Engineer - Intern"
+    },
+    {
+      "id": "csv:cme:software engineer interns:2026-10-05",
+      "company": "CME Group",
+      "role": "SE Interns 2026-2027",
+      "status": "oa",
+      "eventAt": "2026-10-05",
+      "subject": "Reminder - CME Group invitation for assessment",
+      "deadline": {
+        "at": "2026-10-19T13:04:00-07:00",
+        "kind": "OA",
+        "display": "Oct 19, 1:04 PM PT",
+        "platform": "Glider.ai (160 min, 2 questions)"
+      }
+    },
+    {
+      "id": "csv:ibm:ai foundations software engineer research intern:2026-09-06",
+      "company": "IBM",
+      "role": "AI Foundations - SWE - Research Internship 2027 (131307)",
+      "status": "oa",
+      "eventAt": "2026-09-06",
+      "subject": "Action Required:IBM Assessments for completion - 131307",
+      "deadline": {
+        "at": "2026-09-13",
+        "kind": "OA",
+        "display": "7 days after 2026-09-06",
+        "platform": "IBM recorded competency interview"
+      }
+    },
+    {
+      "id": "csv:ibm:software developer security intern:2026-09-09",
+      "company": "IBM",
+      "role": "Software Developer - Security - Intern 2027 (131988)",
+      "status": "oa",
+      "eventAt": "2026-09-09",
+      "subject": "Action Required:IBM Assessments for completion - 131988",
+      "deadline": {
+        "at": "2026-09-16",
+        "kind": "OA",
+        "display": "7 days after 2026-09-09",
+        "platform": "IBM coding assessment + recorded competency interview"
+      }
+    },
+    {
+      "id": "csv:visa:software engineer intern:2026-09-18",
+      "company": "Visa",
+      "role": "Software Engineer Intern (1st invite)",
+      "status": "oa",
+      "eventAt": "2026-09-18",
+      "subject": "Thanks for taking the Visa Beginner Coding Assessment (Intern)",
+      "deadline": {
+        "at": "2026-09-21",
+        "kind": "OA",
+        "display": "3 days after 2026-09-18",
+        "platform": "HackerRank"
+      }
+    },
+    {
+      "id": "csv:visa:software engineer intern:2026-09-21",
+      "company": "Visa",
+      "role": "Software Engineer Intern (2nd invite)",
+      "status": "oa",
+      "eventAt": "2026-09-21",
+      "subject": "Your HackerRank Visa Beginner Coding Assessment (Intern)",
+      "deadline": {
+        "at": "2026-09-24",
+        "kind": "OA",
+        "display": "3 days after 2026-09-21",
+        "platform": "HackerRank"
+      }
+    },
+    {
+      "id": "csv:wellsfargo:technology intern:2026-09-21",
+      "company": "Wells Fargo",
+      "role": "2027 Technology Summer Internship – Early Careers",
+      "status": "oa",
+      "eventAt": "2026-09-21",
+      "subject": "Thanks for taking the Early Careers Global Technology Assessment",
+      "note": "OA HackerRank"
+    },
+    {
+      "id": "csv:snowflake:software engineer intern:2026-09-25",
+      "company": "Snowflake",
+      "role": "SWE Intern (Database Engineering) Spring 2027",
+      "status": "oa",
+      "eventAt": "2026-09-25",
+      "subject": "Your invite to [Spring 2027] Database Engineering Intern Test expires in 5 days",
+      "deadline": {
+        "at": "2026-10-09T21:42:00-07:00",
+        "kind": "OA",
+        "display": "Oct 9, 9:42 PM PT",
+        "platform": "HackerRank"
+      }
+    },
+    {
+      "id": "csv:ziprecruiter:software engineer intern:2026-09-28",
+      "company": "ZipRecruiter",
+      "role": "Software Engineer - Intern",
+      "status": "oa",
+      "eventAt": "2026-09-28",
+      "subject": "Assessment completed: ZipRecruiter Assessment",
+      "note": "OA CodeSignal"
+    },
+    {
+      "id": "csv:stripe:software engineer intern:2026-10-07",
+      "company": "Stripe",
+      "role": "Software Engineer Intern (Winter cohort)",
+      "status": "oa",
+      "eventAt": "2026-10-07",
+      "subject": "Thanks for taking the [AMER] 2026-2027 Stripe University Recruiting Assessment",
+      "note": "OA HackerRank"
+    },
+    {
+      "id": "csv:persona:software engineer intern:2026-10-09",
+      "company": "Persona",
+      "role": "Summer SWE Intern 2027",
+      "status": "oa",
+      "eventAt": "2026-10-09",
+      "subject": "Completed: Persona - Summer SWE, Intern (2027) Assessment",
+      "note": "OA CodeSignal (1.5 hr)"
+    },
+    {
+      "id": "csv:bytedance:machine learning engineer intern agent evaluation evolution:2026-10-16",
+      "company": "ByteDance",
+      "role": "MLE Intern, Agent Evaluation & Evolution (AML-Ark-US) 2027",
+      "status": "oa",
+      "eventAt": "2026-10-16",
+      "subject": "Owen Tsao, You're invited! Assessment for Machine Learning Engineer Intern",
+      "note": "OA CodeSignal"
+    },
+    {
+      "id": "csv:c3ai:forward deployed engineer intern:2026-10-21",
+      "company": "C3 AI",
+      "role": "Forward Deployed Engineer - Intern",
+      "status": "oa",
+      "eventAt": "2026-10-21",
+      "subject": "Thanks for taking the C3 AI - Forward Deployed Engineer (Intern / EP)",
+      "note": "OA HackerRank"
+    },
+    {
+      "id": "csv:salesforce:ai labs intern emerging talent:2026-10-30",
+      "company": "Salesforce",
+      "role": "AI Labs Summer Internship, Emerging Talent",
+      "status": "oa",
+      "eventAt": "2026-10-30",
+      "subject": "You completed The Salesforce HackerRank Assessment .... Now What?",
+      "note": "OA HackerRank (Futureforce)"
+    }
+  ]
+}

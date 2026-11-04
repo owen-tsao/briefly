@@ -50,6 +50,13 @@ export interface Task {
   pinOrder?: number
   /** Verbatim note line this task was extracted from — provenance for reconcile. */
   sourceExcerpt?: string
+  /**
+   * Clock time for a deadline that is not "end of that day". ISO-8601 with an offset.
+   * The daily notifier still uses `deadline` (the local calendar day); reminders use this.
+   */
+  dueAt?: string | null
+  /** Stable id from an external importer (an email-updates entry). Dedupe key for that task. */
+  externalId?: string
   /** Last time code confirmed the source line still exists in Notes. Gate for auto-complete. */
   sourceVerifiedAt?: string
   /** Set when the task was completed because its source line/note disappeared. */
