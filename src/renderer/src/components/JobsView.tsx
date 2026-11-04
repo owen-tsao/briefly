@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Check, ChevronRight, Clipboard, ClipboardPaste, Download, ExternalLink, Link2, RefreshCw, Rocket, Search, Sparkles, X } from 'lucide-react'
+import { Check, ChevronRight, Clipboard, ClipboardPaste, Download, ExternalLink, Link2, Mail, RefreshCw, Rocket, Search, Sparkles, X } from 'lucide-react'
 import type { JobRow, JobStatus, JobsView as JobsViewData } from '../../../shared/jobs'
 import { isPasted, JOB_STATUS_LABELS, OUTCOME_STATUSES, TRACKED_STATUSES } from '../../../shared/jobs'
 import { localDay } from '../../../shared/dates'
@@ -211,6 +211,18 @@ export function JobsView({ hasApiKey, onOpenSettings }: Props): React.JSX.Elemen
     const path = await window.briefly.exportJobsCsv()
     setScanMsg(path ? `Saved ${path.split('/').pop()} to Downloads` : 'Export failed')
     setTimeout(() => setScanMsg(null), 6000)
+  }
+  const importEmail = async (): Promise<void> => {
+    const r = await window.briefly.importEmailUpdates()
+    setData(r.view)
+    setScanMsg(
+      !r.ok
+        ? `Email file left the tracker alone${r.error ? ` — ${r.error}` : ''}`
+        : r.missing
+          ? 'No email file yet — an assistant can write ~/.briefly/email-updates.json'
+          : `Email: ${r.statusUpdated} status update${r.statusUpdated === 1 ? '' : 's'}, ${r.created} new, ${r.tasksCreated} task${r.tasksCreated === 1 ? '' : 's'}${r.skipped ? `, ${r.skipped} skipped` : ''}${r.ambiguous ? `, ${r.ambiguous} ambiguous` : ''}`
+    )
+    setTimeout(() => setScanMsg(null), 10_000)
   }
   const importClipboard = async (): Promise<void> => {
     const r = await window.briefly.importJobsClipboard()
@@ -482,6 +494,7 @@ export function JobsView({ hasApiKey, onOpenSettings }: Props): React.JSX.Elemen
           onNote={setNote}
           onExport={exportCsv}
           onImport={importClipboard}
+          onImportEmail={importEmail}
           filtered={Boolean(search)}
         />
       )}
@@ -608,6 +621,7 @@ function Tracker({
   onNote,
   onExport,
   onImport,
+  onImportEmail,
   filtered
 }: {
   rows: JobRow[]
@@ -615,6 +629,7 @@ function Tracker({
   onNote: (id: string, note: string) => void
   onExport: () => void
   onImport: () => void
+  onImportEmail: () => void
   filtered: boolean
 }): React.JSX.Element {
   const [filter, setFilter] = useState<TrackerFilter>('all')
@@ -646,6 +661,14 @@ function Tracker({
           )
         })}
         <div className="ml-auto flex items-center gap-1">
+          <button
+            onClick={onImportEmail}
+            title="Read ~/.briefly/email-updates.json and update statuses and deadline tasks"
+            className="flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 shadow-sm transition hover:border-slate-300 dark:border-white/[0.1] dark:bg-ink-800 dark:text-zinc-200 dark:hover:border-white/20"
+          >
+            <Mail size={11} />
+            Email
+          </button>
           <button
             onClick={onImport}
             title="Import applications: on my.greenhouse.io/applications press ⌘A, ⌘C, then click this"

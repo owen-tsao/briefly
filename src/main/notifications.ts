@@ -1,5 +1,5 @@
 import { Notification, powerMonitor } from 'electron'
-import { takeDueForNotification } from './taskStore'
+import { takeDueForNotification, takeTimedTaskReminders } from './taskStore'
 import { getNotificationsEnabled } from './settings'
 import { localDay } from '../shared/dates'
 import type { Task } from '../shared/types'
@@ -12,8 +12,28 @@ export function initNotifications(popoverOpener: () => void): void {
   scheduleDailyCheck()
   // Booting after 9am would otherwise wait until tomorrow — check once shortly after launch.
   setTimeout(notifyDueTasks, 30_000)
+  // Clock times (an OA at 9:42 PM, an interview at 2:00) use the same 3h / 1h / 15m stages as school.
+  setInterval(notifyTimedTasks, 60_000)
+  setTimeout(notifyTimedTasks, 20_000)
   // Timers freeze during sleep — re-check on wake (per-day dedup makes this spam-safe).
-  powerMonitor.on('resume', () => setTimeout(notifyDueTasks, 10_000))
+  powerMonitor.on('resume', () => {
+    setTimeout(notifyDueTasks, 10_000)
+    setTimeout(notifyTimedTasks, 10_000)
+  })
+}
+
+/** Per-task countdown. Date-only deadlines stay on the 9am digest above. */
+function notifyTimedTasks(): void {
+  try {
+    if (!getNotificationsEnabled() || !Notification.isSupported()) return
+    for (const item of takeTimedTaskReminders()) {
+      const notification = new Notification({ title: item.title, body: item.body, silent: false })
+      notification.on('click', () => openPopover?.())
+      notification.show()
+    }
+  } catch (err) {
+    console.warn('[tasks] reminders', err instanceof Error ? err.message : String(err))
+  }
 }
 
 /**

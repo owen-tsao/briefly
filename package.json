@@ -15,6 +15,7 @@
     "start": "electron-vite preview",
     "package": "electron-vite build && electron-builder --mac",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "test": "node --experimental-strip-types --import ./scripts/register-ts.mjs --test src/main/jobs/emailUpdates.test.ts src/main/taskDueReminders.test.ts",
     "install:local": "scripts/install-local.sh"
   },
   "engines": {

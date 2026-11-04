@@ -3,6 +3,7 @@ import type { JobItem, JobVerdict } from '../../shared/jobs'
 import { isPasted } from '../../shared/jobs'
 import { applyNowReason } from '../../shared/applyNow'
 import { llmConfigured, getJobsScanMinutes, getLlmProvider, getNotificationsEnabled } from '../settings'
+import { getState } from '../taskStore'
 import { isLlmConfigError } from '../llmErrors'
 import { updateTrayCount } from '../tray'
 import { setPrepareListener } from './browser/prepare'
@@ -45,6 +46,7 @@ import { fetchInstagram } from './sources/instagram'
 import { fetchJobright } from './sources/jobright'
 import { fetchSimplify } from './sources/simplify'
 import { fetchSpeedyApply } from './sources/speedyapply'
+import { importEmailUpdates } from './emailImport'
 
 export interface ScanResult {
   ok: boolean
@@ -205,6 +207,9 @@ export async function runJobsScan(opts: { force?: boolean } = {}): Promise<ScanR
     if (!llmConfigured() && added > 0) errors.push('No LLM configured — new postings were saved but not scored')
     if (scoreError) errors.push(scoreError)
 
+    // After this tick's postings are in the store, so an email can match a row that arrived today.
+    // The import itself does not await, so its load and save cannot interleave with a status click.
+    ingestEmailUpdates(errors)
     markScan(version, errors)
     updateTrayCount()
     pushView()
@@ -225,6 +230,22 @@ export async function runJobsScan(opts: { force?: boolean } = {}): Promise<ScanR
 function pushView(): void {
   const win = getWindow()
   if (win && !win.isDestroyed()) win.webContents.send('jobs:changed', getView())
+}
+
+/** Read the email drop. A bad file is reported; it does not throw and it does not save jobs.json. */
+function ingestEmailUpdates(errors: string[]): void {
+  try {
+    const r = importEmailUpdates()
+    if (!r.ok && r.error) errors.push(`email-updates: ${r.error}`)
+    if (!r.tasksChanged) return
+    const win = getWindow()
+    if (win && !win.isDestroyed()) win.webContents.send('state:changed', getState(llmConfigured()))
+    updateTrayCount()
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    errors.push(`email-updates: ${msg}`)
+    console.warn('[jobs] email-updates:', msg)
+  }
 }
 
 /** Descriptions read per tick just for pay; ATS JSON calls, no LLM. ~1 request/second, capped in wall time. */
@@ -591,6 +612,12 @@ export function initJobsScheduler(windowGetter: () => BrowserWindow | null, popo
     ensureProfile()
   } catch (err) {
     console.warn('[jobs] could not create profile folder', err)
+  }
+  // Pick up an email drop even when the jobs scan interval is off.
+  try {
+    ingestEmailUpdates([])
+  } catch (err) {
+    console.warn('[jobs] email-updates:', err instanceof Error ? err.message : String(err))
   }
   powerMonitor.on('resume', () => setTimeout(() => void tick(), 30_000))
   scheduleJobsScan()

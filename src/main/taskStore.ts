@@ -15,6 +15,7 @@ import {
 } from '../shared/dates'
 import { getDayStartHour } from './settings'
 import type { Note } from './notes'
+import { timedReminders } from './taskDueReminders'
 
 interface StoreFile {
   tasks: Task[]
@@ -24,6 +25,8 @@ interface StoreFile {
   dismissedToday?: { date: string; texts: string[] }
   /** taskId → local day it was last included in a deadline notification. */
   notified?: Record<string, string>
+  /** `${taskId}:3h|1h|15m` → when that clock-time reminder fired. */
+  timedReminders?: Record<string, string>
   /** Manual End-day marker; expires once the natural work-day boundary passes. */
   dayClosed?: {
     day: string
@@ -424,7 +427,7 @@ export function removeTask(id: string, opts: { sourceText?: string } = {}): bool
 }
 
 /** sourceNote values that mean "created by the app, not extracted from a note". */
-export const APP_SOURCES = new Set(['jobs', 'school'])
+export const APP_SOURCES = new Set(['jobs', 'school', 'email'])
 
 /** Read one task without the renderer projection; used by School to mirror done-state back. */
 export function getTask(id: string): Task | null {
@@ -478,6 +481,110 @@ export function syncTaskFromSource(id: string, fields: { text?: string; deadline
     changed = true
   }
   if (changed) save(store)
+}
+
+export interface EmailTaskWrite {
+  externalId: string
+  action: 'create' | 'update'
+  text: string
+  deadline: string
+  dueAt: string | null
+  priority: Priority
+  horizon: Horizon
+  updateText: boolean
+}
+
+/**
+ * Create or move tasks that came from an email entry. One load and one save.
+ * A task Owen already completed, dismissed, or archived is left alone.
+ * Due-time edits do not bump `updatedAt`, so a later hand-edit is still visible as one.
+ */
+export function applyEmailTaskWrites(
+  writes: EmailTaskWrite[]
+): { externalId: string; action: 'created' | 'updated' | 'unchanged' | 'closed' | 'missing'; taskId: string | null }[] {
+  if (writes.length === 0) return []
+  const store = load()
+  const now = new Date().toISOString()
+  const out: { externalId: string; action: 'created' | 'updated' | 'unchanged' | 'closed' | 'missing'; taskId: string | null }[] = []
+  let changed = false
+  for (const w of writes) {
+    const task = store.tasks.find((t) => t.externalId === w.externalId)
+    if (task && task.state !== 'open' && task.state !== 'snoozed') {
+      out.push({ externalId: w.externalId, action: 'closed', taskId: task.id })
+      continue
+    }
+    if (!task && w.action === 'update') {
+      out.push({ externalId: w.externalId, action: 'missing', taskId: null })
+      continue
+    }
+    if (!task) {
+      const id = randomUUID()
+      store.tasks.push({
+        id,
+        text: w.text.slice(0, 500),
+        track: 'job-apps',
+        priority: w.priority,
+        deadline: w.deadline,
+        dueAt: w.dueAt,
+        sourceNote: 'email',
+        externalId: w.externalId,
+        state: 'open',
+        snoozedUntil: null,
+        horizon: w.horizon,
+        createdAt: now,
+        updatedAt: now
+      })
+      changed = true
+      out.push({ externalId: w.externalId, action: 'created', taskId: id })
+      continue
+    }
+    let touched = false
+    if (task.deadline !== w.deadline) {
+      task.deadline = w.deadline
+      touched = true
+    }
+    if ((task.dueAt ?? null) !== w.dueAt) {
+      task.dueAt = w.dueAt
+      touched = true
+    }
+    const text = w.text.slice(0, 500)
+    if (w.updateText && task.text !== text) {
+      task.text = text
+      touched = true
+    }
+    if (!task.externalId) {
+      task.externalId = w.externalId
+      touched = true
+    }
+    if (touched) changed = true
+    out.push({ externalId: w.externalId, action: touched ? 'updated' : 'unchanged', taskId: task.id })
+  }
+  if (changed) save(store)
+  return out
+}
+
+/**
+ * Clock-time reminders (3 hours, 1 hour, 15 minutes) for tasks with `dueAt`.
+ * Marks each stage fired as a side effect, including stages missed while asleep.
+ */
+export function takeTimedTaskReminders(now = new Date()): { title: string; body: string }[] {
+  const store = load()
+  const before = JSON.stringify(store.timedReminders ?? {})
+  const { notifications, fired } = timedReminders(
+    store.tasks.map((t) => ({ id: t.id, text: t.text, state: t.state, dueAt: t.dueAt ?? null })),
+    store.timedReminders ?? {},
+    now
+  )
+  const alive = new Set(store.tasks.map((t) => t.id))
+  for (const key of Object.keys(fired)) {
+    const id = key.slice(0, key.lastIndexOf(':'))
+    if (!alive.has(id)) delete fired[key]
+  }
+  if (JSON.stringify(fired) !== before) {
+    store.timedReminders = fired
+    save(store)
+  }
+  return notifications
 }
 
 /**
@@ -612,6 +719,8 @@ export function applyMerge(response: MergeResponse, options: { updateToday?: boo
     if (item.id && !existing) continue
     if (existing) {
       if (existing.state === 'done' || existing.state === 'dismissed') continue
+      // Email deadlines are not in Notes. A scan must not rewrite or drop them.
+      if (existing.sourceNote === 'email') continue
       // Anything the user set by hand is pinned — the LLM never overrides it.
       if (!existing.editedByUser) existing.text = normalized.text
       if (!existing.trackPinned) existing.track = normalized.track
@@ -651,7 +760,8 @@ export function applyMerge(response: MergeResponse, options: { updateToday?: boo
   for (const id of response.removedIds ?? []) {
     const task = byId.get(id)
     // Edited tasks no longer match the notes verbatim, and recurring tasks are a
-    // standing commitment — never let the LLM archive either.
+    // standing commitment — never let the LLM archive either. Email tasks have no note line.
+    if (task?.sourceNote === 'email') continue
     if (
       task &&
       !task.editedByUser &&

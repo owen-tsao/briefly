@@ -3,7 +3,8 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { JobStatus, JobsView, ProfileFile } from '../../shared/jobs'
 import { JOB_STATUSES } from '../../shared/jobs'
-import { addTask, removeTask } from '../taskStore'
+import { addTask, getState, removeTask } from '../taskStore'
+import { llmConfigured } from '../settings'
 import { updateTrayCount } from '../tray'
 import { ensureProfile, PROFILE_FILES, profileDir } from './profile'
 import {
@@ -20,6 +21,7 @@ import {
 import { copyApplyPrompt, launchApply } from './apply'
 import { focusPrepared, prepareApplication, prepareBatch, supportedAts } from './browser/prepare'
 import { exportTrackerCsv } from './exportCsv'
+import { importEmailUpdates } from './emailImport'
 import { importApplied, parseGreenhousePaste } from './importApplied'
 import { hostToCompany, slugTitle } from './normalize'
 import { kickScoring, runJobsScan } from './pipeline'
@@ -224,6 +226,18 @@ export function registerJobsIpc(): void {
       console.warn('[jobs] csv export failed', err)
       return null
     }
+  })
+
+  /** Read ~/.briefly/email-updates.json. The file is never written; a bad file leaves the tracker alone. */
+  ipcMain.handle('jobs:importEmail', (event) => {
+    const result = importEmailUpdates()
+    if (result.tasksChanged) {
+      event.sender.send('state:changed', getState(llmConfigured()))
+      updateTrayCount()
+    } else if (result.created || result.statusUpdated) {
+      updateTrayCount()
+    }
+    return { ...result, view: view() }
   })
 
   /** Import applications from a MyGreenhouse select-all → copy. Reads the clipboard only when you click. */

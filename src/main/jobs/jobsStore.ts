@@ -14,6 +14,7 @@ import type {
 } from '../../shared/jobs'
 import { isPasted, JOB_STATUSES, OUTCOME_STATUSES } from '../../shared/jobs'
 import type { ApplySignals } from '../../shared/applyNow'
+import type { EmailLedgerEntry } from './emailUpdates'
 import { canonicalId } from './normalize'
 import { profileDir, profileFiles, profileVersion, readRules, readWatchlist } from './profile'
 
@@ -44,6 +45,11 @@ interface StoreFile {
   events: unknown[]
   /** Board handles ("greenhouse:acme") auto-watch has ever added; one it added that's gone from watchlist.md was removed on purpose. */
   autoWatched?: string[]
+  /**
+   * Ids from ~/.briefly/email-updates.json that have already been applied. Kept on the store so
+   * a repeated scan is a no-op and so a task Owen completed or deleted is not created again.
+   */
+  emailImports?: Record<string, EmailLedgerEntry>
 }
 
 function empty(): StoreFile {
