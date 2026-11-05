@@ -707,8 +707,83 @@ function findTask(tasks: TaskSnap[], entryId: string, prev: EmailLedgerEntry | u
   )
 }
 
+/**
+ * Same expansions as roleKey, but season, year, and parenthetical words stay.
+ * roleKey deletes those, which is why a generic title and a "Summer 2027"
+ * title both match; this form is only for choosing between those hits.
+ */
+function titleRankKey(input: string): string {
+  let t = input.toLowerCase()
+  t = t.replace(/\b(id|req|requisition|job)\s*[:#]?\s*\d+\b/g, ' ')
+  t = t.replace(/\br\d{4,}\b/g, ' ')
+  t = t.replace(/\b\d{5,}\b/g, ' ')
+  t = t.replace(/\bsoftware engineering\b/g, 'software engineer')
+  t = t.replace(/\b(swe|sde|se)\b/g, 'software engineer')
+  t = t.replace(/\bmle\b/g, 'machine learning engineer')
+  t = t.replace(/\bml\b/g, 'machine learning')
+  t = t.replace(/\beng\b/g, 'engineer')
+  t = t.replace(/\bdevs?\b/g, 'developer')
+  t = t.replace(/\bintern(?:ship)?s?\b/g, 'intern')
+  t = t.replace(/[^a-z0-9]+/g, ' ')
+  return t
+    .split(/\s+/)
+    .filter((w) => w && !ROLE_NOISE.has(w))
+    .join(' ')
+}
+
+function looseTitle(input: string): string {
+  return input.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+}
+
+type TitleScore = readonly [number, number, number, number]
+
+/** Fewer missing email words, then fewer extras, then an exact expansion, then an exact raw title. */
+function titleRankScore(role: string, title: string): TitleScore {
+  const wantKey = titleRankKey(role)
+  const gotKey = titleRankKey(title)
+  const want = new Set(wantKey.split(' ').filter(Boolean))
+  const got = new Set(gotKey.split(' ').filter(Boolean))
+  let missing = 0
+  for (const w of want) if (!got.has(w)) missing++
+  let extra = 0
+  for (const w of got) if (!want.has(w)) extra++
+  return [missing, extra, wantKey === gotKey ? 0 : 1, looseTitle(role) === looseTitle(title) ? 0 : 1]
+}
+
+function cmpScore(a: TitleScore, b: TitleScore): number {
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i] - b[i]
+  return 0
+}
+
+/**
+ * roleKey already decided these rows are the same company and role. Prefer the
+ * closest title: fewest missing words, then fewest extras, then an exact
+ * expansion, then an exact raw title. "… Summer 2027" beats a shorter generic
+ * title when the email names that season. Ambiguous only when two or more hits
+ * share that best score — a tie is not a guess.
+ */
+function closestTitle(role: string, hits: MatchRow[]): MatchRow | 'ambiguous' {
+  let best: MatchRow | null = null
+  let bestScore: TitleScore | null = null
+  let tied = false
+  for (const hit of hits) {
+    const score = titleRankScore(role, hit.title)
+    const cmp = bestScore ? cmpScore(score, bestScore) : -1
+    if (cmp < 0) {
+      best = hit
+      bestScore = score
+      tied = false
+    } else if (cmp === 0) {
+      tied = true
+    }
+  }
+  if (!best || tied) return 'ambiguous'
+  return best
+}
+
 function fuzzyFind(entry: EmailEntry, rows: MatchRow[], emptyRoleCount: Map<string, number>): MatchRow | 'ambiguous' | null {
   if (!entry.role.trim()) {
+    // No role words to rank. Several rows at this company stay ambiguous.
     if ((emptyRoleCount.get(companyKey(entry.company)) ?? 0) > 1) return null
     const hits = rows.filter((r) => companiesMatch(r.company, entry.company))
     if (hits.length === 1) return hits[0]
@@ -716,9 +791,8 @@ function fuzzyFind(entry: EmailEntry, rows: MatchRow[], emptyRoleCount: Map<stri
     return null
   }
   const hits = rows.filter((r) => companiesMatch(r.company, entry.company) && rolesMatch(r.title, entry.role))
-  if (hits.length === 1) return hits[0]
-  if (hits.length > 1) return 'ambiguous'
-  return null
+  if (hits.length <= 1) return hits[0] ?? null
+  return closestTitle(entry.role, hits)
 }
 
 function appliedIso(entry: EmailEntry): string | null {

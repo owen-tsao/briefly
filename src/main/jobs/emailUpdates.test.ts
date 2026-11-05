@@ -229,6 +229,85 @@ describe('matching', () => {
     assert.equal(plan.outcome.patches[0].id === plan.outcome.patches[1].id, false)
   })
 
+  it('picks the closer PayPal title when two listings share a role, and creates when none do', () => {
+    const rows = [
+      row({ id: 'paypal-swe-generic', company: 'PayPal', title: 'Software Engineer Intern', status: 'new', appliedAt: null }),
+      row({ id: 'paypal-swe-summer', company: 'PayPal', title: 'Software Engineer Intern - Summer 2027', status: 'new', appliedAt: null }),
+      row({ id: 'paypal-mle-summer', company: 'PayPal', title: 'Machine Learning Engineer Intern - Summer 2027', status: 'new', appliedAt: null }),
+      row({ id: 'paypal-mle-generic', company: 'PayPal', title: 'Machine Learning Engineer Intern', status: 'new', appliedAt: null })
+    ]
+    const plan = planEmailDocument(
+      doc([
+        { id: 'paypal-swe', company: 'PayPal', role: 'SWE Intern (Summer 2027)', status: 'applied', eventAt: '2026-09-04' },
+        { id: 'paypal-mle', company: 'PayPal', role: 'MLE Intern - Summer 2027', status: 'applied', eventAt: '2026-09-05' },
+        { id: 'paypal-cyber', company: 'PayPal', role: 'Cybersecurity Intern', status: 'applied', eventAt: '2026-09-06' }
+      ]),
+      rows,
+      {},
+      [],
+      NOW
+    )
+    assert.equal(plan.applied, true)
+    if (!plan.applied) return
+    assert.equal(plan.outcome.ambiguous, 0)
+    assert.equal(plan.outcome.statusUpdated, 2)
+    assert.equal(plan.outcome.created, 1)
+    assert.equal(plan.outcome.patches.find((p) => p.id === 'paypal-swe-summer')?.status, 'applied')
+    assert.equal(plan.outcome.patches.find((p) => p.id === 'paypal-mle-summer')?.status, 'applied')
+    assert.equal(
+      plan.outcome.patches.some((p) => p.id === 'paypal-swe-generic' || p.id === 'paypal-mle-generic'),
+      false
+    )
+    assert.equal(plan.outcome.ledger['paypal-swe'].trackerId, 'paypal-swe-summer')
+    assert.equal(plan.outcome.ledger['paypal-mle'].trackerId, 'paypal-mle-summer')
+    assert.equal(plan.outcome.ledger['paypal-swe'].status, 'applied')
+    assert.equal(plan.outcome.ledger['paypal-mle'].status, 'applied')
+    const cyber = plan.outcome.patches.find((p) => p.id === emailTrackerId('paypal-cyber'))
+    assert.equal(cyber?.status, 'applied')
+    assert.equal(cyber?.create?.title, 'Cybersecurity Intern')
+    assert.equal(plan.outcome.ledger['paypal-cyber'].status, 'applied')
+  })
+
+  it('prefers an exact title over another hit that only matches after expansion', () => {
+    const rows = [
+      row({ id: 'expanded', company: 'PayPal', title: 'Software Engineer Intern - Summer 2027', status: 'new', appliedAt: null }),
+      row({ id: 'exact', company: 'PayPal', title: 'SWE Intern (Summer 2027)', status: 'new', appliedAt: null })
+    ]
+    const plan = planEmailDocument(
+      doc([{ id: 'paypal-swe', company: 'PayPal', role: 'SWE Intern (Summer 2027)', status: 'applied', eventAt: '2026-09-04' }]),
+      rows,
+      {},
+      [],
+      NOW
+    )
+    assert.equal(plan.applied, true)
+    if (!plan.applied) return
+    assert.equal(plan.outcome.ambiguous, 0)
+    assert.equal(plan.outcome.patches.find((p) => p.id === 'exact')?.status, 'applied')
+    assert.equal(plan.outcome.patches.some((p) => p.id === 'expanded'), false)
+    assert.equal(plan.outcome.ledger['paypal-swe'].trackerId, 'exact')
+  })
+
+  it('stays ambiguous when two titles are equally close to the email', () => {
+    const rows = [
+      row({ id: 'summer', company: 'PayPal', title: 'Software Engineer Intern - Summer 2027', status: 'new', appliedAt: null }),
+      row({ id: 'winter', company: 'PayPal', title: 'Software Engineer Intern - Winter 2027', status: 'new', appliedAt: null })
+    ]
+    const plan = planEmailDocument(
+      doc([{ id: 'either', company: 'PayPal', role: 'Software Engineer Intern', status: 'applied', eventAt: '2026-09-04' }]),
+      rows,
+      {},
+      [],
+      NOW
+    )
+    assert.equal(plan.applied, true)
+    if (!plan.applied) return
+    assert.equal(plan.outcome.ambiguous, 1)
+    assert.equal(plan.outcome.created, 0)
+    assert.equal(plan.outcome.patches.length, 0)
+    assert.equal(plan.outcome.ledger.either, undefined)
+  })
+
   it('refuses an ambiguous company match instead of guessing or duplicating', () => {
     const rows = [
       row({ id: 'a', company: 'Aurora', title: 'Software Engineer Intern' }),
